@@ -52,7 +52,13 @@ class ApiAuthRepository implements AuthRepository {
   Future<AuthUser?> restore() async {
     final token = await _sessionStore.readToken();
     final userJson = await _sessionStore.readUserJson();
-    if (token == null || token.isEmpty || userJson == null) return null;
+    if (token == null || token.isEmpty) return null;
+    if (userJson == null) {
+      // A token without its user is unusable: drop it so it is not sent as
+      // the session cookie on the next request.
+      await _sessionStore.clear();
+      return null;
+    }
     try {
       return AuthUser.fromJson(jsonDecode(userJson) as Map<String, Object?>);
     } on Object {

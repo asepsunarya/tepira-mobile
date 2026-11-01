@@ -156,19 +156,16 @@ void main() {
     });
 
     test(
-      'BUG: a token without a stored user is left behind in secure storage',
+      'a token without a stored user is cleared from secure storage',
       () async {
-        // auth_repository.dart:55 returns null when userJson is missing but
-        // never clears the orphaned token, so it stays in the keychain and is
-        // still attached as the session cookie to the next request
+        // An orphaned token would otherwise stay in the keychain and still be
+        // attached as the session cookie to the next request
         // (POST /mobile/session) by SessionCookieInterceptor.
         final store = FakeSessionStore(token: 'orphan-jwe');
 
         expect(await repo(store).restore(), isNull);
         expect(store.token, isNull);
       },
-      skip: 'BUG (minor): restore() does not clear an orphaned token '
-          '(lib/data/auth/auth_repository.dart:55)',
     );
 
     test('a store that throws on read ends signedOut, not stuck unknown',
@@ -241,15 +238,12 @@ void main() {
     });
 
     test(
-      'BUG: a stale 401 from before re-sign-in ends the new session',
+      'a stale 401 from before re-sign-in does not end the new session',
       () async {
         // Request A leaves with token t1. The session ends (sign-out or a
         // first 401) and the user signs in again, storing t2. When A finally
-        // answers 401 for t1, UnauthorizedInterceptor (api_client.dart:97)
-        // fires a token-less event and AuthController._onUnauthorized
-        // (auth_providers.dart:95-99) sees signedIn, so it flags the new
-        // session expired and wipes t2. The 401 should be ignored when the
-        // request's cookie is no longer the stored token.
+        // answers 401 for t1, the 401 must be ignored because the request's
+        // session token is no longer the stored one.
         final w =
             _World(store: FakeSessionStore(token: 't1', userJson: _userJson));
         await w.settled();
@@ -268,9 +262,6 @@ void main() {
         expect(await w.settled(), isA<AuthSignedIn>());
         expect(w.store.token, 't2');
       },
-      skip: 'BUG: stale 401 for an old token signs out the fresh session '
-          '(lib/data/api_client.dart:97, '
-          'lib/features/auth/auth_providers.dart:95)',
     );
 
     test('after sign-out no session cookie is sent', () async {

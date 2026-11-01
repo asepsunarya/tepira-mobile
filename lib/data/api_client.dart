@@ -33,6 +33,11 @@ String sessionCookieNameFor(Uri apiBaseUrl) =>
 /// Google token", not "session expired".
 const String kSkipUnauthorizedEvent = 'tepira.skipUnauthorizedEvent';
 
+/// Request `extra` key: the session token [SessionCookieInterceptor] read for
+/// this request (null when none). [UnauthorizedInterceptor] uses it to ignore
+/// a late 401 for a session that has already been replaced or ended.
+const String kSessionTokenExtra = 'tepira.sessionToken';
+
 /// Broadcasts every 401 from the API so the auth layer can end the session,
 /// whichever repository made the request.
 class UnauthorizedEvents {
@@ -83,22 +88,38 @@ Dio createApiDio({
       apiBaseUrl: Uri.parse(baseUrl),
     ),
     ErrorMappingInterceptor(),
-    if (onUnauthorized != null) UnauthorizedInterceptor(onUnauthorized),
+    if (onUnauthorized != null)
+      UnauthorizedInterceptor(onUnauthorized, sessionStore: sessionStore),
   ]);
   return dio;
 }
 
 /// Calls [onUnauthorized] when a request fails with [UnauthorizedException].
 /// Must run after [ErrorMappingInterceptor].
+///
+/// With a [sessionStore], the 401 is only reported when the request was sent
+/// with the session token that is still stored: a late 401 for an old token
+/// (the user signed out or in again meanwhile) must not end the new session.
 class UnauthorizedInterceptor extends Interceptor {
-  UnauthorizedInterceptor(this.onUnauthorized);
+  UnauthorizedInterceptor(this.onUnauthorized, {this.sessionStore});
 
   final void Function() onUnauthorized;
+  final SessionStore? sessionStore;
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    final skip = err.requestOptions.extra[kSkipUnauthorizedEvent] == true;
-    if (err.error is UnauthorizedException && !skip) onUnauthorized();
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    final extra = err.requestOptions.extra;
+    final skip = extra[kSkipUnauthorizedEvent] == true;
+    if (err.error is UnauthorizedException && !skip) {
+      final store = sessionStore;
+      final current = store == null ? null : await store.readToken();
+      if (store == null || extra[kSessionTokenExtra] == current) {
+        onUnauthorized();
+      }
+    }
     handler.next(err);
   }
 }
@@ -133,8 +154,10 @@ class SessionCookieInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    options.extra[kSessionTokenExtra] = null;
     if (_isApiOrigin(options.uri)) {
       final token = await sessionStore.readToken();
+      options.extra[kSessionTokenExtra] = token;
       if (token != null && token.isNotEmpty) {
         options.headers['Cookie'] = _withSessionCookie(
           options.headers['Cookie'],
