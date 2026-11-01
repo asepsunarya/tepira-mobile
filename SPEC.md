@@ -205,7 +205,7 @@ klien memanggil ulang 3.3.
 
 Endpoint lama ini **tidak** memakai amplop `{ok, error, message}`. Responsnya
 `{ "success": true }` (200) atau `{ "success": false, "message": "<teks>" }` dengan status
-400 (nominal ≤ 0), 401 (tanpa sesi), 404 (goal tidak ditemukan/bukan milik user), atau 500.
+400 (`goalId` hilang/tidak valid, atau `amount` hilang, bukan angka, atau ≤ 0), 401 (tanpa sesi), 404 (goal tidak ditemukan/bukan milik user), atau 500.
 Tidak ada field `error`; klien bercabang hanya berdasarkan status HTTP, dan 2xx berarti
 setoran tersimpan (body sukses tidak membawa data goal).
 
