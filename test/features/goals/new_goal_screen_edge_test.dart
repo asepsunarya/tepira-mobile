@@ -529,7 +529,6 @@ void main() {
         ),
       ),
       ('400 ApiException', const ApiException('Bad', statusCode: 400)),
-      ('network', const NetworkException()),
       ('500', const ServerException(statusCode: 500)),
       ('unknown ApiException', const ApiException('Permintaan gagal.')),
     ]) {
@@ -570,17 +569,19 @@ void main() {
     testWidgets(
         'a server error is cleared when a later submit fails '
         'client validation', (tester) async {
-      final repo = _CreatingRepository(createResult: const NetworkException());
+      final repo = _CreatingRepository(
+        createResult: const ServerException(statusCode: 500),
+      );
       await _pump(tester, repo);
 
       await _fill(tester);
       await _submitAndSettle(tester);
-      expect(find.text(kNewGoalNetworkMessage), findsOneWidget);
+      expect(find.byKey(const Key('submitError')), findsOneWidget);
 
       await tester.enterText(_titleField, '');
       await _submitAndSettle(tester);
 
-      expect(find.text(kNewGoalNetworkMessage), findsNothing);
+      expect(find.byKey(const Key('submitError')), findsNothing);
       expect(find.text('Nama goal harus diisi.'), findsOneWidget);
       expect(repo.createCalls, hasLength(1));
     });

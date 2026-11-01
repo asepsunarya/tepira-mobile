@@ -9,6 +9,7 @@ Goal testGoal({
   String title = 'Dana darurat',
   int target = 10000000,
   int saved = 3450000,
+  DateTime? createdAt,
 }) {
   return Goal(
     id: id,
@@ -21,7 +22,7 @@ Goal testGoal({
     deadline: null,
     daysLeft: null,
     perMonthNeeded: null,
-    createdAt: DateTime.utc(2026, 11),
+    createdAt: createdAt ?? DateTime.utc(2026, 11),
     lastContribution: null,
     contributionCount: 0,
   );

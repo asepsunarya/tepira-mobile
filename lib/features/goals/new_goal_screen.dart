@@ -11,16 +11,89 @@ import '../../core/widgets/village_button.dart';
 import '../../core/widgets/village_card.dart';
 import '../../data/goals/goals_repository.dart';
 import 'goal_providers.dart';
+import 'model/goal.dart';
 import 'model/new_goal_input.dart';
 
-/// Message when the goal could not be sent for lack of a connection.
-const String kNewGoalNetworkMessage =
-    'Koneksi bermasalah, kavling belum dipatok. Coba lagi.';
+/// Title of the notice shown when a create failed on the network and no
+/// matching goal turned up in the reloaded list. The goal may still have
+/// been stored, so the user is asked to check before trying again.
+const String kNewGoalUncertainTitle = 'Koneksi terputus — cek dulu';
+
+/// Body of the uncertain-create notice.
+const String kNewGoalUncertainMessage =
+    'Kavlingmu mungkin sudah terpatok. Cek daftar di Desa dulu, atau coba '
+    'lagi: kami cek dulu supaya tidak terpatok dua kali.';
+
+/// Snackbar when a create that failed on the network turns out to be stored.
+const String kNewGoalRecoveredMessage =
+    'Kavling ini sudah terpatok tadi, meski koneksinya sempat terputus.';
+
+/// Shown when an explicit retry cannot load the goals list to check whether
+/// the earlier attempt was stored. Nothing is created until it can check.
+const String kNewGoalCheckFailedMessage =
+    'Belum bisa cek daftar kavling. Coba lagi sebentar lagi supaya tidak '
+    'terpatok dua kali.';
+
+/// Shown when an explicit retry finds a goal with the same title and target
+/// but cannot tell whether the earlier attempt stored it (the goals were not
+/// known before that attempt). Nothing is created or opened.
+const String kNewGoalAmbiguousMessage =
+    'Sudah ada kavling dengan nama dan target yang sama. Cek daftar di Desa '
+    'dulu supaya tidak terpatok dua kali.';
+
+/// Outcome of looking for a goal an uncertain create may have stored.
+sealed class _CreateCheck {
+  const _CreateCheck();
+}
+
+/// The goal turned up in the reloaded list.
+final class _Found extends _CreateCheck {
+  const _Found(this.goal);
+
+  final Goal goal;
+}
+
+/// The list loaded and holds no matching goal.
+final class _NotFound extends _CreateCheck {
+  const _NotFound();
+}
+
+/// The list could not be loaded, so it is unknown whether the goal exists.
+final class _Unverified extends _CreateCheck {
+  const _Unverified();
+}
+
+/// The list holds a matching goal, but without a snapshot of the goals known
+/// before the first attempt it cannot be told apart from an older one.
+final class _Ambiguous extends _CreateCheck {
+  const _Ambiguous();
+}
 
 /// The Bangun kavling screen (`/goal/new`, artboard BuatGoal): name, target,
 /// optional deadline and description. On success the Desa list is reloaded
 /// and the new goal's Kavling replaces this screen, so going back lands on
 /// the Desa.
+///
+/// A create that fails on the network (timeout, no connection, 502/503/504)
+/// may still have been stored, so it is never retried by itself and the user
+/// is not told it was not saved. Before the first create the screen takes a
+/// snapshot of the goal ids that already exist (from the Desa list, or by
+/// loading the list when the Desa has none). After a failed create the list
+/// is reloaded, and the newest goal with the same title and target that is
+/// not in the snapshot is opened with a notice: it can only come from this
+/// screen's attempts, so its `createdAt` is not compared with the phone's
+/// clock, which may be skewed against the server's. Without a snapshot no
+/// goal is ever opened as recovered. Without a match the screen says the
+/// connection dropped and offers an explicit retry, which checks the list
+/// again before creating and does not create while the list cannot be
+/// loaded or (without a snapshot) already holds an identical goal.
+///
+/// Accepted trade-off: an identical goal created on another device between
+/// the snapshot and a lost create may be opened as recovered, but a
+/// duplicate is never created.
+///
+/// Editing the title or target before a retry makes it a different goal:
+/// only goals with the current title and target are looked for.
 class NewGoalScreen extends ConsumerStatefulWidget {
   const NewGoalScreen({super.key});
 
@@ -38,6 +111,16 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
   DateTime? _deadline;
   bool _submitting = false;
   String? _submitError;
+
+  /// True after a create failed on the network and no matching goal was
+  /// found: the goal may exist, so the next submit checks the list first.
+  bool _uncertain = false;
+
+  /// Ids of the goals that existed before the first create of the current
+  /// attempt sequence, or null when the list could not be loaded then. A
+  /// matching goal is only taken for the one this screen created when it is
+  /// not in this snapshot; without a snapshot none is.
+  Set<int>? _knownIds;
 
   @override
   void dispose() {
@@ -69,24 +152,135 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
     setState(() => _submitError = null);
     if (!_formKey.currentState!.validate()) return;
 
+    final title = _title.text.trim();
+    final target = NewGoalInput.parseTarget(_target.text)!;
     setState(() => _submitting = true);
+
+    if (_uncertain) {
+      // The previous attempt may have been stored: look before creating.
+      switch (await _findCreated(title, target)) {
+        case _Found(:final goal):
+          if (!mounted) return;
+          return _openRecovered(goal);
+        case _Unverified():
+          // Cannot tell whether it was stored: creating now could duplicate.
+          if (!mounted) return;
+          setState(() {
+            _submitting = false;
+            _submitError = kNewGoalCheckFailedMessage;
+          });
+          return;
+        case _Ambiguous():
+          // An identical goal exists and may be the earlier attempt's.
+          if (!mounted) return;
+          setState(() {
+            _submitting = false;
+            _submitError = kNewGoalAmbiguousMessage;
+          });
+          return;
+        case _NotFound():
+          if (!mounted) return;
+      }
+    } else {
+      // A fresh attempt: remember what already exists, so a goal from
+      // before this submit is never "recovered" as the new one.
+      _knownIds = await _snapshotIds();
+      if (!mounted) return;
+    }
+
+    final Goal goal;
     try {
-      final goal = await ref.read(goalsRepositoryProvider).create(
-            title: _title.text.trim(),
-            target: NewGoalInput.parseTarget(_target.text)!,
+      goal = await ref.read(goalsRepositoryProvider).create(
+            title: title,
+            target: target,
             description: NewGoalInput.description(_description.text),
             deadline: _deadline,
           );
-      if (!mounted) return;
-      ref.invalidate(goalsProvider);
-      context.pushReplacement(GoalRoutes.detail(goal.id));
     } on AppException catch (error) {
       if (!mounted) return;
+      if (error is NetworkException || isGatewayError(error)) {
+        // Outcome unknown: the goal may have been stored. Never retry here.
+        final check = await _findCreated(title, target);
+        if (!mounted) return;
+        if (check case _Found(:final goal)) return _openRecovered(goal);
+        // Not found or not verifiable: the goal may exist either way.
+        setState(() {
+          _submitting = false;
+          _uncertain = true;
+        });
+        return;
+      }
       setState(() {
         _submitting = false;
         _submitError = _messageFor(error);
       });
+      return;
     }
+    if (!mounted) return;
+    ref.invalidate(goalsProvider);
+    context.pushReplacement(GoalRoutes.detail(goal.id));
+  }
+
+  /// Ids of the goals that exist now: the Desa list when it has settled
+  /// data, else a fresh load. Null when the list cannot be loaded.
+  Future<Set<int>?> _snapshotIds() async {
+    // Only look at goalsProvider when something already holds it: reading
+    // it otherwise would start a second, unawaited load. Its data is used
+    // only when settled: while reloading or after a failed refresh it still
+    // carries the previous, possibly stale list.
+    final cached = ref.exists(goalsProvider) ? ref.read(goalsProvider) : null;
+    if (cached case AsyncData(:final value)
+        when !cached.isLoading && !cached.hasError) {
+      return value.map((goal) => goal.id).toSet();
+    }
+    try {
+      final goals = await ref.read(goalsRepositoryProvider).list();
+      return goals.map((goal) => goal.id).toSet();
+    } on AppException {
+      return null;
+    }
+  }
+
+  /// Reloads the goals and looks for the newest one with [title] and
+  /// [target] that is not in the snapshot [_knownIds]. Such a goal did not
+  /// exist before the first attempt, so it is this screen's: its
+  /// `createdAt` is only used to pick the newest, never compared with the
+  /// phone's clock.
+  ///
+  /// [_Unverified] when the list cannot be loaded, which is not the same as
+  /// [_NotFound]: the goal may still exist. Without a snapshot nothing is
+  /// ever [_Found]: a matching goal gives [_Ambiguous]; a list without one
+  /// gives [_NotFound] and becomes the snapshot, since no earlier attempt
+  /// stored this goal.
+  Future<_CreateCheck> _findCreated(String title, int target) async {
+    ref.invalidate(goalsProvider);
+    final List<Goal> goals;
+    try {
+      goals = await ref.read(goalsRepositoryProvider).list();
+    } on AppException {
+      return const _Unverified();
+    }
+    final known = _knownIds;
+    Goal? match;
+    for (final goal in goals) {
+      if (known != null && known.contains(goal.id)) continue;
+      if (goal.title.trim() != title || goal.target != target) continue;
+      if (match == null || goal.createdAt.isAfter(match.createdAt)) {
+        match = goal;
+      }
+    }
+    if (known == null) {
+      if (match != null) return const _Ambiguous();
+      _knownIds = goals.map((goal) => goal.id).toSet();
+      return const _NotFound();
+    }
+    return match == null ? const _NotFound() : _Found(match);
+  }
+
+  void _openRecovered(Goal goal) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text(kNewGoalRecoveredMessage)));
+    context.pushReplacement(GoalRoutes.detail(goal.id));
   }
 
   @override
@@ -187,6 +381,16 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
                     ],
                   ),
                 ),
+                if (_uncertain) ...[
+                  const SizedBox(height: 12),
+                  _UncertainCreate(
+                    onRetry: _submitting ? null : _submit,
+                    onCheck: _submitting
+                        ? null
+                        : () =>
+                            context.canPop() ? context.pop() : context.go('/'),
+                  ),
+                ],
                 if (error != null) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -215,19 +419,60 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
   }
 }
 
-/// The inline message for a failed create. A 400 carries the server's
-/// validation message, shown as is; a lost connection asks to retry. The
-/// status code decides, since a 400 arrives as [ServerException] when the
-/// body is `{ok: false}` and as [ApiException] otherwise.
-String _messageFor(AppException error) {
-  final status = switch (error) {
-    ApiException(:final statusCode) => statusCode,
-    ServerException(:final statusCode) => statusCode,
-    _ => null,
-  };
-  if (status == 400) return error.message;
-  if (error is NetworkException) return kNewGoalNetworkMessage;
-  return error.message;
+/// The inline message for a definite create failure. A 400 carries the
+/// server's validation message, which [AppException.message] already holds,
+/// whether it arrives as [ServerException] (`{ok: false}` body) or
+/// [ApiException]. Network and gateway failures never get here; they show
+/// [_UncertainCreate] instead.
+String _messageFor(AppException error) => error.message;
+
+/// Shown after a create failed on the network and the reloaded list had no
+/// matching goal: the request may still have reached the server, so the
+/// user checks the Desa or retries explicitly (the retry looks again first).
+class _UncertainCreate extends StatelessWidget {
+  const _UncertainCreate({required this.onRetry, required this.onCheck});
+
+  final VoidCallback? onRetry;
+  final VoidCallback? onCheck;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = VillageColors.of(context);
+    return VillageCard(
+      key: const Key('uncertain-create'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            kNewGoalUncertainTitle,
+            style: villageText(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: c.ink,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            kNewGoalUncertainMessage,
+            style: villageText(fontSize: 12, color: c.redup, height: 1.4),
+          ),
+          const SizedBox(height: 8),
+          VillageButton(
+            key: const Key('uncertain-retry'),
+            label: 'Coba lagi',
+            variant: VillageButtonVariant.soft,
+            onPressed: onRetry,
+          ),
+          const SizedBox(height: 6),
+          TextButton(
+            key: const Key('uncertain-check'),
+            onPressed: onCheck,
+            child: const Text('Cek daftar di Desa'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Back button and the "Bangun kavling" title.
