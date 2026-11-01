@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: apk-${{ github.ref }}
   cancel-in-progress: true
@@ -17,26 +20,29 @@ jobs:
       # Google OAuth client IDs: repo secret wins, else repo variable, else empty.
       TEPIRA_GOOGLE_SERVER_CLIENT_ID: ${{ secrets.TEPIRA_GOOGLE_SERVER_CLIENT_ID || vars.TEPIRA_GOOGLE_SERVER_CLIENT_ID }}
       TEPIRA_GOOGLE_IOS_CLIENT_ID: ${{ secrets.TEPIRA_GOOGLE_IOS_CLIENT_ID || vars.TEPIRA_GOOGLE_IOS_CLIENT_ID }}
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
           cache: true
 
       - run: flutter pub get
 
+      # Signing secrets are scoped to this step only. This is the stable DEV
+      # key; a future release key will use separate ANDROID_RELEASE_* secrets.
       - name: Configure release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
@@ -46,7 +52,7 @@ jobs:
               echo "keyAlias=$ANDROID_KEY_ALIAS"
               echo "keyPassword=$ANDROID_KEY_PASSWORD"
             } > android/key.properties
-            echo "Signing with the release keystore from repo secrets."
+            echo "Signing with the dev keystore from repo secrets."
           else
             echo "::warning::ANDROID_KEYSTORE_BASE64 not set; APK is signed with the debug key."
           fi
@@ -63,7 +69,7 @@ jobs:
           mv build/app/outputs/flutter-apk/app-release.apk \
             "build/app/outputs/flutter-apk/tepira-${GITHUB_SHA::7}.apk"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: tepira-apk-${{ github.sha }}
           path: build/app/outputs/flutter-apk/tepira-*.apk

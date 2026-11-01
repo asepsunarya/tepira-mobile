@@ -1,0 +1,3 @@
+// Copy to GoogleSignIn.local.xcconfig (git-ignored) and fill in the reversed
+// iOS client ID from Google Cloud ("iOS URL scheme" on the client page).
+GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.REPLACE_ME

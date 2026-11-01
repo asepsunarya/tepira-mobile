@@ -29,6 +29,17 @@ Workflow `.github/workflows/apk.yml` membangun APK release di setiap push ke
 | `TEPIRA_GOOGLE_SERVER_CLIENT_ID` | secret atau variable | lihat *Login Google* |
 | `TEPIRA_GOOGLE_IOS_CLIENT_ID` | secret atau variable | lihat *Login Google* |
 
+**Kunci di `ANDROID_*` adalah kunci DEV yang stabil**, bukan kunci rilis: dipakai
+supaya APK dari CI bisa di-update di atas instalasi sebelumnya dan supaya SHA-1-nya
+tetap untuk client OAuth Android dev. Kunci rilis (Play Store) nanti terpisah:
+secret `ANDROID_RELEASE_KEYSTORE_BASE64` / `ANDROID_RELEASE_KEYSTORE_PASSWORD` /
+`ANDROID_RELEASE_KEY_ALIAS` / `ANDROID_RELEASE_KEY_PASSWORD`, plus client OAuth
+Android sendiri yang terdaftar dengan SHA-1 kunci rilis (atau Play App Signing).
+
+Secret keystore hanya diekspos ke step *Configure release signing*; workflow
+berjalan dengan `permissions: contents: read` dan semua action di-pin ke commit SHA
+(versi di komentar; perbarui SHA dan komentarnya bersamaan).
+
 Tanpa secret keystore, APK ditandatangani dengan debug key (tetap bisa
 di-install untuk test). Lokal, release signing dibaca dari
 `android/key.properties` (`storeFile`, `storePassword`, `keyAlias`,
@@ -66,13 +77,33 @@ Di Google Cloud (project yang sama dengan web tepira):
   keystore (debug: `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`;
   rilis: SHA-1 kunci upload atau Play App Signing). Client ini tidak dipakai di kode,
   Google mencocokkannya lewat package name + SHA-1.
-- **iOS**: buat client ID tipe *iOS*, lalu tambahkan *reversed client ID* sebagai URL scheme
-  di `ios/Runner/Info.plist` (`CFBundleURLSchemes`).
+- **iOS**: buat client ID tipe *iOS* (bundle ID `id.tepira.tepiraMobile`), lalu set
+  *reversed client ID*-nya (lihat *URL scheme iOS* di bawah).
 - **Backend**: `TEPIRA_MOBILE_GOOGLE_CLIENT_IDS` di repo `tepira` harus memuat client ID web
   (audience `idToken` saat `serverClientId` diisi); boleh ditambah client Android/iOS.
 
 Tanpa `TEPIRA_GOOGLE_SERVER_CLIENT_ID`, Android tidak memberi `idToken` dan layar Masuk
 menampilkan "Google tidak memberi token masuk".
+
+### URL scheme iOS
+
+`ios/Runner/Info.plist` mendaftarkan URL scheme `$(GOOGLE_REVERSED_CLIENT_ID)`, build
+setting yang didefinisikan di `ios/Flutter/GoogleSignIn.xcconfig` (di-include oleh
+`Debug.xcconfig` dan `Release.xcconfig`). Nilai default-nya placeholder
+`com.googleusercontent.apps.unset`, jadi build iOS tetap jalan sebelum client iOS ada
+(login Google di iOS baru berfungsi setelah nilai asli diisi).
+
+Setelah client iOS dibuat, ambil *iOS URL scheme* dari halaman client di Google Cloud
+(bentuknya `com.googleusercontent.apps.<angka>-<hash>`, yaitu client ID yang dibalik), lalu:
+
+```bash
+cp ios/Flutter/GoogleSignIn.local.xcconfig.example ios/Flutter/GoogleSignIn.local.xcconfig
+# edit: GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.<angka>-<hash>
+```
+
+File `GoogleSignIn.local.xcconfig` di-ignore git. Untuk CI/`xcodebuild`, bisa juga
+langsung sebagai build setting: `xcodebuild ... GOOGLE_REVERSED_CLIENT_ID=com.googleusercontent.apps.<...>`.
+Client ID-nya sendiri tetap lewat `--dart-define=TEPIRA_GOOGLE_IOS_CLIENT_ID=...`.
 
 ## Claude Code
 
