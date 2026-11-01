@@ -391,14 +391,18 @@ Logika murni di `lib/mobile/today.ts` `computeSafeToday(...)`, tanpa import. Not
     **tidak** masuk `S_before` maupun `E_today`.
 - `spent.today = E_today`, `spent.month = E_month`. Keduanya menghitung semua jajan, sama dengan web
   dan Cyrene.
-- **Rentang baca jajan di route.** Route membaca jajan dengan `date` di
-  `[m0, max(m1, t2))`, dengan `m1` = awal bulan WIB berikutnya dan `t2` = awal lusa WIB
-  (`wibDayRange(now, 2).start`). Pada hari terakhir bulan, `t1 = m1`, sehingga jajan bertanggal
-  besok jatuh di bulan berikutnya. Saldo dompet sudah dipotong oleh jajan itu, jadi jajan itu tetap
-  harus dibaca dan dikelompokkan sebagai "besok" (`E_next'`). `bucketExpenses` sudah menangani
-  baris seperti ini: baris di luar `[m0, m1)` tidak masuk `E_month` maupun `S_before`, dan baris
-  `≥ t1` hanya masuk `E_next'`. `computeMonthSummary` tidak menyaring tanggal, jadi route hanya
-  mengopernya baris dengan `date` di `[m0, m1)`.
+- **Rentang baca jajan di route.** Route membaca jajan dengan `date ≥ m0`, **tanpa batas atas**
+  (keputusan koordinator 2026-11-01). Alasannya: form web (`app/expenses/actions.ts`) menyimpan
+  tanggal apa pun, jadi bisa ada jajan bertanggal jauh di depan (mis. 25 Des yang dicatat 16 Nov).
+  Saldo dompet sudah dipotong oleh jajan itu, jadi basis `wallet` harus menambahkannya kembali
+  lewat `E_next'` (`date ≥ t1`, tanpa batas akhir). Rentang lama `[m0, max(m1, t2))` membuat
+  jatah harian basis `wallet` turun-naik tergantung tanggal jajan masa depan itu. Jajan masa depan
+  jarang, jadi query tetap ringan. `bucketExpenses` sudah menangani baris seperti ini: baris di
+  luar `[m0, m1)` (`m1` = awal bulan WIB berikutnya) tidak masuk `E_month` maupun `S_before`, dan
+  baris `≥ t1` hanya masuk `E_next'`. Ini juga menutup hari terakhir bulan, saat `t1 = m1` dan
+  jajan bertanggal besok jatuh di bulan berikutnya. `computeMonthSummary` tidak menyaring tanggal,
+  jadi route **wajib** hanya mengopernya baris dengan `date` di `[m0, m1)`; kalau tidak, jajan
+  bulan depan ikut masuk `budget.spent` dan status bulan ini.
 
 **Basis `budget`** (status bukan `NO_BUDGET`). Semua jajan dihitung, termasuk dari dompet
 dicadangkan, supaya angka harian selalu sejalan dengan status anggaran bulan:

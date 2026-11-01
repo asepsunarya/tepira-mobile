@@ -126,9 +126,9 @@ dipakai web dan Cyrene; izin untuk itu diminta eksplisit bersama PR.
   jumlah jajan yang memakai dompet itu). Laporkan hasilnya ke koordinator dan tunggu keputusan
   sebelum lanjut. SPEC §3.3 dan §11 asumsi 11 menganggap nilainya 0 baris.
 - Route `app/api/mobile/today/route.ts` mengambil:
-  - jajan dengan `date` di `[m0, max(awal bulan depan, awal lusa))`, semua WIB (dengan
-    `isReserved`/`isDebt` dompet), supaya pada hari terakhir bulan jajan bertanggal besok (saldo
-    dompet sudah dipotong) tetap terhitung sebagai "besok" (SPEC §3.4). `bucketExpenses` sudah
+  - jajan dengan `date ≥ m0`, **tanpa batas atas** (WIB, dengan `isReserved`/`isDebt` dompet).
+    Form web bisa menyimpan jajan bertanggal jauh di depan yang sudah memotong saldo dompet, jadi
+    semua baris `≥ t1` harus terbaca sebagai `E_next'` (SPEC §3.4). `bucketExpenses` sudah
     menangani baris itu; `computeMonthSummary` hanya menerima baris di `[m0, awal bulan depan)`;
   - Salary + Bonus beserta `allocations` bulan itu (seperti `app/api/cyrene/summary/route.ts:84-88`);
   - setoran bulan itu: `Contribution` tidak punya `userId`, jadi disaring lewat goal,
@@ -143,7 +143,9 @@ dipakai web dan Cyrene; izin untuk itu diminta eksplisit bersama PR.
   - jajan bertanggal besok tidak mengubah `allowance`;
   - `savedThisMonth` tidak menghitung setoran ke goal milik user lain;
   - hari terakhir bulan: jajan bertanggal besok dari dompet bebas masuk `E_next'` (basis `wallet`
-    tidak turun), tidak masuk `budget.spent`.
+    tidak turun), tidak masuk `budget.spent`;
+  - jajan bertanggal bulan depan atau lebih jauh (dari web) masuk `E_next'`, tidak masuk
+    `budget.spent`.
 - Verifikasi: `npm run test:mobile && npm run test:mobile-api && npm run lint`.
 
 **B4. `POST /api/mobile/expenses`** · M · bergantung: B2 (mapper dompet), B3 (`buildToday`)
