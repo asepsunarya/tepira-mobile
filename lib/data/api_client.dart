@@ -11,8 +11,20 @@ const String kApiBaseUrl = String.fromEnvironment(
   defaultValue: 'https://tepira.asepsunarya.com/api',
 );
 
-/// Auth.js cookie name; the mobile token is the same JWE the web uses.
+/// Auth.js session cookie name over plain http (local dev). The mobile token
+/// is the same JWE the web uses.
 const String kSessionCookieName = 'authjs.session-token';
+
+/// Auth.js session cookie name over https (production): Auth.js adds the
+/// `__Secure-` prefix when the site is served securely.
+const String kSecureSessionCookieName = '__Secure-$kSessionCookieName';
+
+/// The Auth.js session cookie name the backend at [apiBaseUrl] expects:
+/// [kSecureSessionCookieName] for https, [kSessionCookieName] otherwise.
+String sessionCookieNameFor(Uri apiBaseUrl) =>
+    apiBaseUrl.scheme.toLowerCase() == 'https'
+        ? kSecureSessionCookieName
+        : kSessionCookieName;
 
 /// Single dio instance for the tepira API. Repositories depend on this; screens never do.
 final dioProvider = Provider<Dio>(
@@ -46,10 +58,14 @@ Dio createApiDio({
   return dio;
 }
 
-/// Adds `authjs.session-token=<token>` to the `Cookie` header when a session
-/// exists, and only for requests to the API origin (scheme, host and port) so
-/// the token never leaks elsewhere or over plain HTTP. Caller-set cookies are
-/// kept.
+/// Adds the Auth.js session cookie (`<name>=<token>`) to the `Cookie` header
+/// when a session exists, and only for requests to the API origin (scheme,
+/// host and port) so the token never leaks elsewhere or over plain HTTP.
+///
+/// The name follows the API base URL scheme (see [sessionCookieNameFor]):
+/// `__Secure-authjs.session-token` for https, `authjs.session-token` for http.
+/// Other caller-set cookies are kept; if the caller already set a cookie with
+/// the same session name, the caller's value wins.
 class SessionCookieInterceptor extends Interceptor {
   SessionCookieInterceptor({
     required this.sessionStore,
@@ -58,6 +74,9 @@ class SessionCookieInterceptor extends Interceptor {
 
   final SessionStore sessionStore;
   final Uri apiBaseUrl;
+
+  /// Session cookie name for [apiBaseUrl].
+  String get cookieName => sessionCookieNameFor(apiBaseUrl);
 
   bool _isApiOrigin(Uri uri) =>
       uri.scheme.toLowerCase() == apiBaseUrl.scheme.toLowerCase() &&
@@ -74,7 +93,8 @@ class SessionCookieInterceptor extends Interceptor {
       if (token != null && token.isNotEmpty) {
         options.headers['Cookie'] = _withSessionCookie(
           options.headers['Cookie'],
-          '$kSessionCookieName=$token',
+          cookieName,
+          token,
         );
       }
     }
@@ -82,7 +102,7 @@ class SessionCookieInterceptor extends Interceptor {
   }
 }
 
-String _withSessionCookie(Object? existing, String sessionCookie) {
+String _withSessionCookie(Object? existing, String name, String token) {
   final current =
       existing is Iterable ? existing.join('; ') : (existing?.toString() ?? '');
   final pairs = current
@@ -91,9 +111,9 @@ String _withSessionCookie(Object? existing, String sessionCookie) {
       .where((pair) => pair.isNotEmpty)
       .toList();
   final hasSession = pairs.any(
-    (pair) => pair.split('=').first.trim() == kSessionCookieName,
+    (pair) => pair.split('=').first.trim() == name,
   );
-  if (!hasSession) pairs.add(sessionCookie);
+  if (!hasSession) pairs.add('$name=$token');
   return pairs.join('; ');
 }
 
@@ -152,6 +172,8 @@ AppException? mapDioException(DioException error) {
       // mid-transfer arrives here as `unknown`.
       return isTransportIoError(error.error) ? const NetworkException() : null;
     case DioExceptionType.badCertificate:
+      // TLS certificate rejected: the user sees a connection problem.
+      return const NetworkException();
     case DioExceptionType.cancel:
       return null;
   }

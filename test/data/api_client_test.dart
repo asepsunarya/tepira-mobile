@@ -36,7 +36,7 @@ void main() {
 
       expect(
         adapter.requests.single.headers['Cookie'],
-        'authjs.session-token=jwe-token',
+        '__Secure-authjs.session-token=jwe-token',
       );
     });
 
@@ -149,6 +149,7 @@ void main() {
       DioExceptionType.receiveTimeout,
       DioExceptionType.transformTimeout,
       DioExceptionType.connectionError,
+      DioExceptionType.badCertificate,
     ]) {
       test('${type.name} -> NetworkException', () {
         final dio = _dio(FakeHttpAdapter.failing(type));

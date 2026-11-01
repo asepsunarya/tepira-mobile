@@ -56,7 +56,10 @@ void main() {
     };
     sent.forEach((base, url) {
       test('$base -> $url gets cookie', () async {
-        expect(await _cookieFor(base, url), 'authjs.session-token=jwe');
+        final name = Uri.parse(base).scheme.toLowerCase() == 'https'
+            ? '__Secure-authjs.session-token'
+            : 'authjs.session-token';
+        expect(await _cookieFor(base, url), '$name=jwe');
       });
     });
 
@@ -82,13 +85,13 @@ void main() {
     test('empty caller Cookie header', () async {
       expect(
         await _cookieFor(base, '/x', headers: {'Cookie': ''}),
-        'authjs.session-token=jwe',
+        '__Secure-authjs.session-token=jwe',
       );
     });
     test('caller header with trailing "; "', () async {
       expect(
         await _cookieFor(base, '/x', headers: {'Cookie': 'a=1; '}),
-        'a=1; authjs.session-token=jwe',
+        'a=1; __Secure-authjs.session-token=jwe',
       );
     });
     test('caller-set (different) session token is kept, not overwritten',
@@ -97,9 +100,9 @@ void main() {
         await _cookieFor(
           base,
           '/x',
-          headers: {'Cookie': 'authjs.session-token=other'},
+          headers: {'Cookie': '__Secure-authjs.session-token=other'},
         ),
-        'authjs.session-token=other',
+        '__Secure-authjs.session-token=other',
       );
     });
     test('lowercase "cookie" key is merged, not duplicated', () async {
@@ -111,12 +114,24 @@ void main() {
       final h = adapter.requests.single.headers;
       final keys = h.keys.where((k) => k.toLowerCase() == 'cookie').toList();
       expect(keys, hasLength(1));
-      expect(h[keys.single], 'a=1; authjs.session-token=jwe');
+      expect(h[keys.single], 'a=1; __Secure-authjs.session-token=jwe');
     });
-    test('similarly-named cookie does not suppress session cookie', () async {
+    test('similarly-named cookie does not suppress session cookie (https)',
+        () async {
       expect(
         await _cookieFor(
           base,
+          '/x',
+          headers: {'Cookie': 'authjs.session-token=z'},
+        ),
+        'authjs.session-token=z; __Secure-authjs.session-token=jwe',
+      );
+    });
+    test('similarly-named cookie does not suppress session cookie (http)',
+        () async {
+      expect(
+        await _cookieFor(
+          'http://10.0.2.2:3000/api',
           '/x',
           headers: {'Cookie': '__Secure-authjs.session-token=z'},
         ),
@@ -151,7 +166,7 @@ void main() {
       final e = await failWith(const FormatException('x'));
       expect(e.error, isNot(isA<AppException>()));
     });
-    test('mapDioException: badCertificate -> null', () {
+    test('mapDioException: badCertificate -> NetworkException', () {
       expect(
         mapDioException(
           DioException(
@@ -160,7 +175,7 @@ void main() {
             error: const HandshakeException('x'),
           ),
         ),
-        isNull,
+        isA<NetworkException>(),
       );
     });
     test('mapDioException: cancel -> null', () {

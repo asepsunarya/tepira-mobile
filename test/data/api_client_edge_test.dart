@@ -83,7 +83,7 @@ void main() {
 
       await dio.get<Object?>('https://api.test/api/mobile/goals');
 
-      expect(_cookie(adapter), 'authjs.session-token=jwe');
+      expect(_cookie(adapter), '__Secure-authjs.session-token=jwe');
     });
 
     test('matches the API host case-insensitively', () async {
@@ -92,7 +92,7 @@ void main() {
 
       await dio.get<Object?>('https://API.TEST/api/mobile/goals');
 
-      expect(_cookie(adapter), 'authjs.session-token=jwe');
+      expect(_cookie(adapter), '__Secure-authjs.session-token=jwe');
     });
 
     test('works with a local dev base URL with a port', () async {
@@ -143,7 +143,7 @@ void main() {
         options: Options(headers: {'Cookie': 'locale=id'}),
       );
 
-      expect(_cookie(adapter), 'locale=id; authjs.session-token=jwe');
+      expect(_cookie(adapter), 'locale=id; __Secure-authjs.session-token=jwe');
     });
 
     test('is not duplicated when the caller already set it', () async {
@@ -153,11 +153,83 @@ void main() {
       await dio.get<Object?>(
         '/mobile/goals',
         options: Options(
-          headers: {'Cookie': 'authjs.session-token=jwe; locale=id'},
+          headers: {'Cookie': '__Secure-authjs.session-token=jwe; locale=id'},
         ),
       );
 
-      expect(_cookie(adapter), 'authjs.session-token=jwe; locale=id');
+      expect(_cookie(adapter), '__Secure-authjs.session-token=jwe; locale=id');
+    });
+  });
+
+  group('session cookie name follows the API scheme', () {
+    test('sessionCookieNameFor: https -> __Secure- prefixed name', () {
+      expect(
+        sessionCookieNameFor(Uri.parse('https://api.test/api')),
+        '__Secure-authjs.session-token',
+      );
+      expect(
+        sessionCookieNameFor(Uri.parse('HTTPS://api.test/api')),
+        '__Secure-authjs.session-token',
+      );
+    });
+
+    test('sessionCookieNameFor: http -> plain name', () {
+      expect(
+        sessionCookieNameFor(Uri.parse('http://10.0.2.2:3000/api')),
+        'authjs.session-token',
+      );
+    });
+
+    test('https base sends __Secure-authjs.session-token', () async {
+      final adapter = FakeHttpAdapter();
+      final dio = _dio(adapter, store: FakeSessionStore(token: 'jwe'));
+
+      await dio.get<Object?>('/mobile/goals');
+
+      expect(_cookie(adapter), '__Secure-authjs.session-token=jwe');
+    });
+
+    test('http base sends authjs.session-token', () async {
+      final adapter = FakeHttpAdapter();
+      final dio = _dio(
+        adapter,
+        baseUrl: 'http://localhost:3000/api',
+        store: FakeSessionStore(token: 'jwe'),
+      );
+
+      await dio.get<Object?>('/mobile/goals');
+
+      expect(_cookie(adapter), 'authjs.session-token=jwe');
+    });
+
+    test('https: caller-set __Secure- session cookie is preserved', () async {
+      final adapter = FakeHttpAdapter();
+      final dio = _dio(adapter, store: FakeSessionStore(token: 'jwe'));
+
+      await dio.get<Object?>(
+        '/mobile/goals',
+        options: Options(
+          headers: {'Cookie': 'locale=id; __Secure-authjs.session-token=mine'},
+        ),
+      );
+
+      expect(_cookie(adapter), 'locale=id; __Secure-authjs.session-token=mine');
+    });
+
+    test('http: caller-set plain session cookie is preserved', () async {
+      final adapter = FakeHttpAdapter();
+      final dio = _dio(
+        adapter,
+        baseUrl: 'http://localhost:3000/api',
+        store: FakeSessionStore(token: 'jwe'),
+      );
+
+      await dio.get<Object?>(
+        '/mobile/goals',
+        options: Options(headers: {'Cookie': 'authjs.session-token=mine'}),
+      );
+
+      expect(_cookie(adapter), 'authjs.session-token=mine');
     });
   });
 
@@ -171,7 +243,7 @@ void main() {
       await store.clear();
       await dio.get<Object?>('/mobile/goals');
 
-      expect(_cookie(adapter, 0), 'authjs.session-token=jwe');
+      expect(_cookie(adapter, 0), '__Secure-authjs.session-token=jwe');
       expect(adapter.requests[1].headers.containsKey('Cookie'), isFalse);
     });
 
@@ -185,7 +257,7 @@ void main() {
       await dio.get<Object?>('/mobile/goals');
 
       expect(adapter.requests[0].headers.containsKey('Cookie'), isFalse);
-      expect(_cookie(adapter, 1), 'authjs.session-token=new-jwe');
+      expect(_cookie(adapter, 1), '__Secure-authjs.session-token=new-jwe');
     });
 
     test('is not sent for an empty token', () async {
