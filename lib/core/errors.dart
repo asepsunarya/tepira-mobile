@@ -43,6 +43,13 @@ class ServerException extends AppException {
   final int? statusCode;
 }
 
+/// True for HTTP 502/503/504: the gateway lost the upstream, so the request
+/// may or may not have been processed. Callers should treat it like a
+/// [NetworkException] (outcome unknown), not as a definite failure.
+bool isGatewayError(AppException error) =>
+    error is ServerException &&
+    const {502, 503, 504}.contains(error.statusCode);
+
 class ApiException extends AppException {
   const ApiException(super.message, {this.statusCode});
 

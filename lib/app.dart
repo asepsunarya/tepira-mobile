@@ -6,6 +6,7 @@ import 'core/routes.dart';
 import 'core/theme.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_screen.dart';
+import 'features/goals/contribute_screen.dart';
 import 'features/goals/goal_detail_screen.dart';
 import 'features/goals/goals_screen.dart';
 import 'features/goals/new_goal_screen.dart';
@@ -100,10 +101,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           goalId: GoalRoutes.parseId(state.pathParameters['id']!),
         ),
       ),
-      // Placeholder until T10 (deposit).
       GoRoute(
         path: GoalRoutes.record,
-        builder: (context, state) => const _ComingSoon(title: 'Catat'),
+        builder: (context, state) => ContributeScreen(
+          goalParam: state.uri.queryParameters[GoalRoutes.recordGoalParam],
+        ),
       ),
       GoRoute(
         path: kSettingsPath,
@@ -172,21 +174,6 @@ class _Settings extends ConsumerWidget {
         await controller.signOut();
         router.go(kLoginPath);
       },
-    );
-  }
-}
-
-/// Stand-in for a screen a later task builds.
-class _ComingSoon extends StatelessWidget {
-  const _ComingSoon({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: const Center(child: Text('Segera hadir')),
     );
   }
 }

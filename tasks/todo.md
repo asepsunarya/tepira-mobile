@@ -22,7 +22,7 @@ Rincian tiap tugas ada di `tasks/plan.md`. Satu commit per tugas.
 - [x] T7 Layar Desa: skeleton, kosong, daftar, muat ulang + widget test
 - [x] T8 Layar Kavling: ilustrasi tahap, angka, riwayat + widget test
 - [x] T9 Layar Bangun kavling + test validasi
-- [ ] T10 Layar Setor + test
+- [x] T10 Layar Setor + test
 - [x] T11 Pengaturan minimal + keluar
 
 ## Checkpoint 3
