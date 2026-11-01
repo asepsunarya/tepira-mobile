@@ -264,6 +264,30 @@ void main() {
       },
     );
 
+    test('a failed clear after a 401 still recovers on the next 401', () async {
+      final store =
+          _FailingClearStore(token: 't1', userJson: _userJson, failures: 1);
+      final w = _World(store: store);
+      await w.settled();
+
+      w.adapter.reply('/mobile/goals', 401, const {});
+      await w.goals();
+      expect(await w.settled(), const AuthSignedOut(sessionExpired: true));
+      expect(store.clearCalls, 1);
+
+      w.adapter.reply('/mobile/session', 200, _sessionBody('t2'));
+      await w.auth.signIn();
+      expect(await w.settled(), isA<AuthSignedIn>());
+      expect(store.token, 't2');
+
+      w.adapter.reply('/mobile/goals', 401, const {});
+      await w.goals();
+      expect(await w.settled(), const AuthSignedOut(sessionExpired: true));
+      expect(store.clearCalls, 2);
+      expect(store.token, isNull);
+      expect(store.userJson, isNull);
+    });
+
     test('after sign-out no session cookie is sent', () async {
       final w =
           _World(store: FakeSessionStore(token: 't1', userJson: _userJson));
@@ -501,5 +525,20 @@ class _GatedSignInRepo extends FakeAuthRepository {
     signInCalls++;
     await gate.future;
     return null;
+  }
+}
+
+/// Store whose first [failures] clears throw, as a broken keystore would.
+class _FailingClearStore extends FakeSessionStore {
+  _FailingClearStore({super.token, super.userJson, required this.failures});
+
+  final int failures;
+  int clearCalls = 0;
+
+  @override
+  Future<void> clear() async {
+    clearCalls++;
+    if (clearCalls <= failures) throw StateError('keystore unavailable');
+    await super.clear();
   }
 }
