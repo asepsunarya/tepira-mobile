@@ -354,8 +354,8 @@ class _GoogleButton extends StatelessWidget {
                   SizedBox.square(
                     dimension: 28,
                     child: DecoratedBox(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: c.putih,
                         shape: BoxShape.circle,
                       ),
                       child: Padding(
@@ -375,7 +375,7 @@ class _GoogleButton extends StatelessWidget {
                     style: villageText(
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
-                      color: Colors.white,
+                      color: c.putih,
                     ),
                   ),
                 ],

@@ -116,7 +116,7 @@ class _StatusCode extends StatelessWidget {
     final c = VillageColors.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.putih,
         border: Border.all(color: c.garis, width: 2),
         borderRadius: BorderRadius.circular(VillageRadius.pill),
       ),
