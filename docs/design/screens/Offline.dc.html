@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Desa sedang offline</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #d9dde6 0%, #e6e9f0 45%, #f6f1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 56px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <div style="background: #fff3d1; border: 2px solid #ffffff; border-radius: 18px; box-shadow: 0 10px 30px rgba(120,60,100,0.14); padding: 10px 14px; display: flex; align-items: center; gap: 10px">
+      <span style="width: 10px; height: 10px; border-radius: 5px; background: #f0a06a; flex: 0 0 auto"></span>
+      <div style="display: flex; flex-direction: column; flex: 1 1 0">
+        <span style="font-size: 13px; font-weight: 900; color: #a87a12">Offline · menampilkan data terakhir</span>
+        <span style="font-size: 11px; font-weight: 800; color: #74647a">Terakhir sinkron hari ini 07:12. Catatan baru disimpan di HP dulu.</span>
+      </div>
+      <button type="button" onClick="{{retry}}" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 0; background: #ffffff; color: #a87a12; font-size: 12px; font-weight: 900; cursor: pointer">{{retryLabel}}</button>
+    </div>
+
+    <div style="background: rgba(255,250,247,0.88); border: 2px solid #ffffff; border-radius: 22px; box-shadow: 0 10px 30px rgba(120,60,100,0.18); padding: 12px 14px; display: flex; align-items: center; gap: 10px; opacity: 0.85">
+      <div style="display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; line-height: 1.15">
+        <span style="font-size: 13px; font-weight: 900">Warga Rajin</span>
+        <span style="font-size: 11px; font-weight: 800; color: #74647a">1.340 XP · dari cache</span>
+      </div>
+      <span style="background: #f3e8ee; color: #74647a; font-weight: 900; font-size: 14px; padding: 6px 10px; border-radius: 999px">Lv 5</span>
+    </div>
+
+    <div style="background: linear-gradient(180deg, #c9d3dd, #b4c3cf); border: 2px solid #ffffff; border-radius: 22px; box-shadow: 0 10px 30px rgba(120,60,100,0.18); height: 170px; position: relative; overflow: hidden">
+      <svg aria-hidden="true" width="354" height="166" viewBox="0 0 354 166" style="position: absolute; left: 0; top: 0">
+        <ellipse cx="177" cy="136" rx="170" ry="30" fill="#8fa6b6"></ellipse>
+        <ellipse cx="177" cy="128" rx="136" ry="24" fill="#d9c58a"></ellipse>
+        <ellipse cx="177" cy="122" rx="120" ry="18" fill="#8fbfae"></ellipse>
+        <rect x="150" y="84" width="50" height="38" fill="#f3f0ee"></rect>
+        <path d="M146 86 L175 60 L204 86 Z" fill="#d9a3b8"></path>
+        <rect x="168" y="100" width="14" height="22" fill="#5a4a5e"></rect>
+        <rect x="262" y="96" width="4" height="26" fill="#5a4a5e"></rect>
+        <path d="M264 60 L282 96 L246 96 Z" fill="#5f8f7c"></path>
+        <ellipse cx="90" cy="40" rx="34" ry="14" fill="#e6e9f0"></ellipse>
+        <ellipse cx="110" cy="34" rx="24" ry="12" fill="#f3f0ee"></ellipse>
+        <ellipse cx="270" cy="30" rx="30" ry="12" fill="#e6e9f0"></ellipse>
+      </svg>
+      <span style="position: absolute; left: 12px; top: 12px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 900; color: #74647a">Berawan · menunggu koneksi</span>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 0 4px">
+      <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Menunggu dikirim</span>
+      <span style="font-size: 11px; font-weight: 800; background: #ffffff; padding: 1px 8px; border-radius: 999px; color: #74647a">{{pendingCount}}</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{pending}}" as="p" hint-placeholder-count="2">
+        <div style="display: flex; gap: 10px; align-items: center; font-size: 13px; background: #ffffff; border-radius: 12px; padding: 8px 10px; border: 2px dashed #e4d9e0">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{p.iconColor}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="{{p.icon}}"></path></svg>
+          <div style="display: flex; flex-direction: column; flex: 1 1 0; min-width: 0">
+            <span style="font-weight: 800">{{p.note}}</span>
+            <span style="font-size: 11px; font-weight: 800; color: #74647a">{{p.meta}}</span>
+          </div>
+          <span style="font-weight: 900; color: {{p.color}}">{{p.amount}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 12px; padding: 8px 10px; font-size: 12px; font-weight: 800; line-height: 1.45; color: #66566b">Setoran dan jajan tetap bisa dicatat. Begitu online, semuanya dikirim ke tepira.id berurutan dan bangunan ikut naik. Kalau ada tabrakan dengan web, versi server menang.</div>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px; display: flex; gap: 8px">
+    <a href="TambahSetoran.dc.html" style="flex: 1 1 0; height: 56px; border-radius: 999px; background: linear-gradient(180deg, #cf3b7b, #bf3571); color: #ffffff; font-weight: 900; font-size: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">Catat offline</a>
+    <a href="Main.dc.html" style="flex: 1 1 0; height: 56px; border-radius: 999px; background: rgba(255,255,255,0.86); border: 2px solid #f1e4ea; color: #5a4a5e; font-weight: 900; font-size: 15px; display: flex; align-items: center; justify-content: center">Ke desa</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tries: 0 };
+  }
+  renderVals() {
+    const pending = [
+      { note: 'Setoran harian', meta: 'Dana darurat · GoPay · 12:30', amount: '+Rp20.000', color: '#1f8a63', icon: 'M12 19V5M5 12l7-7 7 7', iconColor: '#6cc8ad' },
+      { note: 'Bakso', meta: 'Makan harian · Tunai · 12:35', amount: '-Rp15.000', color: '#c23b3b', icon: 'M12 5v14M5 12l7 7 7-7', iconColor: '#f0a06a' }
+    ];
+    return {
+      pending,
+      pendingCount: pending.length,
+      retry: () => this.setState({ tries: this.state.tries + 1 }),
+      retryLabel: this.state.tries > 0 ? 'Masih offline' : 'Coba lagi'
+    };
+  }
+}
+</script>
+</body>
+</html>

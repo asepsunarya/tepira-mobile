@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Gerbang PIN</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="position: absolute; inset: 0; opacity: 0.5">
+    <svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844">
+      <ellipse cx="195" cy="300" rx="190" ry="60" fill="#7fcfe6"></ellipse>
+      <ellipse cx="195" cy="285" rx="150" ry="46" fill="#f3c35b"></ellipse>
+      <ellipse cx="195" cy="275" rx="132" ry="38" fill="#6cc8ad"></ellipse>
+      <rect x="150" y="226" width="60" height="44" fill="#fffaf7"></rect>
+      <path d="M144 228 L180 192 L216 228 Z" fill="#ff7eb3"></path>
+      <rect x="270" y="240" width="5" height="30" fill="#5a4a5e"></rect>
+      <path d="M272 186 L296 240 L248 240 Z" fill="#37957c"></path>
+    </svg>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(90,74,94,0.22)"></div>
+
+  <div style="position: absolute; left: 24px; right: 24px; top: 200px; background: #fffaf7; border: 2px solid #ffffff; border-radius: 22px; box-shadow: 0 18px 40px -20px rgba(120,60,100,0.5); padding: 22px 20px; display: flex; flex-direction: column; gap: 16px; align-items: center">
+    <div style="width: 52px; height: 52px; border-radius: 18px; background: #ffd3e4; display: flex; align-items: center; justify-content: center">
+      <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c2457d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 900">Masukkan PIN</h2>
+      <p style="margin: 0; font-size: 13px; font-weight: 700; color: #66566b; line-height: 1.45">Untuk melihat nominal. Desanya tetap bisa dijelajahi.</p>
+    </div>
+    <div style="display: flex; gap: 12px" aria-live="polite" aria-label="{{filledLabel}}">
+      <sc-for list="{{slots}}" as="s" hint-placeholder-count="6">
+        <span style="width: 14px; height: 14px; border-radius: 7px; background: {{s.bg}}; border: 2px solid {{s.border}}; box-sizing: border-box"></span>
+      </sc-for>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%">
+      <sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+        <button type="button" onClick="{{k.press}}" aria-label="{{k.aria}}" style="height: 52px; border-radius: 14px; border: 2px solid #f6ebf0; background: #ffffff; color: #5a4a5e; font-size: 20px; font-weight: 900; cursor: pointer; visibility: {{k.vis}}">{{k.label}}</button>
+      </sc-for>
+    </div>
+    <a href="Dompet.dc.html" style="width: 100%; height: 52px; border-radius: 999px; background: {{ctaBg}}; color: #ffffff; font-weight: 900; font-size: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">Buka</a>
+    <a href="Main.dc.html" style="font-size: 12px; font-weight: 900; color: #74647a; min-height: 44px; display: flex; align-items: center">Jelajahi desa tanpa angka</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { pin: '' };
+  }
+  renderVals() {
+    const pin = this.state.pin;
+    const slots = [0,1,2,3,4,5].map((i) => ({
+      bg: i < pin.length ? '#ff7eb3' : '#ffffff',
+      border: i < pin.length ? '#ff7eb3' : '#e4d9e0'
+    }));
+    const digits = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+    const keys = digits.map((d) => ({
+      label: d,
+      aria: d === '⌫' ? 'Hapus' : d,
+      vis: d === '' ? 'hidden' : 'visible',
+      press: () => {
+        if (d === '⌫') this.setState({ pin: pin.slice(0, -1) });
+        else if (d !== '' && pin.length < 6) this.setState({ pin: pin + d });
+      }
+    }));
+    return {
+      slots,
+      keys,
+      filledLabel: pin.length + ' dari 6 digit terisi',
+      ctaBg: pin.length >= 4 ? 'linear-gradient(180deg, #cf3b7b, #bf3571)' : '#d9ccd5'
+    };
+  }
+}
+</script>
+</body>
+</html>

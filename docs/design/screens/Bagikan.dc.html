@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Bagikan pencapaian</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 56px 16px 0 16px">
+    <a href="GoalSelesai.dc.html" aria-label="Kembali" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #5a4a5e">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <span style="font-size: 15px; font-weight: 900">Bagikan pencapaian</span>
+    <div style="width: 44px; height: 44px"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <div style="display: flex; padding: 4px; gap: 2px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; border-radius: 16px; box-shadow: 0 6px 16px rgba(120,60,100,0.14)">
+      <sc-for list="{{formats}}" as="f" hint-placeholder-count="3">
+        <button type="button" onClick="{{f.pick}}" style="flex: 1 1 0; height: 36px; border-radius: 12px; border: 0; background: {{f.bg}}; color: {{f.color}}; font-size: 12px; font-weight: 900; cursor: pointer">{{f.label}}</button>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; justify-content: center; align-items: center; height: 380px">
+      <div style="width: {{pw}}; height: {{ph}}; border-radius: 16px; overflow: hidden; box-shadow: 0 18px 40px -20px rgba(120,60,100,0.5); background: linear-gradient(180deg, #f6d9e6 0%, #cfe9f7 45%, #fbf1f5 100%); position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 14px; box-sizing: border-box">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 64 64"><path d="M4 34.81 9.35 27.46 23.35 22.92 40.65 22.92 54.65 27.46 60 34.81 60 43.31 54.65 50.66 40.65 55.2 23.35 55.2 9.35 50.66 4 43.31z" fill="#cc922c"></path><path d="M60 34.81 54.65 42.16 40.65 46.7 23.35 46.7 9.35 42.16 4 34.81 9.35 27.46 23.35 22.92 40.65 22.92 54.65 27.46z" fill="#f8d77f"></path><path d="M56.64 34.41 51.93 40.88 39.61 44.87 24.39 44.87 12.07 40.88 7.36 34.41 12.07 27.94 24.39 23.95 39.61 23.95 51.93 27.94z" fill="#6cc8ad"></path><path d="M11.5 41.81 11.5 29.31 19.75 19.81 28 29.31 28 41.81z" fill="#fffaf7"></path><path d="M18.59 20.11 35.6 15.66 43.06 24.24 45.26 24.94 28.25 29.4 26.05 28.7z" fill="#ff7eb3"></path></svg>
+          <span style="font-size: 8px; font-weight: 900; background: #fffaf7; color: #c2457d; padding: 3px 8px; border-radius: 999px">Bangunan rampung</span>
+        </div>
+        <svg aria-hidden="true" width="100%" height="110" viewBox="0 0 300 110" style="margin: 0 -14px; width: calc(100% + 28px)">
+          <ellipse cx="150" cy="92" rx="120" ry="18" fill="#7fcfe6"></ellipse>
+          <ellipse cx="150" cy="86" rx="92" ry="14" fill="#f3c35b"></ellipse>
+          <ellipse cx="150" cy="82" rx="78" ry="11" fill="#6cc8ad"></ellipse>
+          <rect x="120" y="48" width="60" height="36" fill="#fffaf7"></rect>
+          <path d="M116 49 L150 20 L184 49 Z" fill="#ff7eb3"></path>
+          <rect x="166" y="26" width="8" height="14" fill="#cdbfc9"></rect>
+          <rect x="149" y="8" width="2" height="14" fill="#5a4a5e"></rect>
+          <path d="M151 9 L164 13 L151 17 Z" fill="#6cc8ad"></path>
+          <rect x="142" y="62" width="16" height="22" fill="#5a4a5e"></rect>
+          <rect x="126" y="54" width="10" height="10" fill="#f3c35b"></rect>
+          <rect x="164" y="54" width="10" height="10" fill="#f3c35b"></rect>
+        </svg>
+        <div style="background: rgba(255,250,247,0.92); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 5px">
+          <span style="font-size: 14px; font-weight: 900; line-height: 1.1">Sepeda baru tercapai!</span>
+          <span style="font-size: 8px; font-weight: 900; color: #1f8a63">{{amount}} · 61 setoran · 14 bulan</span>
+          <span style="font-size: 8px; font-weight: 800; color: #66566b">Teu pira, tapi konsisten. · tepira.id</span>
+        </div>
+      </div>
+    </div>
+
+    <label style="display: flex; align-items: center; gap: 12px; background: #ffffff; border: 2px solid #f6ebf0; border-radius: 14px; padding: 10px 12px; cursor: pointer">
+      <div style="display: flex; flex-direction: column; flex: 1 1 0">
+        <span style="font-size: 14px; font-weight: 800">Sembunyikan nominal</span>
+        <span style="font-size: 11px; font-weight: 800; color: #74647a">Kartu hanya menyebut "target tercapai".</span>
+      </div>
+      <input type="checkbox" checked="{{hide}}" onChange="{{toggleHide}}" aria-label="Sembunyikan nominal" style="width: 22px; height: 22px; margin: 0; accent-color: #ff7eb3">
+    </label>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{targets}}" as="t" hint-placeholder-count="4">
+        <button type="button" aria-label="{{t.aria}}" style="display: flex; flex-direction: column; align-items: center; gap: 6px; background: #ffffff; border: 2px solid #f6ebf0; border-radius: 16px; padding: 10px 4px; cursor: pointer; color: #5a4a5e">
+          <span style="width: 40px; height: 40px; border-radius: 20px; background: {{t.bg}}; display: flex; align-items: center; justify-content: center">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{t.color}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{t.icon}}"></path></svg>
+          </span>
+          <span style="font-size: 11px; font-weight: 900">{{t.label}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px">
+    <a href="Main.dc.html" style="height: 56px; border-radius: 999px; background: linear-gradient(180deg, #cf3b7b, #bf3571); color: #ffffff; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"></path></svg>
+      Bagikan {{fmtName}}
+    </a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { fmt: 0, hide: false };
+  }
+  renderVals() {
+    const defs = [
+      { label: 'Story 9:16', name: 'story', w: '200px', h: '356px' },
+      { label: 'Feed 1:1', name: 'kartu feed', w: '300px', h: '300px' },
+      { label: 'WhatsApp', name: 'ke WhatsApp', w: '300px', h: '300px' }
+    ];
+    const sel = this.state.fmt;
+    const formats = defs.map((d, i) => {
+      const on = i === sel;
+      return { label: d.label, pick: () => this.setState({ fmt: i }), bg: on ? '#ffd3e4' : 'transparent', color: on ? '#c2457d' : '#74647a' };
+    });
+    return {
+      formats,
+      pw: defs[sel].w,
+      ph: defs[sel].h,
+      fmtName: defs[sel].name,
+      hide: this.state.hide,
+      toggleHide: () => this.setState({ hide: !this.state.hide }),
+      amount: this.state.hide ? 'Target tercapai' : 'Rp5.000.000',
+      targets: [
+        { label: 'WhatsApp', aria: 'Bagikan ke WhatsApp', bg: '#dcf5ec', color: '#1f8a63', icon: 'M20 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20l1.2-4.2A8.5 8.5 0 1 1 20 11.5zM8.5 9c0 3 2.5 5.5 5.5 5.5l1-1.5-1.8-.8-.8.8c-1-.4-1.9-1.3-2.3-2.3l.8-.8L10 8l-1.5 1z' },
+        { label: 'Instagram', aria: 'Bagikan ke Instagram', bg: '#ffd3e4', color: '#c2457d', icon: 'M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zM12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM17.5 6.5h.01' },
+        { label: 'Simpan', aria: 'Simpan gambar ke galeri', bg: '#eef6ff', color: '#5b9ae0', icon: 'M12 3v12M7 10l5 5 5-5M4 21h16' },
+        { label: 'Lainnya', aria: 'Bagikan lewat aplikasi lain', bg: '#f3e8ee', color: '#74647a', icon: 'M5 12h.01M12 12h.01M19 12h.01' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

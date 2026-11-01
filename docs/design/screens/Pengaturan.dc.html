@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Pengaturan desa</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button,input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 56px 16px 0 16px">
+    <a href="Main.dc.html" aria-label="Kembali ke desa" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #5a4a5e">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <span style="font-size: 15px; font-weight: 900">Pengaturan</span>
+    <div style="width: 44px; height: 44px"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <div style="background: rgba(255,250,247,0.88); border: 2px solid #ffffff; border-radius: 18px; box-shadow: 0 10px 30px rgba(120,60,100,0.14); padding: 10px 14px; display: flex; align-items: center; gap: 12px">
+      <div style="width: 44px; height: 44px; border-radius: 22px; background: #dcf5ec; color: #1f8a63; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 16px">A</div>
+      <div style="display: flex; flex-direction: column; flex: 1 1 0; min-width: 0">
+        <span style="font-size: 14px; font-weight: 900">[NAMA]</span>
+        <span style="font-size: 11px; font-weight: 800; color: #74647a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Masuk dengan Google · data sama dengan tepira.id</span>
+      </div>
+      <a href="Login.dc.html" style="height: 36px; padding: 0 12px; border-radius: 999px; background: #ffe0e0; color: #c23b3b; font-size: 12px; font-weight: 900; display: flex; align-items: center">Keluar</a>
+    </div>
+
+    <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 4px 0 4px">Pengingat</span>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{reminders}}" as="r" hint-placeholder-count="2">
+        <label style="display: flex; align-items: center; gap: 12px; background: #ffffff; border: 2px solid #f6ebf0; border-radius: 14px; padding: 10px 12px; cursor: pointer">
+          <div style="display: flex; flex-direction: column; flex: 1 1 0; min-width: 0">
+            <span style="font-size: 14px; font-weight: 800">{{r.title}}</span>
+            <span style="font-size: 11px; font-weight: 800; color: #74647a">{{r.desc}}</span>
+          </div>
+          <input type="checkbox" checked="{{r.on}}" onChange="{{r.toggle}}" aria-label="{{r.title}}" style="width: 22px; height: 22px; margin: 0; accent-color: #ff7eb3">
+        </label>
+      </sc-for>
+      <div style="display: flex; flex-direction: column; gap: 6px; background: #ffffff; border: 2px solid #f6ebf0; border-radius: 14px; padding: 10px 12px">
+        <span style="font-size: 11px; font-weight: 800; color: #74647a; text-transform: uppercase">Perangkat penerima</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 800">
+          <span>HP ini</span>
+          <span style="font-size: 11px; font-weight: 900; color: #1f8a63">Aktif</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 800">
+          <span>Chrome di laptop</span>
+          <button type="button" aria-label="Hapus Chrome di laptop dari penerima pengingat" style="height: 28px; padding: 0 10px; border-radius: 999px; border: 0; background: #ffe0e0; color: #c23b3b; font-size: 11px; font-weight: 900; cursor: pointer">Hapus</button>
+        </div>
+        <a href="Notifikasi.dc.html" style="font-size: 11px; font-weight: 900; color: #c2457d; min-height: 24px; display: flex; align-items: center">Lihat contoh pengingat</a>
+        <span style="font-size: 11px; font-weight: 700; color: #74647a">Pengingat hanya berisi jumlah, tanpa nominal.</span>
+      </div>
+    </div>
+
+    <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 4px 0 4px">Privasi</span>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <label style="display: flex; align-items: center; gap: 12px; background: #ffffff; border: 2px solid #f6ebf0; border-radius: 14px; padding: 10px 12px; cursor: pointer">
+        <div style="display: flex; flex-direction: column; flex: 1 1 0">
+          <span style="font-size: 14px; font-weight: 800">Minta PIN untuk melihat nominal</span>
+          <span style="font-size: 11px; font-weight: 800; color: #74647a">Desa tetap bisa dijelajahi, angka ditutup sampai PIN benar.</span>
+        </div>
+        <input type="checkbox" checked="{{pinOn}}" onChange="{{togglePin}}" aria-label="Minta PIN untuk melihat nominal" style="width: 22px; height: 22px; margin: 0; accent-color: #ff7eb3">
+      </label>
+      <a href="PinGate.dc.html" style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 2px solid #f6ebf0; border-radius: 14px; padding: 12px; color: #5a4a5e; font-size: 14px; font-weight: 800; min-height: 44px">
+        Ubah PIN
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#74647a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+      </a>
+      <label style="display: flex; align-items: center; gap: 12px; background: #ffffff; border: 2px solid #f6ebf0; border-radius: 14px; padding: 10px 12px; cursor: pointer">
+        <span style="font-size: 14px; font-weight: 800; flex: 1 1 0">Sembunyikan angka di beranda</span>
+        <input type="checkbox" aria-label="Sembunyikan angka di beranda" style="width: 22px; height: 22px; margin: 0; accent-color: #ff7eb3">
+      </label>
+    </div>
+
+    <a href="Tutorial.dc.html" style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 2px solid #f6ebf0; border-radius: 14px; padding: 12px; color: #5a4a5e; font-size: 14px; font-weight: 800; min-height: 44px">
+      Ulangi tur desa
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#74647a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+    </a>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px; text-align: center; font-size: 11px; font-weight: 800; color: #74647a">tepira village untuk Android & iOS · v1.0</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { pagi: true, malam: true, pin: true };
+  }
+  renderVals() {
+    const s = this.state;
+    return {
+      reminders: [
+        { title: 'Pagi: Pak Pos membawa tagihan', desc: 'Sekitar 07:00 WIB saat ada tagihan jatuh tempo.', on: s.pagi, toggle: () => this.setState({ pagi: !s.pagi }) },
+        { title: 'Malam: lampu hari ini belum menyala', desc: 'Sekitar 20:00 WIB kalau belum ada catatan.', on: s.malam, toggle: () => this.setState({ malam: !s.malam }) }
+      ],
+      pinOn: s.pin,
+      togglePin: () => this.setState({ pin: !s.pin })
+    };
+  }
+}
+</script>
+</body>
+</html>

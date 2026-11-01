@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Peta alur layar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+</style>
+</helmet>
+<div style="width: 860px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; padding: 28px; display: flex; flex-direction: column; gap: 14px; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <span style="font-size: 11px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Peta alur</span>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.4px">Rute go_router dan layar yang dijangkau dari tiap tab dock</h1>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; flex: 1 1 0; min-height: 0">
+    <sc-for list="{{cols}}" as="c" hint-placeholder-count="5">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <a href="{{c.href}}" style="background: {{c.bg}}; border: 2px solid #ffffff; border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; color: #5a4a5e; box-shadow: 0 6px 16px rgba(120,60,100,0.14)">
+          <span style="font-size: 10px; font-weight: 800; color: #74647a; text-transform: uppercase">{{c.route}}</span>
+          <span style="font-size: 14px; font-weight: 900">{{c.title}}</span>
+        </a>
+        <div style="width: 2px; height: 10px; background: #e4d9e0; margin-left: 20px"></div>
+        <sc-for list="{{c.kids}}" as="k" hint-placeholder-count="5">
+          <a href="{{k.href}}" style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 1px; color: #5a4a5e">
+            <span style="font-size: 9px; font-weight: 800; color: #74647a">{{k.route}}</span>
+            <span style="font-size: 12px; font-weight: 800">{{k.title}}</span>
+          </a>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 10px; font-weight: 800; color: #74647a">
+    <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Sebelum masuk: /login → /tour (akun baru) → /</span>
+    <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Overlay global: PIN, offline, sesi berakhir, perayaan</span>
+    <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Deep link notifikasi: /mailbox, /record, /settings</span>
+    <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Ketuk kartu untuk lompat ke artboard-nya</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":860,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      cols: [
+        { route: '/', title: 'Desa', href: 'Main.dc.html', bg: '#ffd3e4', kids: [
+          { route: '/goal/:id', title: 'Kavling', href: 'GoalDetail.dc.html' },
+          { route: '/goal/:id/edit', title: 'Ubah goal', href: 'UbahGoal.dc.html' },
+          { route: '/goal/new', title: 'Bangun kavling', href: 'BuatGoal.dc.html' },
+          { route: '/goal/:id/done', title: 'Bangunan rampung', href: 'GoalSelesai.dc.html' },
+          { route: '/progress', title: 'Perkembangan desa', href: 'Perkembangan.dc.html' },
+          { route: '/mailbox', title: 'Kotak pos', href: 'KotakPos.dc.html' },
+          { route: '/wallets', title: 'Peti harta', href: 'Dompet.dc.html' }
+        ] },
+        { route: '/record', title: 'Catat', href: 'TambahSetoran.dc.html', bg: '#ffe4d2', kids: [
+          { route: '/record/voice', title: 'Lewat suara', href: 'Suara.dc.html' },
+          { route: '/record/place', title: 'Pilih tempat', href: 'PilihTempat.dc.html' },
+          { route: '/shop', title: 'Warung', href: 'Warung.dc.html' },
+          { route: '/shop/map', title: 'Peta jajan', href: 'PetaJajan.dc.html' }
+        ] },
+        { route: '/history', title: 'Riwayat', href: 'Riwayat.dc.html', bg: '#dcf5ec', kids: [
+          { route: '/history?edit=:id', title: 'Ubah catatan', href: 'Riwayat.dc.html' },
+          { route: '/recurring/new', title: 'Tagihan rutin', href: 'TagihanRutin.dc.html' }
+        ] },
+        { route: '/report', title: 'Laporan', href: 'Laporan.dc.html', bg: '#cfe9f7', kids: [
+          { route: '/report/flow', title: 'Aliran uang', href: 'AliranUang.dc.html' },
+          { route: '/salary', title: 'Alokasi gaji', href: 'Gaji.dc.html' },
+          { route: '/wallets/new', title: 'Tambah dompet', href: 'TambahDompet.dc.html' }
+        ] },
+        { route: '/journal', title: 'Jurnal', href: 'Jurnal.dc.html', bg: '#fff3d1', kids: [
+          { route: '/settings', title: 'Pengaturan', href: 'Pengaturan.dc.html' },
+          { route: '/settings/pin', title: 'Gerbang PIN', href: 'PinGate.dc.html' },
+          { route: '/tour', title: 'Tur desa', href: 'Tutorial.dc.html' },
+          { route: '(sistem)', title: 'Notifikasi & widget', href: 'Notifikasi.dc.html' }
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

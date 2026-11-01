@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Aliran uang bulan ini</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 56px 16px 0 16px">
+    <a href="Laporan.dc.html" aria-label="Kembali ke laporan" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #5a4a5e">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <span style="font-size: 15px; font-weight: 900">Aliran uang · November</span>
+    <div style="width: 44px; height: 44px"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <div style="background: rgba(255,250,247,0.88); border: 2px solid #ffffff; border-radius: 22px; box-shadow: 0 10px 30px rgba(120,60,100,0.18); padding: 12px; display: flex; flex-direction: column; gap: 6px">
+      <svg role="img" aria-label="Sungai dari gaji dan bonus ke waduk desa lalu ke kategori, goal, dan sisa" width="330" height="330" viewBox="0 0 330 330">
+        <rect x="8" y="14" width="18" height="60" rx="6" fill="#6cc8ad"></rect>
+        <rect x="8" y="90" width="18" height="18" rx="6" fill="#f3c35b"></rect>
+        <path d="M26 44 C80 44 90 120 140 120" stroke="#8fd3ea" stroke-width="42" fill="none" stroke-linecap="round" opacity="0.9"></path>
+        <path d="M26 99 C80 99 90 128 140 128" stroke="#8fd3ea" stroke-width="12" fill="none" stroke-linecap="round" opacity="0.9"></path>
+        <ellipse cx="165" cy="124" rx="40" ry="26" fill="#7fcfe6"></ellipse>
+        <ellipse cx="165" cy="118" rx="30" ry="16" fill="#a9e0f0"></ellipse>
+        <path d="M190 112 C230 112 240 40 300 40" stroke="#5b9ae0" stroke-width="28" fill="none" stroke-linecap="round" opacity="0.85"></path>
+        <path d="M195 120 C230 120 240 100 300 100" stroke="#f0a06a" stroke-width="12" fill="none" stroke-linecap="round" opacity="0.9"></path>
+        <path d="M195 126 C230 126 240 150 300 150" stroke="#ff7eb3" stroke-width="9" fill="none" stroke-linecap="round" opacity="0.9"></path>
+        <path d="M190 134 C230 134 240 210 300 210" stroke="#2fb57d" stroke-width="22" fill="none" stroke-linecap="round" opacity="0.9"></path>
+        <path d="M180 144 C220 144 230 280 300 280" stroke="#7fcfe6" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.9"></path>
+        <rect x="300" y="26" width="18" height="28" rx="6" fill="#5b9ae0"></rect>
+        <rect x="300" y="94" width="18" height="12" rx="5" fill="#f0a06a"></rect>
+        <rect x="300" y="145" width="18" height="10" rx="5" fill="#ff7eb3"></rect>
+        <rect x="300" y="199" width="18" height="22" rx="6" fill="#2fb57d"></rect>
+        <rect x="300" y="275" width="18" height="10" rx="5" fill="#7fcfe6"></rect>
+        <text x="30" y="30" font-size="10" font-weight="900" fill="#5a4a5e" font-family="Nunito, sans-serif">Gaji</text>
+        <text x="30" y="88" font-size="10" font-weight="900" fill="#5a4a5e" font-family="Nunito, sans-serif">Bonus</text>
+        <text x="165" y="160" font-size="10" font-weight="900" fill="#5a4a5e" font-family="Nunito, sans-serif" text-anchor="middle">Waduk desa</text>
+        <text x="296" y="20" font-size="10" font-weight="900" fill="#5a4a5e" font-family="Nunito, sans-serif" text-anchor="end">Wajib</text>
+        <text x="296" y="88" font-size="10" font-weight="900" fill="#5a4a5e" font-family="Nunito, sans-serif" text-anchor="end">Rutin</text>
+        <text x="296" y="140" font-size="10" font-weight="900" fill="#5a4a5e" font-family="Nunito, sans-serif" text-anchor="end">Hiburan</text>
+        <text x="296" y="193" font-size="10" font-weight="900" fill="#5a4a5e" font-family="Nunito, sans-serif" text-anchor="end">Ke goal</text>
+        <text x="296" y="269" font-size="10" font-weight="900" fill="#5a4a5e" font-family="Nunito, sans-serif" text-anchor="end">Sisa</text>
+      </svg>
+      <span style="font-size: 11px; font-weight: 800; color: #74647a; text-align: center">Lebar sungai sebanding dengan nominal. Ketuk tujuan untuk rinciannya.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+        <button type="button" onClick="{{r.pick}}" style="display: flex; align-items: center; gap: 10px; background: {{r.bg}}; border: 2px solid {{r.border}}; border-radius: 12px; padding: 8px 10px; color: #5a4a5e; text-align: left; cursor: pointer">
+          <span style="width: 10px; height: 26px; border-radius: 999px; background: {{r.color}}; flex: 0 0 auto"></span>
+          <div style="display: flex; flex-direction: column; flex: 1 1 0; min-width: 0">
+            <span style="font-size: 13px; font-weight: 800">{{r.label}}</span>
+            <span style="font-size: 11px; font-weight: 800; color: #74647a">{{r.sub}}</span>
+          </div>
+          <span style="font-size: 13px; font-weight: 900">{{r.amount}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px; text-align: center; font-size: 11px; font-weight: 800; color: #74647a">Mata air: gaji Rp6.000.000 + bonus Rp500.000 · ‹ Oktober · Desember ›</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 3 };
+  }
+  renderVals() {
+    const defs = [
+      { label: 'Kebutuhan wajib', sub: 'Makan, transport, pulsa, kos', amount: 'Rp2.400.000', color: '#5b9ae0' },
+      { label: 'Kewajiban & rutin', sub: 'Langganan, kesehatan, sosial', amount: 'Rp720.000', color: '#f0a06a' },
+      { label: 'Hiburan & fleksibel', sub: 'Nongkrong, belanja kecil', amount: 'Rp560.000', color: '#ff7eb3' },
+      { label: 'Ditabung ke goal', sub: 'Dana darurat, Bali, laptop', amount: 'Rp1.680.000', color: '#2fb57d' },
+      { label: 'Belum terpakai', sub: 'Masih di waduk desa', amount: 'Rp1.140.000', color: '#7fcfe6' }
+    ];
+    const rows = defs.map((d, i) => {
+      const on = i === this.state.sel;
+      return { ...d, pick: () => this.setState({ sel: i }), bg: on ? '#fff5f9' : '#ffffff', border: on ? '#ff7eb3' : '#f6ebf0' };
+    });
+    return { rows };
+  }
+}
+</script>
+</body>
+</html>

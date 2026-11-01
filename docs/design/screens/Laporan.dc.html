@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Laporan Balai Desa</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 56px 16px 0 16px">
+    <a href="Main.dc.html" aria-label="Kembali ke desa" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #5a4a5e">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <div style="display: flex; align-items: center; gap: 2px; padding: 4px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; border-radius: 16px; box-shadow: 0 6px 16px rgba(120,60,100,0.14)">
+      <button type="button" aria-label="Bulan sebelumnya" style="width: 36px; height: 36px; border-radius: 12px; border: 0; background: transparent; color: #5a4a5e; font-size: 18px; font-weight: 900; cursor: pointer">‹</button>
+      <span style="padding: 0 8px; font-size: 13px; font-weight: 900">November 2026</span>
+      <button type="button" aria-label="Bulan berikutnya" style="width: 36px; height: 36px; border-radius: 12px; border: 0; background: transparent; color: #5a4a5e; font-size: 18px; font-weight: 900; cursor: pointer">›</button>
+    </div>
+    <div style="width: 44px; height: 44px"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <div style="background: rgba(255,250,247,0.88); border: 2px solid #ffffff; border-radius: 22px; box-shadow: 0 10px 30px rgba(120,60,100,0.18); padding: 16px; display: flex; align-items: center; gap: 16px">
+      <div style="position: relative; width: 112px; height: 112px; flex: 0 0 auto">
+        <svg role="img" aria-label="Skor kesehatan 76 dari 100" width="112" height="112" viewBox="0 0 112 112">
+          <circle cx="56" cy="56" r="48" fill="none" stroke="#f3e8ee" stroke-width="12"></circle>
+          <circle cx="56" cy="56" r="48" fill="none" stroke="{{accent}}" stroke-width="12" stroke-linecap="round" stroke-dasharray="229 302" transform="rotate(-90 56 56)"></circle>
+        </svg>
+        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1">
+          <span style="font-size: 30px; font-weight: 900">76</span>
+          <span style="font-size: 10px; font-weight: 800; color: #74647a">dari 100</span>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 0; min-width: 0">
+        <span style="font-size: 11px; font-weight: 800; color: #74647a; text-transform: uppercase; letter-spacing: 0.03em">Skor kesehatan</span>
+        <span style="font-size: 20px; font-weight: 900; color: #1f8a63">SEHAT</span>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: #66566b">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e0b84a" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          Cuaca pulau cerah
+        </div>
+        <span style="font-size: 11px; font-weight: 700; color: #74647a">Naik 6 poin dari Oktober</span>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+      <sc-for list="{{metrics}}" as="m" hint-placeholder-count="4">
+        <div style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 10px; font-weight: 800; color: #74647a; text-transform: uppercase">{{m.label}}</span>
+          <span style="font-size: 14px; font-weight: 900; color: {{m.color}}">{{m.value}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 0 4px">
+      <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Aliran uang bulan ini</span>
+      <span style="font-size: 12px; font-weight: 900; color: #1f8a63">Masuk Rp6.000.000</span>
+    </div>
+
+    <a href="AliranUang.dc.html" style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px; color: #5a4a5e">
+      <sc-for list="{{flows}}" as="f" hint-placeholder-count="5">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800">
+            <span>{{f.label}}</span>
+            <span style="color: {{f.color}}">{{f.value}}</span>
+          </div>
+          <div style="height: 8px; border-radius: 999px; background: #f3e8ee; overflow: hidden">
+            <div style="width: {{f.width}}; height: 8px; border-radius: 999px; background: {{f.color}}"></div>
+          </div>
+        </div>
+      </sc-for>
+    </a>
+
+    <div style="background: #fff8dd; border-radius: 12px; padding: 8px 10px; display: flex; gap: 8px; align-items: flex-start; font-size: 12px; font-weight: 800; line-height: 1.45">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a87a12" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex: 0 0 auto; margin-top: 1px"><path d="M3 12c4-4 6 4 10 0s5 4 8 0"></path><path d="M3 18c4-4 6 4 10 0s5 4 8 0"></path></svg>
+      <span>Nongkrong sudah 92% dari jatah. Sisa Rp640.000 bulan ini otomatis jadi setoran kalau tidak dipakai.</span>
+    </div>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px">
+    <a href="KotakPos.dc.html" style="height: 56px; border-radius: 999px; background: linear-gradient(180deg, #cf3b7b, #bf3571); color: #ffffff; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">Baca surat dari Cyrene</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#6cc8ad","options":["#6cc8ad","#ff7eb3","#f3c35b","#5b9ae0"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      accent: this.props.accent ?? '#6cc8ad',
+      metrics: [
+        { label: 'Rasio tabungan', value: '28%', color: '#1f8a63' },
+        { label: 'Disiplin budget', value: '82%', color: '#5a4a5e' },
+        { label: 'Runway', value: '4,2 bulan', color: '#5a4a5e' },
+        { label: 'Rasio kewajiban', value: '12%', color: '#5a4a5e' }
+      ],
+      flows: [
+        { label: 'Kebutuhan wajib', value: 'Rp2.400.000', width: '40%', color: '#5b9ae0' },
+        { label: 'Kewajiban & rutin', value: 'Rp720.000', width: '12%', color: '#f0a06a' },
+        { label: 'Hiburan & fleksibel', value: 'Rp560.000', width: '9%', color: '#ff7eb3' },
+        { label: 'Setoran ke goal', value: 'Rp1.680.000', width: '28%', color: '#6cc8ad' },
+        { label: 'Sisa di dompet', value: 'Rp640.000', width: '11%', color: '#f3c35b' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

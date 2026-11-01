@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Perkembangan desa</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 56px 16px 0 16px">
+    <a href="Main.dc.html" aria-label="Kembali ke desa" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #5a4a5e">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <span style="font-size: 15px; font-weight: 900">Perkembangan desa</span>
+    <div style="width: 44px; height: 44px"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <div style="background: rgba(255,250,247,0.88); border: 2px solid #ffffff; border-radius: 22px; box-shadow: 0 10px 30px rgba(120,60,100,0.18); padding: 14px 16px; display: flex; align-items: center; gap: 14px">
+      <div style="width: 64px; height: 64px; border-radius: 20px; background: #ffd3e4; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; color: #c2457d; flex: 0 0 auto">
+        <span style="font-size: 11px; font-weight: 900">Lv</span>
+        <span style="font-size: 28px; font-weight: 900">5</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 0; min-width: 0">
+        <span style="font-size: 16px; font-weight: 900">Warga Rajin</span>
+        <div style="height: 8px; border-radius: 999px; background: #f3e8ee; overflow: hidden">
+          <div style="width: 89%; height: 8px; border-radius: 999px; background: #ff7eb3"></div>
+        </div>
+        <span style="font-size: 11px; font-weight: 800; color: #74647a">1.340 XP · 160 XP lagi ke Lv 6 · 1 XP per Rp10.000, 5 XP per setoran</span>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 0 4px">
+      <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Bangunan level</span>
+      <span style="font-size: 11px; font-weight: 800; color: #74647a">1 dari 5 terbuka</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{unlocks}}" as="u" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 10px; background: #ffffff; border: 2px solid {{u.border}}; border-radius: 14px; padding: 8px 10px; opacity: {{u.opacity}}">
+          <div style="width: 40px; height: 40px; border-radius: 12px; background: {{u.tile}}; display: flex; align-items: center; justify-content: center; color: #5a4a5e; font-size: 11px; font-weight: 900; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.08)">Lv{{u.level}}</div>
+          <div style="display: flex; flex-direction: column; flex: 1 1 0; min-width: 0">
+            <span style="font-size: 14px; font-weight: 800">{{u.name}}</span>
+            <span style="font-size: 11px; font-weight: 800; color: #74647a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{u.desc}}</span>
+          </div>
+          <span style="font-size: 11px; font-weight: 900; color: {{u.stateColor}}">{{u.state}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 0 4px">
+      <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Warga desa</span>
+      <span style="font-size: 11px; font-weight: 800; color: #74647a">3 dari 8</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+      <sc-for list="{{villagers}}" as="v" hint-placeholder-count="8">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; background: #ffffff; border: 2px solid #f6ebf0; border-radius: 14px; padding: 8px 4px; opacity: {{v.opacity}}">
+          <div style="width: 36px; height: 36px; border-radius: 18px; background: {{v.color}}; display: flex; align-items: center; justify-content: center">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5a4a5e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M5 21a7 7 0 0 1 14 0"></path></svg>
+          </div>
+          <span style="font-size: 11px; font-weight: 900">{{v.name}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <a href="Perayaan.dc.html" style="background: #fff8dd; border-radius: 12px; padding: 8px 10px; font-size: 12px; font-weight: 800; line-height: 1.45; color: #5a4a5e; display: block">Deret sekarang 5 hari. Dua hari beruntun lagi dan Neng pindah ke desa.</a>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px">
+    <a href="TambahSetoran.dc.html" style="height: 56px; border-radius: 999px; background: linear-gradient(180deg, #cf3b7b, #bf3571); color: #ffffff; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">Setor dan kumpulkan XP</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const level = 5;
+    const defs = [
+      { level: 4, name: 'Dermaga', desc: 'Perahu nelayan mulai singgah di pantai barat daya.' },
+      { level: 8, name: 'Pasar', desc: 'Lapak warna-warni buka di sebelah warung.' },
+      { level: 15, name: 'Mercusuar', desc: 'Cahayanya menyapu laut tiap senja.' },
+      { level: 25, name: 'Pulau kedua', desc: 'Pulau kecil di seberang jembatan kayu.' },
+      { level: 40, name: 'Balon udara', desc: 'Hadiah untuk Legenda Desa.' }
+    ];
+    const unlocks = defs.map((u, i) => {
+      const open = level >= u.level;
+      const next = !open && (i === 0 || level >= defs[i - 1].level);
+      return {
+        ...u,
+        tile: open ? '#dcf5ec' : next ? '#fff3d1' : '#f3e8ee',
+        border: open ? '#cdeee3' : '#f6ebf0',
+        opacity: open || next ? '1' : '0.6',
+        state: open ? 'Terbuka' : next ? 'Berikutnya' : 'Terkunci',
+        stateColor: open ? '#1f8a63' : next ? '#a87a12' : '#74647a'
+      };
+    });
+    const names = ['Ujang', 'Euis', 'Dadang', 'Neng', 'Cecep', 'Iis', 'Jajang', 'Lilis'];
+    const colors = ['#ffd3e4', '#dcf5ec', '#fff3d1', '#cfe9f7', '#ffe4d2', '#eef1ff', '#ffd3e4', '#dcf5ec'];
+    const villagers = names.map((n, i) => ({
+      name: i < 3 ? n : '?',
+      color: i < 3 ? colors[i] : '#f3e8ee',
+      opacity: i < 3 ? '1' : '0.55'
+    }));
+    return { unlocks, villagers };
+  }
+}
+</script>
+</body>
+</html>
