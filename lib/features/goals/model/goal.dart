@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 
-/// A savings goal ("kavling") as the API reports it. Money is int rupiah;
-/// [percent] comes from the server and is never recomputed on the client.
+/// A savings goal ("kavling") as the API reports it. Money is int rupiah.
+/// [percent] is kept as sent by the server but is not used for display or
+/// stage; the displayed percent and stage are computed on the client from
+/// [saved] and [target] (SPEC §12 Q4).
 @immutable
 class Goal {
   const Goal({

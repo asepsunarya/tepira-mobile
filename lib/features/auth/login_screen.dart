@@ -23,6 +23,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _error;
 
   Future<void> _signIn() async {
+    // Ignore taps while a sign-in runs (e.g. a double tap on "Masuk lagi").
+    if (_busy) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -31,12 +33,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(authStateProvider.notifier).signIn();
     } on AppException catch (error) {
       if (mounted) setState(() => _error = error.message);
+    } on Object {
+      if (mounted) setState(() => _error = kGoogleSignInFailedMessage);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   void _signInAgain() {
+    if (_busy) return;
     ref.read(authStateProvider.notifier).dismissSessionExpired();
     _signIn();
   }

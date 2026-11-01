@@ -52,13 +52,22 @@ class GoogleSignInIdTokenSource implements GoogleIdTokenSource {
       account = await _googleSignIn.signIn();
     } on PlatformException catch (error) {
       if (error.code == GoogleSignIn.kSignInCanceledError) return null;
-      if (error.code == GoogleSignIn.kNetworkError) {
-        throw const NetworkException();
-      }
-      throw const ApiException('Masuk dengan Google gagal. Coba lagi.');
+      throw _platformError(error);
+    } on Object {
+      throw const ApiException(kGoogleSignInFailedMessage);
     }
     if (account == null) return null;
-    final authentication = await account.authentication;
+    // Fetching the tokens is a second platform call: it fails on its own
+    // (expired account, revoked consent, no network) after the picker closed.
+    final GoogleSignInAuthentication authentication;
+    try {
+      authentication = await account.authentication;
+    } on PlatformException catch (error) {
+      if (error.code == GoogleSignIn.kSignInCanceledError) return null;
+      throw _platformError(error);
+    } on Object {
+      throw const ApiException(kGoogleSignInFailedMessage);
+    }
     final idToken = authentication.idToken;
     if (idToken == null || idToken.isEmpty) {
       throw const ApiException(
@@ -70,6 +79,11 @@ class GoogleSignInIdTokenSource implements GoogleIdTokenSource {
 
   @override
   Future<void> signOut() => _googleSignIn.signOut();
+}
+
+AppException _platformError(PlatformException error) {
+  if (error.code == GoogleSignIn.kNetworkError) return const NetworkException();
+  return const ApiException(kGoogleSignInFailedMessage);
 }
 
 final googleIdTokenSourceProvider = Provider<GoogleIdTokenSource>(

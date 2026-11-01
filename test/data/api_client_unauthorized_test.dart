@@ -38,6 +38,22 @@ void main() {
     expect(events, 0);
   });
 
+  test('a 401 for a request sent without a session does not raise it',
+      () async {
+    final dio = createApiDio(
+      baseUrl: 'https://api.test/api',
+      sessionStore: FakeSessionStore(),
+      onUnauthorized: () => events++,
+    )..httpClientAdapter = FakeHttpAdapter(status: 401, body: const {});
+
+    await expectLater(
+      dio.get<Object?>('/mobile/goals'),
+      throwsA(isA<DioException>()),
+    );
+
+    expect(events, 0);
+  });
+
   test('other errors do not raise it', () async {
     await expectLater(
       dio(FakeHttpAdapter(status: 403, body: const {}))

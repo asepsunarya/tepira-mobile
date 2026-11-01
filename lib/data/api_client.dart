@@ -100,6 +100,8 @@ Dio createApiDio({
 /// With a [sessionStore], the 401 is only reported when the request was sent
 /// with the session token that is still stored: a late 401 for an old token
 /// (the user signed out or in again meanwhile) must not end the new session.
+/// A request sent without a token never reports: there was no session to end,
+/// even when none is stored now either.
 class UnauthorizedInterceptor extends Interceptor {
   UnauthorizedInterceptor(this.onUnauthorized, {this.sessionStore});
 
@@ -115,9 +117,19 @@ class UnauthorizedInterceptor extends Interceptor {
     final skip = extra[kSkipUnauthorizedEvent] == true;
     if (err.error is UnauthorizedException && !skip) {
       final store = sessionStore;
-      final current = store == null ? null : await store.readToken();
-      if (store == null || extra[kSessionTokenExtra] == current) {
+      if (store == null) {
         onUnauthorized();
+      } else {
+        final sent = extra[kSessionTokenExtra];
+        String? current;
+        try {
+          current = await store.readToken();
+        } on Object {
+          // The stored token cannot be compared, so the session is not ended;
+          // the caller still receives the UnauthorizedException below.
+          current = null;
+        }
+        if (sent != null && sent == current) onUnauthorized();
       }
     }
     handler.next(err);
