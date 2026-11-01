@@ -15,7 +15,7 @@ Rincian tiap tugas ada di `tasks/plan.md`. Satu commit per tugas.
 - [ ] Checkpoint 1: fixtures ada; env `TEPIRA_MOBILE_GOOGLE_CLIENT_IDS` dicatat di README tepira
 
 ## Fase 3. Auth
-- [ ] T5 Login Google → sesi → redirect; overlay sesi berakhir; test provider
+- [x] T5 Login Google → sesi → redirect; overlay sesi berakhir; test provider
 
 ## Fase 4. Goals
 - [ ] T6 DTO, model, `buildStage`, `GoalsRepository` + unit test

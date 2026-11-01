@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,19 +28,51 @@ String sessionCookieNameFor(Uri apiBaseUrl) =>
         ? kSecureSessionCookieName
         : kSessionCookieName;
 
+/// Request `extra` key: when true, a 401 answer is not reported to
+/// [UnauthorizedEvents]. Set by the sign-in request, whose 401 means "invalid
+/// Google token", not "session expired".
+const String kSkipUnauthorizedEvent = 'tepira.skipUnauthorizedEvent';
+
+/// Request `extra` key: the session token [SessionCookieInterceptor] read for
+/// this request (null when none). [UnauthorizedInterceptor] uses it to ignore
+/// a late 401 for a session that has already been replaced or ended.
+const String kSessionTokenExtra = 'tepira.sessionToken';
+
+/// Broadcasts every 401 from the API so the auth layer can end the session,
+/// whichever repository made the request.
+class UnauthorizedEvents {
+  final _controller = StreamController<void>.broadcast();
+
+  Stream<void> get stream => _controller.stream;
+
+  void notify() => _controller.add(null);
+
+  Future<void> close() => _controller.close();
+}
+
+final unauthorizedEventsProvider = Provider<UnauthorizedEvents>((ref) {
+  final events = UnauthorizedEvents();
+  ref.onDispose(events.close);
+  return events;
+});
+
 /// Single dio instance for the tepira API. Repositories depend on this; screens never do.
 final dioProvider = Provider<Dio>(
   (ref) => createApiDio(
     baseUrl: kApiBaseUrl,
     sessionStore: ref.watch(sessionStoreProvider),
+    onUnauthorized: ref.watch(unauthorizedEventsProvider).notify,
   ),
 );
 
 /// Builds the API client. Failed requests surface as a [DioException] whose
-/// `error` is an [AppException] subclass.
+/// `error` is an [AppException] subclass. [onUnauthorized] runs for every
+/// [UnauthorizedException] unless the request opted out with
+/// [kSkipUnauthorizedEvent].
 Dio createApiDio({
   required String baseUrl,
   required SessionStore sessionStore,
+  void Function()? onUnauthorized,
 }) {
   final dio = Dio(
     BaseOptions(
@@ -54,8 +88,40 @@ Dio createApiDio({
       apiBaseUrl: Uri.parse(baseUrl),
     ),
     ErrorMappingInterceptor(),
+    if (onUnauthorized != null)
+      UnauthorizedInterceptor(onUnauthorized, sessionStore: sessionStore),
   ]);
   return dio;
+}
+
+/// Calls [onUnauthorized] when a request fails with [UnauthorizedException].
+/// Must run after [ErrorMappingInterceptor].
+///
+/// With a [sessionStore], the 401 is only reported when the request was sent
+/// with the session token that is still stored: a late 401 for an old token
+/// (the user signed out or in again meanwhile) must not end the new session.
+class UnauthorizedInterceptor extends Interceptor {
+  UnauthorizedInterceptor(this.onUnauthorized, {this.sessionStore});
+
+  final void Function() onUnauthorized;
+  final SessionStore? sessionStore;
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    final extra = err.requestOptions.extra;
+    final skip = extra[kSkipUnauthorizedEvent] == true;
+    if (err.error is UnauthorizedException && !skip) {
+      final store = sessionStore;
+      final current = store == null ? null : await store.readToken();
+      if (store == null || extra[kSessionTokenExtra] == current) {
+        onUnauthorized();
+      }
+    }
+    handler.next(err);
+  }
 }
 
 /// Adds the Auth.js session cookie (`<name>=<token>`) to the `Cookie` header
@@ -88,8 +154,10 @@ class SessionCookieInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    options.extra[kSessionTokenExtra] = null;
     if (_isApiOrigin(options.uri)) {
       final token = await sessionStore.readToken();
+      options.extra[kSessionTokenExtra] = token;
       if (token != null && token.isNotEmpty) {
         options.headers['Cookie'] = _withSessionCookie(
           options.headers['Cookie'],
