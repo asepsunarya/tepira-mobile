@@ -1,0 +1,74 @@
+name: APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      TEPIRA_API_BASE_URL: https://tepira.asepsunarya.com/api
+      # Google OAuth client IDs: repo secret wins, else repo variable, else empty.
+      TEPIRA_GOOGLE_SERVER_CLIENT_ID: ${{ secrets.TEPIRA_GOOGLE_SERVER_CLIENT_ID || vars.TEPIRA_GOOGLE_SERVER_CLIENT_ID }}
+      TEPIRA_GOOGLE_IOS_CLIENT_ID: ${{ secrets.TEPIRA_GOOGLE_IOS_CLIENT_ID || vars.TEPIRA_GOOGLE_IOS_CLIENT_ID }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Configure release signing
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            {
+              echo "storeFile=upload-keystore.jks"
+              echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+              echo "keyAlias=$ANDROID_KEY_ALIAS"
+              echo "keyPassword=$ANDROID_KEY_PASSWORD"
+            } > android/key.properties
+            echo "Signing with the release keystore from repo secrets."
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 not set; APK is signed with the debug key."
+          fi
+
+      - name: Build APK
+        run: |
+          flutter build apk --release \
+            --dart-define=TEPIRA_API_BASE_URL="$TEPIRA_API_BASE_URL" \
+            --dart-define=TEPIRA_GOOGLE_SERVER_CLIENT_ID="$TEPIRA_GOOGLE_SERVER_CLIENT_ID" \
+            --dart-define=TEPIRA_GOOGLE_IOS_CLIENT_ID="$TEPIRA_GOOGLE_IOS_CLIENT_ID"
+
+      - name: Rename APK
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk \
+            "build/app/outputs/flutter-apk/tepira-${GITHUB_SHA::7}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tepira-apk-${{ github.sha }}
+          path: build/app/outputs/flutter-apk/tepira-*.apk
+          if-no-files-found: error
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/app/upload-keystore.jks android/key.properties
