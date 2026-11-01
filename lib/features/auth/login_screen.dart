@@ -6,7 +6,6 @@ import '../../core/errors.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/pill.dart';
 import '../../core/widgets/village_card.dart';
-import '../../data/auth/google_id_token_source.dart';
 import 'auth_providers.dart';
 import 'widgets/login_art.dart';
 import 'widgets/session_expired_overlay.dart';

@@ -7,7 +7,6 @@ import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/data/api_client.dart';
 import 'package:tepira_mobile/data/auth/auth_repository.dart';
 import 'package:tepira_mobile/data/auth/auth_user.dart';
-import 'package:tepira_mobile/data/auth/google_id_token_source.dart';
 
 import '../../helpers/fake_google_id_token_source.dart';
 import '../../helpers/fake_http_adapter.dart';

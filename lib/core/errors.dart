@@ -48,3 +48,7 @@ class ApiException extends AppException {
 
   final int? statusCode;
 }
+
+/// Message when Google sign-in fails for a reason the user cannot act on.
+const String kGoogleSignInFailedMessage =
+    'Masuk dengan Google gagal. Coba lagi.';

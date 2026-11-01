@@ -81,10 +81,6 @@ class GoogleSignInIdTokenSource implements GoogleIdTokenSource {
   Future<void> signOut() => _googleSignIn.signOut();
 }
 
-/// Message when Google sign-in fails for a reason the user cannot act on.
-const String kGoogleSignInFailedMessage =
-    'Masuk dengan Google gagal. Coba lagi.';
-
 AppException _platformError(PlatformException error) {
   if (error.code == GoogleSignIn.kNetworkError) return const NetworkException();
   return const ApiException(kGoogleSignInFailedMessage);

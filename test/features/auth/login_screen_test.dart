@@ -9,7 +9,6 @@ import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/core/theme.dart';
 import 'package:tepira_mobile/data/api_client.dart';
 import 'package:tepira_mobile/data/auth/auth_repository.dart';
-import 'package:tepira_mobile/data/auth/google_id_token_source.dart';
 import 'package:tepira_mobile/features/auth/auth_providers.dart';
 import 'package:tepira_mobile/features/auth/login_screen.dart';
 
