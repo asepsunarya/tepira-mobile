@@ -16,7 +16,12 @@ abstract interface class GoalsRepository {
   /// Throws [NotFoundException] for a missing goal or another user's goal.
   Future<GoalDetail> detail(int id);
 
-  /// `POST /api/mobile/goals`. [deadline] is sent as its calendar date.
+  /// `POST /api/mobile/goals`.
+  ///
+  /// [deadline] is the user's local calendar date and is sent as
+  /// `YYYY-MM-DD` from its own year, month and day fields. It is never
+  /// converted to UTC first: in WIB (UTC+7) a local midnight is the previous
+  /// day in UTC, so `toUtc()` would move the deadline back one day.
   Future<Goal> create({
     required String title,
     required int target,
@@ -78,8 +83,10 @@ class ApiGoalsRepository implements GoalsRepository {
 
   @override
   Future<void> contribute(int goalId, int amount, [String? note]) async {
-    // The legacy route answers `{success: true}` rather than the `{ok: ...}`
-    // envelope; any 2xx means the deposit was stored.
+    // The legacy route does not use the `{ok, error, message}` envelope: it
+    // answers `{success: true}` on 2xx and `{success: false, message}` with
+    // 400/401/404/500. The API client maps failures by HTTP status, so a 2xx
+    // means the deposit was stored and the body is not inspected.
     await _send(
       () => _dio.post<Object?>(
         '/contribution',
