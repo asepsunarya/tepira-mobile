@@ -121,7 +121,14 @@ class UnauthorizedInterceptor extends Interceptor {
         onUnauthorized();
       } else {
         final sent = extra[kSessionTokenExtra];
-        final current = await store.readToken();
+        String? current;
+        try {
+          current = await store.readToken();
+        } on Object {
+          // The stored token cannot be compared, so the session is not ended;
+          // the caller still receives the UnauthorizedException below.
+          current = null;
+        }
         if (sent != null && sent == current) onUnauthorized();
       }
     }

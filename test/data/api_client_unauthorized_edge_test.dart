@@ -113,7 +113,23 @@ void main() {
         .timeout(const Duration(seconds: 2), onTimeout: () => 'TIMED OUT');
 
     expect(outcome, isNot('TIMED OUT'));
-    expect(outcome, isA<DioException>());
+    expect(
+      outcome,
+      isA<DioException>()
+          .having((e) => e.error, 'error', isA<UnauthorizedException>()),
+    );
+  });
+
+  test('a token read failure on 401 does not end the session', () async {
+    final store = _FlakyStore(token: 't', failAfter: 1);
+    final dio = build(store, FakeHttpAdapter(status: 401, body: const {}));
+
+    expect(
+      await errorOf(dio.get<Object?>('/mobile/goals')),
+      isA<UnauthorizedException>(),
+    );
+    expect(store.reads, 2);
+    expect(events, 0);
   });
 }
 
