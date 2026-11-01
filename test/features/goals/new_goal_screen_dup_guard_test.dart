@@ -75,7 +75,11 @@ class _Desa extends ConsumerWidget {
   }
 }
 
-Future<void> _pump(WidgetTester tester, _Repo repo) async {
+Future<void> _pump(
+  WidgetTester tester,
+  _Repo repo, {
+  DateTime Function()? clock,
+}) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -99,7 +103,7 @@ Future<void> _pump(WidgetTester tester, _Repo repo) async {
     ProviderScope(
       overrides: [
         goalsRepositoryProvider.overrideWithValue(repo),
-        clockProvider.overrideWithValue(() => _now),
+        clockProvider.overrideWithValue(clock ?? () => _now),
       ],
       child:
           MaterialApp.router(theme: buildVillageTheme(), routerConfig: router),
@@ -528,5 +532,294 @@ void main() {
     await tester.pumpAndSettle();
     expect(repo.createCalls, 1);
     expect(find.text('kavling 90'), findsOneWidget);
+  });
+
+  group('snapshot and attempt window (re-test of the fix)', () {
+    testWidgets(
+        'no snapshot (Desa list failed before submit): an identical goal '
+        'older than the window is not recovered', (tester) async {
+      final repo = _Repo(
+        createAnswer: const NetworkException(),
+        listAnswer: const NetworkException(),
+      );
+      await _pump(tester, repo);
+      repo.listAnswer = [
+        _goal(100, ago: kNewGoalMatchWindow + const Duration(minutes: 1)),
+      ];
+
+      await _fill(tester);
+      await _tap(tester, 'submit');
+      await tester.pumpAndSettle();
+
+      expect(repo.createCalls, 1);
+      expect(find.text('kavling 100'), findsNothing);
+      expect(_uncertain, findsOneWidget);
+    });
+
+    testWidgets(
+        'no snapshot (Desa list failed before submit): the goal this attempt '
+        'stored is still recovered', (tester) async {
+      final repo = _Repo(
+        createAnswer: const NetworkException(),
+        listAnswer: const NetworkException(),
+      );
+      await _pump(tester, repo);
+      repo.listAnswer = [_goal(101, ago: const Duration(seconds: 3))];
+
+      await _fill(tester);
+      await _tap(tester, 'submit');
+      await tester.pumpAndSettle();
+
+      expect(repo.createCalls, 1);
+      expect(find.text('kavling 101'), findsOneWidget);
+      expect(find.text(kNewGoalRecoveredMessage), findsOneWidget);
+    });
+
+    testWidgets(
+      'BUG: no snapshot (Desa list failed before submit): an identical goal '
+      'that already existed (within the window) is recovered as the new one',
+      (tester) async {
+        // Same as the fixed snapshot bug, but on the path where goalsProvider
+        // had no value at submit (Desa list errored or still loading, or the
+        // screen was opened directly). _knownIds is null, so only the
+        // 10-minute window protects, and a goal created 2 minutes earlier is
+        // "recovered": the user's new goal is silently not created.
+        final repo = _Repo(
+          createAnswer: const NetworkException(),
+          listAnswer: const NetworkException(),
+        );
+        await _pump(tester, repo);
+        repo.listAnswer = [_goal(102, ago: const Duration(minutes: 2))];
+
+        await _fill(tester);
+        await _tap(tester, 'submit');
+        await tester.pumpAndSettle();
+
+        expect(find.text('kavling 102'), findsNothing);
+        expect(_uncertain, findsOneWidget);
+      },
+      skip: true,
+    );
+
+    testWidgets(
+        'goal from the first timed-out attempt shows up only on a retry '
+        '8 minutes later: found, no second create', (tester) async {
+      var now = _now;
+      final repo = _Repo(createAnswer: const NetworkException());
+      await _pump(tester, repo, clock: () => now);
+
+      await _fill(tester);
+      await _tap(tester, 'submit');
+      await tester.pumpAndSettle();
+      expect(_uncertain, findsOneWidget);
+
+      now = _now.add(const Duration(minutes: 8));
+      repo.listAnswer = [_goal(110, ago: -const Duration(seconds: 1))];
+      await _tap(tester, 'uncertain-retry');
+      await tester.pumpAndSettle();
+
+      expect(repo.createCalls, 1);
+      expect(find.text('kavling 110'), findsOneWidget);
+    });
+
+    testWidgets(
+        'second attempt also times out; the goal from the FIRST attempt is '
+        'then found (window anchored on the first attempt)', (tester) async {
+      var now = _now;
+      final repo = _Repo(createAnswer: const NetworkException());
+      await _pump(tester, repo, clock: () => now);
+
+      await _fill(tester);
+      await _tap(tester, 'submit');
+      await tester.pumpAndSettle();
+
+      // 25 minutes later: the pre-create check still sees nothing, the
+      // second create times out, and then the first attempt's goal appears.
+      now = _now.add(const Duration(minutes: 25));
+      repo.createGate = Completer();
+      await _tap(tester, 'uncertain-retry');
+      await tester.pump();
+      expect(repo.createCalls, 2, reason: 'pre-create check saw nothing');
+      repo.listAnswer = [_goal(111)]; // createdAt == first attempt start
+      repo.createGate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(repo.createCalls, 2);
+      expect(find.text('kavling 111'), findsOneWidget);
+    });
+
+    for (final (name, offset, matches) in <(String, Duration, bool)>[
+      ('exactly first attempt - window', -kNewGoalMatchWindow, true),
+      (
+        '1 ms before first attempt - window',
+        -(kNewGoalMatchWindow + const Duration(milliseconds: 1)),
+        false,
+      ),
+      (
+        'exactly now + window',
+        const Duration(minutes: 30) + kNewGoalMatchWindow,
+        true
+      ),
+      (
+        '1 ms after now + window',
+        const Duration(minutes: 30) +
+            kNewGoalMatchWindow +
+            const Duration(milliseconds: 1),
+        false,
+      ),
+      ('between attempts', const Duration(minutes: 15), true),
+    ]) {
+      testWidgets('window bound on retry 30 min later: $name', (tester) async {
+        var now = _now;
+        final repo = _Repo(createAnswer: const NetworkException());
+        await _pump(tester, repo, clock: () => now);
+
+        await _fill(tester);
+        await _tap(tester, 'submit');
+        await tester.pumpAndSettle();
+
+        now = _now.add(const Duration(minutes: 30));
+        repo.listAnswer = [
+          testGoal(
+            id: 120,
+            title: 'Kamera mirrorless',
+            target: 9000000,
+            createdAt: _now.add(offset),
+          ),
+        ];
+        await _tap(tester, 'uncertain-retry');
+        await tester.pumpAndSettle();
+
+        if (matches) {
+          expect(repo.createCalls, 1);
+          expect(find.text('kavling 120'), findsOneWidget);
+        } else {
+          // Not matched: the retry creates (the create still times out).
+          expect(repo.createCalls, 2);
+          expect(find.text('kavling 120'), findsNothing);
+        }
+      });
+    }
+
+    testWidgets(
+        'list check fails after the failed create: uncertain notice only; '
+        'retry with list still down shows the check-failed message and does '
+        'not create; once the list loads the stored goal is opened',
+        (tester) async {
+      final repo = _Repo(createAnswer: const NetworkException());
+      await _pump(tester, repo);
+      repo.listAnswer = const NetworkException();
+
+      await _fill(tester);
+      await _tap(tester, 'submit');
+      await tester.pumpAndSettle();
+      expect(_uncertain, findsOneWidget);
+      expect(_submitError, findsNothing);
+      expect(find.text(kNewGoalCheckFailedMessage), findsNothing);
+
+      repo.createAnswer = _goal(130);
+      await _tap(tester, 'uncertain-retry');
+      await tester.pumpAndSettle();
+      expect(repo.createCalls, 1);
+      expect(_uncertain, findsOneWidget);
+      expect(
+        tester.widget<Text>(_submitError).data,
+        kNewGoalCheckFailedMessage,
+      );
+      expect(find.text('Patok kavling'), findsOneWidget);
+
+      // Main submit button takes the same path.
+      await _tap(tester, 'submit');
+      await tester.pumpAndSettle();
+      expect(repo.createCalls, 1);
+      expect(
+        tester.widget<Text>(_submitError).data,
+        kNewGoalCheckFailedMessage,
+      );
+
+      repo.listAnswer = [_goal(131, ago: const Duration(seconds: 2))];
+      await _tap(tester, 'uncertain-retry');
+      await tester.pumpAndSettle();
+      expect(repo.createCalls, 1);
+      expect(find.text('kavling 131'), findsOneWidget);
+    });
+
+    testWidgets(
+        'check-failed message clears and a create happens once the list loads '
+        'empty', (tester) async {
+      final repo = _Repo(createAnswer: const NetworkException());
+      await _pump(tester, repo);
+      repo.listAnswer = const ServerException(statusCode: 503);
+
+      await _fill(tester);
+      await _tap(tester, 'submit');
+      await tester.pumpAndSettle();
+      await _tap(tester, 'uncertain-retry');
+      await tester.pumpAndSettle();
+      expect(find.text(kNewGoalCheckFailedMessage), findsOneWidget);
+
+      repo
+        ..listAnswer = <Goal>[]
+        ..createAnswer = _goal(140);
+      await _tap(tester, 'uncertain-retry');
+      await tester.pumpAndSettle();
+      expect(repo.createCalls, 2);
+      expect(find.text('kavling 140'), findsOneWidget);
+    });
+
+    testWidgets(
+        'a goal known before submit stays excluded on later retries, even '
+        'when a new identical goal also appears', (tester) async {
+      final repo = _Repo(
+        createAnswer: const NetworkException(),
+        listAnswer: [_goal(150, ago: const Duration(minutes: 1))],
+      );
+      await _pump(tester, repo);
+
+      await _fill(tester);
+      await _tap(tester, 'submit');
+      await tester.pumpAndSettle();
+      expect(find.text('kavling 150'), findsNothing);
+
+      repo.listAnswer = [
+        _goal(150, ago: const Duration(minutes: 1)),
+        _goal(151, ago: -const Duration(seconds: 1)),
+      ];
+      await _tap(tester, 'uncertain-retry');
+      await tester.pumpAndSettle();
+      expect(repo.createCalls, 1);
+      expect(find.text('kavling 151'), findsOneWidget);
+    });
+
+    testWidgets(
+      'BUG: phone clock 15 min ahead of the server: the stored goal is never '
+      'matched and the retry creates a duplicate, although the id snapshot '
+      'already rules out pre-existing goals',
+      (tester) async {
+        // Phone clock = server clock + 15 min. The first create times out
+        // but was stored with the server's createdAt (_now). The id snapshot
+        // was taken (list loaded, empty), so the goal is provably new, yet
+        // it is outside [attemptStart - 10 min, ...] by phone time.
+        final repo = _Repo(createAnswer: const NetworkException());
+        await _pump(
+          tester,
+          repo,
+          clock: () => _now.add(const Duration(minutes: 15)),
+        );
+        repo.listAnswer = [_goal(160)];
+
+        await _fill(tester);
+        await _tap(tester, 'submit');
+        await tester.pumpAndSettle();
+
+        repo.createAnswer = _goal(161);
+        await _tap(tester, 'uncertain-retry');
+        await tester.pumpAndSettle();
+
+        expect(repo.createCalls, 1, reason: 'second create = duplicate goal');
+        expect(find.text('kavling 160'), findsOneWidget);
+      },
+      skip: true,
+    );
   });
 }
