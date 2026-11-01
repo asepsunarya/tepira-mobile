@@ -78,14 +78,18 @@ dipakai web dan Cyrene; izin untuk itu diminta eksplisit bersama PR.
     `$queryRaw` yang mencatat SQL, dan log urutan panggilan.
 - Skrip baru `test:mobile-api`: `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import
   ./test/harness/register.mjs --test <daftar file test/mobile-api/*.test.mjs>`.
+- `.github/workflows/ci.yml`: tambah langkah `npm run test:mobile-api` (disetujui).
 - `lib/wallet-expenses.ts`:
   - `import type { Prisma }` (tanpa perubahan runtime);
   - ekspor `lockExpense(tx, id)`, `SELECT 1 FROM "Expense" WHERE id = ${id} FOR UPDATE`;
   - `createExpenseInTx(tx, userId, wallet, data)`: `create` + `updateMany` atomik + cek
     `count === 1`;
   - `updateExpenseWithWallet(userId, id, patch, merge)`: lock → baca → merge → dompet baru →
-    `planExpenseUpdate` → update. Hasilnya bertipe `not_found` / `wallet_required` /
-    `wallet_not_found` / `updated`, bukan `throw Error`;
+    `planExpenseUpdate` → update. Hasilnya bertipe `not_found` / `invalid` (`{ kind: "invalid",
+    message }`, patch yang digabung dengan baris tersimpan gagal validasi) / `wallet_required` /
+    `wallet_not_found` / `updated`, bukan `throw Error`. Dompet lama yang bukan milik user (data
+    tidak konsisten) → cek `count === 1` gagal → rollback → 500 (perilaku yang diketahui, SPEC
+    §3.7);
   - `deleteExpenseAndRestoreWallet` memanggil `lockExpense` dulu. Web (`app/expenses/actions.ts:41`)
     ikut memakainya;
   - `createExpenseWithWallet` tidak diubah.
@@ -122,7 +126,10 @@ dipakai web dan Cyrene; izin untuk itu diminta eksplisit bersama PR.
   jumlah jajan yang memakai dompet itu). Laporkan hasilnya ke koordinator dan tunggu keputusan
   sebelum lanjut. SPEC §3.3 dan §11 asumsi 11 menganggap nilainya 0 baris.
 - Route `app/api/mobile/today/route.ts` mengambil:
-  - jajan bulan WIB (dengan `isReserved`/`isDebt` dompet);
+  - jajan dengan `date` di `[m0, max(awal bulan depan, awal lusa))`, semua WIB (dengan
+    `isReserved`/`isDebt` dompet), supaya pada hari terakhir bulan jajan bertanggal besok (saldo
+    dompet sudah dipotong) tetap terhitung sebagai "besok" (SPEC §3.4). `bucketExpenses` sudah
+    menangani baris itu; `computeMonthSummary` hanya menerima baris di `[m0, awal bulan depan)`;
   - Salary + Bonus beserta `allocations` bulan itu (seperti `app/api/cyrene/summary/route.ts:84-88`);
   - setoran bulan itu: `Contribution` tidak punya `userId`, jadi disaring lewat goal,
     `where: { goal: userOwnedWhere(userId), date: { gte: m0, lt: awal bulan depan } }`;
@@ -134,7 +141,9 @@ dipakai web dan Cyrene; izin untuk itu diminta eksplisit bersama PR.
   - bentuk SPEC §3.4 untuk `ok`, `over_today`, `over_month`, dan basis `wallet`;
   - `budget.limit/remaining` `null` saat `NO_BUDGET`;
   - jajan bertanggal besok tidak mengubah `allowance`;
-  - `savedThisMonth` tidak menghitung setoran ke goal milik user lain.
+  - `savedThisMonth` tidak menghitung setoran ke goal milik user lain;
+  - hari terakhir bulan: jajan bertanggal besok dari dompet bebas masuk `E_next'` (basis `wallet`
+    tidak turun), tidak masuk `budget.spent`.
 - Verifikasi: `npm run test:mobile && npm run test:mobile-api && npm run lint`.
 
 **B4. `POST /api/mobile/expenses`** · M · bergantung: B2 (mapper dompet), B3 (`buildToday`)
@@ -172,8 +181,9 @@ dipakai web dan Cyrene; izin untuk itu diminta eksplisit bersama PR.
 
 **B5b. `PATCH/DELETE /api/mobile/expenses/[id]`** · M · bergantung: B4, B1b
 - `mergeExpensePatch(row, patch)` di `lib/mobile/expenses.ts` (murni) mengikuti tabel SPEC §3.7.
-- PATCH memanggil `updateExpenseWithWallet`; DELETE memanggil `deleteExpenseAndRestoreWallet` (sudah
-  terkunci). Keduanya mengembalikan dompet terdampak + `today` dan merevalidasi web.
+- PATCH memanggil `updateExpenseWithWallet` dengan `mergeExpensePatch` sebagai fungsi merge;
+  hasil `invalid` → 400 `bad_request` dengan `message`-nya. DELETE memanggil
+  `deleteExpenseAndRestoreWallet` (sudah terkunci). Keduanya mengembalikan dompet terdampak + `today` dan merevalidasi web.
 - Kriteria:
   - unit: hanya `amount` dikirim → `category`, `note`, `source`, `date`, `walletId` tetap;
   - unit: `null` mengosongkan `category`/`note`; `null` di `amount`/`walletId`/`source`/`date`

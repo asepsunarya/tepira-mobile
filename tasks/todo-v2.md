@@ -5,9 +5,9 @@ Satu commit per tugas. Tidak ada migrasi DB di v2.
 
 ## Fase B. Backend di repo `tepira` (branch `feature/mobile-api-v2`)
 - [ ] B1a Logika murni: `safeToday`, rentang WIB, gerak saldo + unit test
-- [ ] B1b Harness uji handler + perubahan helper bersama (`lockExpense`, `createExpenseInTx`, `updateExpenseWithWallet`); izin disetujui 2026-11-01
+- [ ] B1b Harness uji handler + perubahan helper bersama (`lockExpense`, `createExpenseInTx`, `updateExpenseWithWallet` dengan hasil `invalid`) + `npm run test:mobile-api` di `.github/workflows/ci.yml`; izin disetujui 2026-11-01
 - [ ] B2 `GET/POST /api/mobile/wallets`, `PATCH /api/mobile/wallets/[id]`
-- [ ] B3 `GET /api/mobile/today`
+- [ ] B3 `GET /api/mobile/today` (jajan dibaca dari awal bulan WIB sampai yang lebih akhir antara awal bulan depan dan awal lusa WIB)
 - [ ] B4 `POST /api/mobile/expenses`
 - [ ] B5a `GET /api/mobile/expenses`
 - [ ] B5b `PATCH/DELETE /api/mobile/expenses/[id]`

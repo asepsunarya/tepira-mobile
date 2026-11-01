@@ -391,6 +391,14 @@ Logika murni di `lib/mobile/today.ts` `computeSafeToday(...)`, tanpa import. Not
     **tidak** masuk `S_before` maupun `E_today`.
 - `spent.today = E_today`, `spent.month = E_month`. Keduanya menghitung semua jajan, sama dengan web
   dan Cyrene.
+- **Rentang baca jajan di route.** Route membaca jajan dengan `date` di
+  `[m0, max(m1, t2))`, dengan `m1` = awal bulan WIB berikutnya dan `t2` = awal lusa WIB
+  (`wibDayRange(now, 2).start`). Pada hari terakhir bulan, `t1 = m1`, sehingga jajan bertanggal
+  besok jatuh di bulan berikutnya. Saldo dompet sudah dipotong oleh jajan itu, jadi jajan itu tetap
+  harus dibaca dan dikelompokkan sebagai "besok" (`E_next'`). `bucketExpenses` sudah menangani
+  baris seperti ini: baris di luar `[m0, m1)` tidak masuk `E_month` maupun `S_before`, dan baris
+  `≥ t1` hanya masuk `E_next'`. `computeMonthSummary` tidak menyaring tanggal, jadi route hanya
+  mengopernya baris dengan `date` di `[m0, m1)`.
 
 **Basis `budget`** (status bukan `NO_BUDGET`). Semua jajan dihitung, termasuk dari dompet
 dicadangkan, supaya angka harian selalu sejalan dengan status anggaran bulan:
@@ -600,7 +608,9 @@ Alasan tiap bagian:
   1. `lockExpense(tx, id)`: `SELECT 1 FROM "Expense" WHERE id = ${id} FOR UPDATE` (model `Expense`
      tanpa `@@map`).
   2. Baca baris (`id` + `userOwnedWhere`, dengan dompet). Tidak ada → `{kind:"not_found"}` → 404.
-  3. `mergeExpensePatch`. Baris yatim tanpa `walletId` → `{kind:"wallet_required"}` → 400.
+  3. Fungsi merge yang dioper pemanggil (B5b mengoper `mergeExpensePatch`). Patch yang digabung
+     dengan baris tersimpan gagal validasi → `{kind:"invalid", message}` → 400 `bad_request`
+     dengan `message` itu. Baris yatim tanpa `walletId` → `{kind:"wallet_required"}` → 400.
   4. Bila `walletId` berubah: cari dompet baru milik user; tidak ada → `{kind:"wallet_not_found"}`
      → 400, transaksi dibatalkan.
   5. `planExpenseUpdate(old, next)` (murni, `lib/wallet-moves.ts`) menghasilkan daftar gerak saldo
@@ -611,6 +621,10 @@ Alasan tiap bagian:
   6. `expense.update` dengan kolom yang berubah, lalu tiap gerak sebagai
      `wallet.updateMany({ where: { id, ...owned }, data: { balance: { increment: delta } } })`
      dengan cek `count === 1` (pola Cyrene `route.ts:116-120`). Cek gagal → throw → rollback → 500.
+  
+  Perilaku yang diketahui: mengubah jajan yang dompetnya bukan milik user (data tidak konsisten)
+  membuat gerak balik di dompet lama gagal cek `count === 1`, sehingga transaksi dibatalkan dan
+  respons 500. Tidak ada saldo yang berubah.
 - Respons 200 `{ "ok": true, "expense": { … }, "wallets": [ …1 atau 2 dompet terdampak… ],
   "today": { … } }`. Revalidasi web (§3).
 - Error: semua error 3.5, ditambah `400` `bad_request` "Tidak ada perubahan.", `404`
