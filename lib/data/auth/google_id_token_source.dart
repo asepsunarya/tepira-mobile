@@ -53,6 +53,8 @@ class GoogleSignInIdTokenSource implements GoogleIdTokenSource {
     } on PlatformException catch (error) {
       if (error.code == GoogleSignIn.kSignInCanceledError) return null;
       throw _platformError(error);
+    } on Object {
+      throw const ApiException(kGoogleSignInFailedMessage);
     }
     if (account == null) return null;
     // Fetching the tokens is a second platform call: it fails on its own

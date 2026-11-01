@@ -145,10 +145,5 @@ void main() {
         throwsA(isA<AppException>()),
       );
     },
-    skip: 'BUG (low): GoogleSignInIdTokenSource.signIn() only catches '
-        'PlatformException around _googleSignIn.signIn(), so any other picker '
-        'error escapes raw, breaking the "Throws AppException" contract. '
-        'ApiAuthRepository and LoginScreen catch it today, so users still see '
-        'a friendly message.',
   );
 }
