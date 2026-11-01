@@ -7,7 +7,8 @@ Future<void> _pump(WidgetTester tester, Widget child) {
 }
 
 void main() {
-  testWidgets('shows 25% when a quarter of the target is saved', (tester) async {
+  testWidgets('shows 25% when a quarter of the target is saved',
+      (tester) async {
     await _pump(tester, const GoalProgress(saved: 250000, target: 1000000));
 
     expect(find.text('25% dari target'), findsOneWidget);

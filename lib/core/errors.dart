@@ -13,7 +13,9 @@ class NetworkException extends AppException {
 }
 
 class UnauthorizedException extends AppException {
-  const UnauthorizedException([super.message = 'Sesi berakhir. Masuk lagi, ya.']);
+  const UnauthorizedException([
+    super.message = 'Sesi berakhir. Masuk lagi, ya.',
+  ]);
 }
 
 class ApiException extends AppException {

@@ -3,7 +3,7 @@
 Rincian tiap tugas ada di `tasks/plan.md`. Satu commit per tugas.
 
 ## Fase 0. Baseline
-- [ ] T0 Perbaiki `goal_progress_test` di Flutter 3.47; commit `pubspec.lock`
+- [x] T0 Perbaiki `goal_progress_test` di Flutter 3.47; commit `pubspec.lock`
 
 ## Fase 2. Fondasi mobile (paralel dengan Fase 1)
 - [ ] T3 Dependensi (`google_sign_in`, `google_fonts`, `flutter_svg`), tema village, widget bersama, golden
