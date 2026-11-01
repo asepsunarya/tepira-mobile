@@ -37,14 +37,20 @@ class FakeGoalsRepository implements GoalsRepository {
   /// When set, [list] waits for it before answering.
   Completer<void>? listGate;
 
+  /// Per-call gates, keyed by the zero-based index of the [list] call; a
+  /// gated call waits for its completer before answering.
+  final Map<int, Completer<void>> listCallGates = {};
+
   int listCalls = 0;
 
   @override
   Future<List<Goal>> list() async {
     final result = listResults[
         listCalls < listResults.length ? listCalls : listResults.length - 1];
+    final callGate = listCallGates[listCalls];
     listCalls++;
     await listGate?.future;
+    await callGate?.future;
     if (result is Exception) throw result;
     return result as List<Goal>;
   }

@@ -12,9 +12,17 @@ class GoalsNotifier extends AutoDisposeAsyncNotifier<List<Goal>> {
 
   /// Reloads the list. Keeps showing the current goals while loading; a
   /// failure replaces them with the error.
+  ///
+  /// Rebuilds through Riverpod, so when refreshes overlap only the latest
+  /// one lands, and nothing is written after the provider is disposed. The
+  /// error stays in the state rather than being thrown at the caller.
   Future<void> refresh() async {
-    state = const AsyncLoading<List<Goal>>().copyWithPrevious(state);
-    state = await AsyncValue.guard(ref.read(goalsRepositoryProvider).list);
+    ref.invalidateSelf();
+    try {
+      await future;
+    } on Object {
+      // Already exposed as AsyncError in the state.
+    }
   }
 }
 

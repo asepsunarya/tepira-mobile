@@ -237,7 +237,77 @@ void main() {
       expect(find.byType(GoalRow), findsNWidgets(2));
     });
 
-    testWidgets('double-tapping "Coba lagi" settles on the latest result',
+    testWidgets(
+        'overlapping refreshes settle on the latest one even if an older '
+        'request answers last', (tester) async {
+      final repository = FakeGoalsRepository([
+        <Goal>[],
+        [testGoal(title: 'Jawaban lama')],
+        [testGoal(title: 'Jawaban baru')],
+      ]);
+      await _pumpDesa(tester, repository);
+      expect(find.text('Desamu masih sepi'), findsOneWidget);
+
+      final older = repository.listCallGates[1] = Completer<void>();
+      final newer = repository.listCallGates[2] = Completer<void>();
+      final reload = find.text('Sudah punya data di tepira.id? Muat ulang');
+
+      // The empty village stays on screen while refreshing, so the reload
+      // button can really be tapped twice before either request answers.
+      await tester.tap(reload);
+      await tester.pump();
+      expect(reload, findsOneWidget);
+      await tester.tap(reload);
+      await tester.pump();
+      expect(repository.listCalls, 3);
+
+      newer.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Jawaban baru'), findsOneWidget);
+
+      older.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Jawaban baru'), findsOneWidget);
+      expect(find.text('Jawaban lama'), findsNothing);
+    });
+
+    testWidgets('pull-to-refresh plus a reload tap: the later request wins',
+        (tester) async {
+      final repository = FakeGoalsRepository([
+        <Goal>[],
+        [testGoal(title: 'Dari tarikan')],
+        [testGoal(title: 'Dari tombol')],
+      ]);
+      await _pumpDesa(tester, repository);
+
+      final pulled = repository.listCallGates[1] = Completer<void>();
+      final tapped = repository.listCallGates[2] = Completer<void>();
+
+      await tester.fling(
+        find.text('Desamu masih sepi'),
+        const Offset(0, 400),
+        1000,
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(repository.listCalls, 2);
+
+      await tester.tap(find.text('Sudah punya data di tepira.id? Muat ulang'));
+      await tester.pump();
+      expect(repository.listCalls, 3);
+
+      // The tap's request answers first; the pull's stale answer comes
+      // later and must not overwrite it.
+      tapped.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Dari tombol'), findsOneWidget);
+      pulled.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Dari tombol'), findsOneWidget);
+      expect(find.text('Dari tarikan'), findsNothing);
+    });
+
+    testWidgets('"Coba lagi" hides while loading, then shows the result',
         (tester) async {
       final repository = FakeGoalsRepository([
         const NetworkException(),
@@ -248,7 +318,8 @@ void main() {
       repository.listGate = Completer<void>();
       await tester.tap(find.text('Coba lagi'));
       await tester.pump();
-      // The button is gone while loading (skeleton), so a second tap misses.
+      // The button is gone while loading (skeleton), so it cannot be
+      // tapped a second time.
       expect(find.text('Coba lagi'), findsNothing);
       repository.listGate!.complete();
       await tester.pumpAndSettle();
