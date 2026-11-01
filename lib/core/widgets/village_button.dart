@@ -31,7 +31,7 @@ class VillageButton extends StatelessWidget {
 
     final (Color? fill, Gradient? gradient, Color? border, Color text) =
         switch (variant) {
-      _ when !enabled => (c.disabled, null, null, Colors.white),
+      _ when !enabled => (c.disabled, null, null, c.putih),
       VillageButtonVariant.primary => (
           null,
           LinearGradient(
@@ -40,10 +40,10 @@ class VillageButton extends StatelessWidget {
             colors: [c.cta, c.ctaEnd],
           ),
           null,
-          Colors.white,
+          c.putih,
         ),
       VillageButtonVariant.ghost => (
-          Colors.white.withValues(alpha: 0.86),
+          c.putih.withValues(alpha: 0.86),
           null,
           c.garis,
           c.ink,

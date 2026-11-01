@@ -36,6 +36,7 @@ class VillageColors extends ThemeExtension<VillageColors> {
     required this.kuningText,
     required this.catatan,
     required this.disabled,
+    required this.putih,
     required this.shadow,
   });
 
@@ -71,6 +72,7 @@ class VillageColors extends ThemeExtension<VillageColors> {
     kuningText: Color(0xFFA87A12),
     catatan: Color(0xFFFFF8DD),
     disabled: Color(0xFFD9CCD5),
+    putih: Color(0xFFFFFFFF),
     shadow: Color(0x2E783C64),
   );
 
@@ -106,6 +108,9 @@ class VillageColors extends ThemeExtension<VillageColors> {
   /// Yellow note background used by StageNote.
   final Color catatan;
   final Color disabled;
+
+  /// Plain white: card borders, tile fills, text on the CTA gradient.
+  final Color putih;
 
   /// Card shadow, rgba(120,60,100,.18).
   final Color shadow;
@@ -145,6 +150,7 @@ class VillageColors extends ThemeExtension<VillageColors> {
     Color? kuningText,
     Color? catatan,
     Color? disabled,
+    Color? putih,
     Color? shadow,
   }) {
     return VillageColors(
@@ -178,6 +184,7 @@ class VillageColors extends ThemeExtension<VillageColors> {
       kuningText: kuningText ?? this.kuningText,
       catatan: catatan ?? this.catatan,
       disabled: disabled ?? this.disabled,
+      putih: putih ?? this.putih,
       shadow: shadow ?? this.shadow,
     );
   }
@@ -217,6 +224,7 @@ class VillageColors extends ThemeExtension<VillageColors> {
       kuningText: mix(kuningText, other.kuningText),
       catatan: mix(catatan, other.catatan),
       disabled: mix(disabled, other.disabled),
+      putih: mix(putih, other.putih),
       shadow: mix(shadow, other.shadow),
     );
   }
@@ -306,7 +314,7 @@ ThemeData buildVillageTheme() {
     colorScheme: ColorScheme.fromSeed(
       seedColor: c.pink,
       primary: c.cta,
-      onPrimary: Colors.white,
+      onPrimary: c.putih,
       secondary: c.mint,
       error: c.merah,
       surface: c.kartu,

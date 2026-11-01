@@ -29,7 +29,7 @@ class StatTile extends StatelessWidget {
     };
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: c.putih,
         border: Border.all(color: border, width: 2),
         borderRadius: BorderRadius.circular(VillageRadius.tile),
       ),

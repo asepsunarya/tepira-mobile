@@ -59,6 +59,27 @@ class _ThrowingAdapter implements HttpClientAdapter {
 String? _cookie(FakeHttpAdapter adapter, [int index = 0]) =>
     adapter.requests[index].headers['Cookie'] as String?;
 
+const _secure = '__Secure-authjs.session-token';
+const _plain = 'authjs.session-token';
+
+/// Cookie header sent for [url] by a client on [baseUrl] holding token `jwe`.
+Future<Object?> _cookieFor(
+  String baseUrl,
+  String url, {
+  Map<String, dynamic>? headers,
+}) async {
+  final adapter = FakeHttpAdapter();
+  await _dio(adapter, baseUrl: baseUrl, store: FakeSessionStore(token: 'jwe'))
+      .get<Object?>(url, options: Options(headers: headers));
+  return adapter.requests.single.headers['Cookie'];
+}
+
+DioException _dioError(DioExceptionType type, [Object? error]) => DioException(
+      requestOptions: RequestOptions(path: '/x'),
+      type: type,
+      error: error,
+    );
+
 void main() {
   group('session cookie scope', () {
     for (final url in [
@@ -134,6 +155,53 @@ void main() {
       },
     );
 
+    // Origin = scheme + host + port, with default ports and case normalised.
+    const sameOrigin = <(String, String)>[
+      ('https://api.test/api', 'https://api.test:443/api/x'),
+      ('https://api.test:443/api', 'https://api.test/api/x'),
+      ('https://API.Test/api', 'https://api.test/api/x'),
+      ('HTTPS://api.test/api', 'https://api.test/api/x'),
+      ('http://localhost/api', 'http://localhost:80/api/x'),
+      ('http://[::1]:3000/api', 'http://[::1]:3000/api/x'),
+      ('http://[::1]/api', 'http://[::1]/api/x'),
+      ('https://api.test:8443/api', 'https://api.test:8443/api/x'),
+    ];
+    for (final (base, url) in sameOrigin) {
+      test('base $base: is sent to $url', () async {
+        final name = sessionCookieNameFor(Uri.parse(base));
+        expect(await _cookieFor(base, url), '$name=jwe');
+      });
+    }
+
+    const otherOrigin = <(String, String)>[
+      ('https://api.test/api', 'https://evilapi.test/x'),
+      ('https://api.test/api', 'https://api.test.evil.com/x'),
+      ('https://api.test/api', 'http://api.test:443/x'),
+      ('https://api.test/api', 'https://api.test:80/x'),
+      ('http://api.test/api', 'https://api.test/x'),
+      ('http://[::1]:3000/api', 'http://[::1]:3001/x'),
+      ('http://[::1]/api', 'http://[::2]/x'),
+      ('http://10.0.2.2:3000/api', 'http://10.0.2.2/x'),
+      ('https://api.test:8443/api', 'https://api.test/x'),
+    ];
+    for (final (base, url) in otherOrigin) {
+      test('base $base: is not sent to $url', () async {
+        expect(await _cookieFor(base, url), isNull);
+      });
+    }
+
+    test('cross-origin request keeps the caller cookie and adds nothing',
+        () async {
+      expect(
+        await _cookieFor(
+          'https://api.test/api',
+          'https://other.test/x',
+          headers: {'Cookie': 'a=1'},
+        ),
+        'a=1',
+      );
+    });
+
     test('is merged with a caller-set Cookie header', () async {
       final adapter = FakeHttpAdapter();
       final dio = _dio(adapter, store: FakeSessionStore(token: 'jwe'));
@@ -161,6 +229,100 @@ void main() {
     });
   });
 
+  group('Cookie header merge', () {
+    const base = 'https://api.test/api';
+
+    test('empty caller Cookie header', () async {
+      expect(
+        await _cookieFor(base, '/x', headers: {'Cookie': ''}),
+        '$_secure=jwe',
+      );
+    });
+
+    test('caller header with a trailing "; "', () async {
+      expect(
+        await _cookieFor(base, '/x', headers: {'Cookie': 'a=1; '}),
+        'a=1; $_secure=jwe',
+      );
+    });
+
+    test('lowercase "cookie" key is merged, not duplicated', () async {
+      final adapter = FakeHttpAdapter();
+      await _dio(adapter, store: FakeSessionStore(token: 'jwe')).get<Object?>(
+        '/x',
+        options: Options(headers: {'cookie': 'a=1'}),
+      );
+      final h = adapter.requests.single.headers;
+      final keys = h.keys.where((k) => k.toLowerCase() == 'cookie').toList();
+      expect(keys, hasLength(1));
+      expect(h[keys.single], 'a=1; $_secure=jwe');
+    });
+
+    test('caller cookie as a list is merged', () async {
+      expect(
+        await _cookieFor(
+          base,
+          '/x',
+          headers: {
+            'Cookie': ['a=1', 'b=2'],
+          },
+        ),
+        'a=1; b=2; $_secure=jwe',
+      );
+    });
+
+    test('https: caller session value wins, order kept, no duplicate',
+        () async {
+      expect(
+        await _cookieFor(
+          base,
+          '/x',
+          headers: {'Cookie': 'a=1; $_secure=mine; b=2'},
+        ),
+        'a=1; $_secure=mine; b=2',
+      );
+    });
+
+    test('https: caller session cookie with spaces around the name is kept',
+        () async {
+      expect(
+        await _cookieFor(base, '/x', headers: {'Cookie': ' $_secure =mine'}),
+        '$_secure =mine',
+      );
+    });
+
+    test('https: plain-named caller cookie does not suppress __Secure-',
+        () async {
+      expect(
+        await _cookieFor(base, '/x', headers: {'Cookie': '$_plain=z'}),
+        '$_plain=z; $_secure=jwe',
+      );
+    });
+
+    test('http: __Secure-named caller cookie does not suppress plain name',
+        () async {
+      expect(
+        await _cookieFor(
+          'http://10.0.2.2:3000/api',
+          '/x',
+          headers: {'Cookie': '$_secure=z'},
+        ),
+        '$_secure=z; $_plain=jwe',
+      );
+    });
+
+    test('http: caller plain value wins, no __Secure- added', () async {
+      expect(
+        await _cookieFor(
+          'http://api.test/api',
+          '/x',
+          headers: {'Cookie': '$_plain=mine; b=2'},
+        ),
+        '$_plain=mine; b=2',
+      );
+    });
+  });
+
   group('session cookie name follows the API scheme', () {
     test('sessionCookieNameFor: https -> __Secure- prefixed name', () {
       expect(
@@ -178,6 +340,57 @@ void main() {
         sessionCookieNameFor(Uri.parse('http://10.0.2.2:3000/api')),
         'authjs.session-token',
       );
+    });
+
+    const names = <String, String>{
+      'Https://api.test/api': _secure,
+      'hTtPs://api.test:8443/api': _secure,
+      'https://api.test:8443/api': _secure,
+      'https://127.0.0.1/api': _secure,
+      'https://[::1]:8443/api': _secure,
+      'http://api.test/api': _plain,
+      'HTTP://api.test/api': _plain,
+      'http://localhost:443/api': _plain,
+    };
+    names.forEach((base, name) {
+      test('sessionCookieNameFor: $base -> $name', () {
+        expect(sessionCookieNameFor(Uri.parse(base)), name);
+      });
+    });
+
+    test('kSessionCookieName / kSecureSessionCookieName values', () {
+      expect(kSessionCookieName, _plain);
+      expect(kSecureSessionCookieName, _secure);
+    });
+
+    test('uppercase HTTPS base sends the __Secure- name', () async {
+      expect(
+        await _cookieFor('HTTPS://api.test/api', '/mobile/goals'),
+        '$_secure=jwe',
+      );
+    });
+
+    test('https base with a non-default port sends the __Secure- name',
+        () async {
+      expect(
+        await _cookieFor('https://api.test:8443/api', '/mobile/goals'),
+        '$_secure=jwe',
+      );
+    });
+
+    test('http base never sends the __Secure- name', () async {
+      final c = await _cookieFor('http://api.test/api', '/mobile/goals');
+      expect(c, '$_plain=jwe');
+      expect(c.toString(), isNot(contains('__Secure-')));
+    });
+
+    test('http base on port 443 still uses the plain name', () async {
+      expect(await _cookieFor('http://localhost:443/api', '/x'), '$_plain=jwe');
+    });
+
+    test('https base sends only the __Secure- cookie', () async {
+      final c = await _cookieFor('https://api.test/api', '/x');
+      expect(c.toString().split('; '), ['$_secure=jwe']);
     });
 
     test('https base sends __Secure-authjs.session-token', () async {
@@ -386,6 +599,38 @@ void main() {
       );
     });
 
+    test('end-to-end cancel (adapter) is not mapped to an AppException',
+        () async {
+      final dio = _dio(FakeHttpAdapter.failing(DioExceptionType.cancel));
+      expect(
+        dio.get<Object?>('/x'),
+        throwsA(
+          isA<DioException>()
+              .having((e) => e.type, 'type', DioExceptionType.cancel)
+              .having((e) => e.error, 'error', isNot(isA<AppException>())),
+        ),
+      );
+    });
+
+    test('TlsException during transfer -> NetworkException', () {
+      final dio = _dio(_ThrowingAdapter(const TlsException('x')));
+      expect(dio.get<Object?>('/x'), _failsWith<NetworkException>());
+    });
+
+    for (final error in [StateError('boom'), const FormatException('x')]) {
+      test('${error.runtimeType} (non-IO unknown) is not mapped', () {
+        final dio = _dio(_ThrowingAdapter(error));
+        expect(
+          dio.get<Object?>('/x'),
+          throwsA(
+            isA<DioException>()
+                .having((e) => e.type, 'type', DioExceptionType.unknown)
+                .having((e) => e.error, 'error', isNot(isA<AppException>())),
+          ),
+        );
+      });
+    }
+
     // dio's IO adapter only maps SocketException to connectionError while
     // *opening* the connection. A reset mid-response or a TLS
     // HandshakeException reaches the interceptor as DioExceptionType.unknown;
@@ -407,5 +652,52 @@ void main() {
         },
       );
     }
+  });
+
+  group('mapDioException', () {
+    test('badCertificate with a HandshakeException -> NetworkException', () {
+      expect(
+        mapDioException(
+          _dioError(
+            DioExceptionType.badCertificate,
+            const HandshakeException('x'),
+          ),
+        ),
+        isA<NetworkException>(),
+      );
+    });
+
+    test('badCertificate without an error -> NetworkException', () {
+      expect(
+        mapDioException(_dioError(DioExceptionType.badCertificate)),
+        isA<NetworkException>(),
+      );
+    });
+
+    test('cancel -> null', () {
+      expect(mapDioException(_dioError(DioExceptionType.cancel)), isNull);
+    });
+
+    test('cancel with an IO error payload -> null', () {
+      expect(
+        mapDioException(
+          _dioError(DioExceptionType.cancel, const SocketException('x')),
+        ),
+        isNull,
+      );
+    });
+
+    test('unknown + SocketException -> NetworkException', () {
+      expect(
+        mapDioException(
+          _dioError(DioExceptionType.unknown, const SocketException('x')),
+        ),
+        isA<NetworkException>(),
+      );
+    });
+
+    test('unknown + null error -> null', () {
+      expect(mapDioException(_dioError(DioExceptionType.unknown)), isNull);
+    });
   });
 }

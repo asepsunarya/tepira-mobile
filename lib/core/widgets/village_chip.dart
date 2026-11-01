@@ -23,7 +23,7 @@ class VillageChip extends StatelessWidget {
       button: onTap != null,
       selected: selected,
       child: Material(
-        color: selected ? c.pinkSoft : Colors.white,
+        color: selected ? c.pinkSoft : c.putih,
         shape: RoundedRectangleBorder(
           borderRadius: radius,
           side: BorderSide(color: selected ? c.pink : c.garis, width: 2),

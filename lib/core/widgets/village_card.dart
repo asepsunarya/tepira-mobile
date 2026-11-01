@@ -19,7 +19,7 @@ class VillageCard extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.kartu.withValues(alpha: 0.88),
-        border: Border.all(color: Colors.white, width: 2),
+        border: Border.all(color: colors.putih, width: 2),
         borderRadius: BorderRadius.circular(VillageRadius.card),
         boxShadow: [
           BoxShadow(

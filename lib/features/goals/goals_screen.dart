@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme.dart';
+
 import 'widgets/goal_progress.dart';
 
 /// Placeholder home screen. Replace with the real goal list once the
@@ -11,17 +13,17 @@ class GoalsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('tepira')),
-      body: const Padding(
-        padding: EdgeInsets.all(16),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Teu pira, tapi konsisten.',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              style: villageText(fontSize: 20, fontWeight: FontWeight.w700),
             ),
-            SizedBox(height: 16),
-            GoalProgress(saved: 250000, target: 1000000),
+            const SizedBox(height: 16),
+            const GoalProgress(saved: 250000, target: 1000000),
           ],
         ),
       ),
