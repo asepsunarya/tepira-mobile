@@ -97,7 +97,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: GoalRoutes.detailPattern,
         builder: (context, state) => GoalDetailScreen(
-          goalId: int.tryParse(state.pathParameters['id']!),
+          goalId: GoalRoutes.parseId(state.pathParameters['id']!),
         ),
       ),
       GoRoute(
