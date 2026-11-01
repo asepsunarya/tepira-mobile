@@ -12,7 +12,7 @@ import '../../helpers/fake_goals_repository.dart';
 
 /// Independent edge cases for how the real router turns `/goal/:id` into a
 /// goal id (T8, 578adf7). The id comes from `GoalRoutes.parseId`: positive
-/// decimal digits only, as the server accepts nothing else.
+/// int32 decimal digits only, as the server accepts nothing else.
 void main() {
   Future<(ProviderContainer, FakeGoalsRepository)> pumpApp(
     WidgetTester tester, {
@@ -61,6 +61,9 @@ void main() {
     '/goal/+12',
     '/goal/0',
     '/goal/000',
+    // Above the int32 maximum, which is the largest id the server accepts.
+    '/goal/2147483648',
+    '/goal/3000000000',
   ]) {
     testWidgets('$path shows the missing goal without a request',
         (tester) async {
@@ -83,5 +86,21 @@ void main() {
 
     expect(shownId(tester), 12);
     expect(goals.detailIds, [12]);
+  });
+
+  testWidgets('/goal/2147483647 (int32 maximum) opens that goal',
+      (tester) async {
+    final (container, goals) = await pumpApp(
+      tester,
+      detailResults: [
+        GoalDetail(goal: testGoal(id: 2147483647), contributions: const []),
+      ],
+    );
+
+    container.read(routerProvider).go('/goal/2147483647');
+    await tester.pumpAndSettle();
+
+    expect(shownId(tester), 2147483647);
+    expect(goals.detailIds, [2147483647]);
   });
 }

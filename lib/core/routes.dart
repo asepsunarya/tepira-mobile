@@ -10,14 +10,17 @@ abstract final class GoalRoutes {
   static String detail(int id) => '/goal/$id';
 
   /// The goal id in a `/goal/:id` path segment, or null when it is not a
-  /// positive id written in decimal digits. The server accepts nothing else,
-  /// so `0x0C`, `+12`, `-3` and `0` never reach the API. Leading zeros are
-  /// still decimal: `012` is goal 12.
+  /// positive int32 id written in decimal digits. The server accepts nothing
+  /// else, so `0x0C`, `+12`, `-3`, `0` and `2147483648` never reach the API.
+  /// Leading zeros are still decimal: `012` is goal 12.
   static int? parseId(String raw) {
     if (!_decimalDigits.hasMatch(raw)) return null;
     final id = int.tryParse(raw);
-    return id != null && id > 0 ? id : null;
+    return id != null && id > 0 && id <= maxId ? id : null;
   }
+
+  /// The largest goal id the server accepts (the int32 maximum).
+  static const int maxId = 2147483647;
 
   static final RegExp _decimalDigits = RegExp(r'^[0-9]+$');
 
