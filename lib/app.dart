@@ -6,6 +6,7 @@ import 'core/routes.dart';
 import 'core/theme.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_screen.dart';
+import 'features/goals/goal_detail_screen.dart';
 import 'features/goals/goals_screen.dart';
 import 'features/settings/settings_screen.dart';
 
@@ -88,14 +89,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: kHomePath,
         builder: (context, state) => const _Desa(),
       ),
-      // Placeholders until T8 (detail), T9 (new goal) and T10 (deposit).
+      // Placeholders until T9 (new goal) and T10 (deposit).
       GoRoute(
         path: GoalRoutes.create,
         builder: (context, state) => const _ComingSoon(title: 'Bangun kavling'),
       ),
       GoRoute(
         path: GoalRoutes.detailPattern,
-        builder: (context, state) => const _ComingSoon(title: 'Kavling'),
+        builder: (context, state) => GoalDetailScreen(
+          goalId: GoalRoutes.parseId(state.pathParameters['id']!),
+        ),
       ),
       GoRoute(
         path: GoalRoutes.record,
