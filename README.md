@@ -4,6 +4,13 @@ Aplikasi mobile (Android & iOS) untuk [tepira.id](https://tepira.asepsunarya.com
 nabung sedikit-sedikit ("teu pira") untuk mencapai goal finansial. Backend dan
 web app ada di repo `tepira` (Next.js + Prisma); app ini hanya klien API.
 
+## Spesifikasi
+
+- [`SPEC.md`](SPEC.md): v1, auth Google dan goal (kavling); tugas di `tasks/plan.md`, `tasks/todo.md`.
+- [`SPEC-v2.md`](SPEC-v2.md): v2, dompet (termasuk Dana dicadangkan), catat jajan, dan
+  "Aman dipakai hari ini" (disetujui 2026-11-01); tugas di
+  [`tasks/plan-v2.md`](tasks/plan-v2.md), [`tasks/todo-v2.md`](tasks/todo-v2.md).
+
 ## Mulai
 
 Butuh Flutter stable 3.x. Folder `android/` dan `ios/` sudah di-commit
