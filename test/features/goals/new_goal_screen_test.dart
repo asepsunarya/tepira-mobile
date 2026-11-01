@@ -456,21 +456,22 @@ void main() {
       expect(find.text('kavling 21'), findsNothing);
     });
 
-    testWidgets('an old goal with the same title and target is not a match', (
+    testWidgets(
+        'a goal with the same title and target that was listed before the '
+        'submit is not a match', (
       tester,
     ) async {
+      final old = testGoal(
+        id: 21,
+        title: 'Kamera mirrorless',
+        target: 9000000,
+        createdAt: _now.subtract(const Duration(days: 2)),
+      );
       final repository = _CreatingRepository(
         createResult: const NetworkException(),
         listResults: [
-          <Goal>[],
-          [
-            testGoal(
-              id: 21,
-              title: 'Kamera mirrorless',
-              target: 9000000,
-              createdAt: _now.subtract(const Duration(days: 2)),
-            ),
-          ],
+          [old],
+          [old],
         ],
       );
       await _pumpNewGoal(tester, repository);

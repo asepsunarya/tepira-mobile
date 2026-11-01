@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/clock.dart';
 import '../../core/errors.dart';
 import '../../core/format.dart';
 import '../../core/routes.dart';
@@ -35,25 +34,13 @@ const String kNewGoalCheckFailedMessage =
     'Belum bisa cek daftar kavling. Coba lagi sebentar lagi supaya tidak '
     'terpatok dua kali.';
 
-/// Clock-skew allowance for matching a goal to this screen's attempts: its
-/// `createdAt` must be no earlier than the first attempt minus this, and no
-/// later than now plus this. Wide enough for a slow request and some clock
-/// skew between the phone and the server.
-const Duration kNewGoalMatchWindow = Duration(minutes: 10);
+/// Shown when an explicit retry finds a goal with the same title and target
+/// but cannot tell whether the earlier attempt stored it (the goals were not
+/// known before that attempt). Nothing is created or opened.
+const String kNewGoalAmbiguousMessage =
+    'Sudah ada kavling dengan nama dan target yang sama. Cek daftar di Desa '
+    'dulu supaya tidak terpatok dua kali.';
 
-/// The Bangun kavling screen (`/goal/new`, artboard BuatGoal): name, target,
-/// optional deadline and description. On success the Desa list is reloaded
-/// and the new goal's Kavling replaces this screen, so going back lands on
-/// the Desa.
-///
-/// A create that fails on the network (timeout, no connection, 502/503/504)
-/// may still have been stored, so it is never retried by itself and the user
-/// is not told it was not saved. The goals list is reloaded and a new goal
-/// with the same title and target (one not in the list before the first
-/// attempt, created around that attempt) is opened with a notice. Without a
-/// match the screen says the connection dropped and offers an explicit
-/// retry, which checks the list again before creating and does not create
-/// while the list cannot be loaded.
 /// Outcome of looking for a goal an uncertain create may have stored.
 sealed class _CreateCheck {
   const _CreateCheck();
@@ -76,6 +63,33 @@ final class _Unverified extends _CreateCheck {
   const _Unverified();
 }
 
+/// The list holds a matching goal, but without a snapshot of the goals known
+/// before the first attempt it cannot be told apart from an older one.
+final class _Ambiguous extends _CreateCheck {
+  const _Ambiguous();
+}
+
+/// The Bangun kavling screen (`/goal/new`, artboard BuatGoal): name, target,
+/// optional deadline and description. On success the Desa list is reloaded
+/// and the new goal's Kavling replaces this screen, so going back lands on
+/// the Desa.
+///
+/// A create that fails on the network (timeout, no connection, 502/503/504)
+/// may still have been stored, so it is never retried by itself and the user
+/// is not told it was not saved. Before the first create the screen takes a
+/// snapshot of the goal ids that already exist (from the Desa list, or by
+/// loading the list when the Desa has none). After a failed create the list
+/// is reloaded, and the newest goal with the same title and target that is
+/// not in the snapshot is opened with a notice: it can only come from this
+/// screen's attempts, so its `createdAt` is not compared with the phone's
+/// clock, which may be skewed against the server's. Without a snapshot no
+/// goal is ever opened as recovered. Without a match the screen says the
+/// connection dropped and offers an explicit retry, which checks the list
+/// again before creating and does not create while the list cannot be
+/// loaded or (without a snapshot) already holds an identical goal.
+///
+/// Editing the title or target before a retry makes it a different goal:
+/// only goals with the current title and target are looked for.
 class NewGoalScreen extends ConsumerStatefulWidget {
   const NewGoalScreen({super.key});
 
@@ -98,13 +112,10 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
   /// found: the goal may exist, so the next submit checks the list first.
   bool _uncertain = false;
 
-  /// When the first create of the current attempt sequence started (by
-  /// [clockProvider]). Kept across retries while [_uncertain].
-  DateTime? _attemptStart;
-
-  /// Ids of the goals already known before the first create of the current
-  /// attempt sequence, or null when the list was not loaded then. Those
-  /// goals are never taken for the one this screen created.
+  /// Ids of the goals that existed before the first create of the current
+  /// attempt sequence, or null when the list could not be loaded then. A
+  /// matching goal is only taken for the one this screen created when it is
+  /// not in this snapshot; without a snapshot none is.
   Set<int>? _knownIds;
 
   @override
@@ -155,15 +166,22 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
             _submitError = kNewGoalCheckFailedMessage;
           });
           return;
+        case _Ambiguous():
+          // An identical goal exists and may be the earlier attempt's.
+          if (!mounted) return;
+          setState(() {
+            _submitting = false;
+            _submitError = kNewGoalAmbiguousMessage;
+          });
+          return;
         case _NotFound():
           if (!mounted) return;
       }
     } else {
       // A fresh attempt: remember what already exists, so a goal from
       // before this submit is never "recovered" as the new one.
-      _attemptStart = ref.read(clockProvider)();
-      _knownIds =
-          ref.read(goalsProvider).valueOrNull?.map((goal) => goal.id).toSet();
+      _knownIds = await _snapshotIds();
+      if (!mounted) return;
     }
 
     final Goal goal;
@@ -199,13 +217,33 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
     context.pushReplacement(GoalRoutes.detail(goal.id));
   }
 
+  /// Ids of the goals that exist now: the Desa list when it has loaded,
+  /// else a fresh load. Null when the list cannot be loaded.
+  Future<Set<int>?> _snapshotIds() async {
+    // Only look at goalsProvider when something already holds it: reading
+    // it otherwise would start a second, unawaited load.
+    final loaded =
+        ref.exists(goalsProvider) ? ref.read(goalsProvider).valueOrNull : null;
+    if (loaded != null) return loaded.map((goal) => goal.id).toSet();
+    try {
+      final goals = await ref.read(goalsRepositoryProvider).list();
+      return goals.map((goal) => goal.id).toSet();
+    } on AppException {
+      return null;
+    }
+  }
+
   /// Reloads the goals and looks for the newest one with [title] and
-  /// [target] that this screen may have created: not known before the first
-  /// attempt ([_knownIds]) and created between the first attempt minus
-  /// [kNewGoalMatchWindow] and now plus [kNewGoalMatchWindow].
+  /// [target] that is not in the snapshot [_knownIds]. Such a goal did not
+  /// exist before the first attempt, so it is this screen's: its
+  /// `createdAt` is only used to pick the newest, never compared with the
+  /// phone's clock.
   ///
   /// [_Unverified] when the list cannot be loaded, which is not the same as
-  /// [_NotFound]: the goal may still exist.
+  /// [_NotFound]: the goal may still exist. Without a snapshot nothing is
+  /// ever [_Found]: a matching goal gives [_Ambiguous]; a list without one
+  /// gives [_NotFound] and becomes the snapshot, since no earlier attempt
+  /// stored this goal.
   Future<_CreateCheck> _findCreated(String title, int target) async {
     ref.invalidate(goalsProvider);
     final List<Goal> goals;
@@ -214,20 +252,19 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
     } on AppException {
       return const _Unverified();
     }
-    final now = ref.read(clockProvider)();
-    final from = (_attemptStart ?? now).subtract(kNewGoalMatchWindow);
-    final until = now.add(kNewGoalMatchWindow);
-    final known = _knownIds ?? const <int>{};
+    final known = _knownIds;
     Goal? match;
     for (final goal in goals) {
-      if (known.contains(goal.id)) continue;
+      if (known != null && known.contains(goal.id)) continue;
       if (goal.title.trim() != title || goal.target != target) continue;
-      if (goal.createdAt.isBefore(from) || goal.createdAt.isAfter(until)) {
-        continue;
-      }
       if (match == null || goal.createdAt.isAfter(match.createdAt)) {
         match = goal;
       }
+    }
+    if (known == null) {
+      if (match != null) return const _Ambiguous();
+      _knownIds = goals.map((goal) => goal.id).toSet();
+      return const _NotFound();
     }
     return match == null ? const _NotFound() : _Found(match);
   }
