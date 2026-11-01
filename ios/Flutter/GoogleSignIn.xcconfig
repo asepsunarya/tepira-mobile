@@ -1,0 +1,12 @@
+// Google Sign-In URL scheme for iOS (see README, "Login Google").
+//
+// GOOGLE_REVERSED_CLIENT_ID is the *reversed* iOS OAuth client ID, e.g.
+// com.googleusercontent.apps.1234567890-abcdef. Never commit the real value:
+// override it in the git-ignored GoogleSignIn.local.xcconfig, or pass it to
+// xcodebuild as a build setting (GOOGLE_REVERSED_CLIENT_ID=...).
+//
+// The placeholder below keeps builds working while the iOS client does not
+// exist yet; it registers a URL scheme no Google flow will ever call back.
+GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.unset
+
+#include? "GoogleSignIn.local.xcconfig"
