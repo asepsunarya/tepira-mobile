@@ -23,7 +23,7 @@ Rincian tiap tugas ada di `tasks/plan.md`. Satu commit per tugas.
 - [ ] T8 Layar Kavling: ilustrasi tahap, angka, riwayat + widget test
 - [ ] T9 Layar Bangun kavling + test validasi
 - [ ] T10 Layar Setor + test
-- [ ] T11 Pengaturan minimal + keluar
+- [x] T11 Pengaturan minimal + keluar
 
 ## Checkpoint 3
 - [ ] `/review` lima sumbu

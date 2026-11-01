@@ -227,4 +227,16 @@ void main() {
     expect(s.store.userJson, isNull);
     expect(s.google.signOutCalls, 1);
   });
+
+  test('signOut still clears the store when Google sign-out fails', () async {
+    final s = _Setup(
+      store: FakeSessionStore(token: 't', userJson: jsonEncode(_user)),
+    )..google.signOutError = PlatformException(code: 'sign_out_failed');
+
+    await s.repository.signOut();
+
+    expect(s.store.token, isNull);
+    expect(s.store.userJson, isNull);
+    expect(s.google.signOutCalls, 1);
+  });
 }

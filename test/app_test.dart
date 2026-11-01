@@ -1,4 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,9 +15,11 @@ import 'package:tepira_mobile/data/goals/goals_repository.dart';
 import 'package:tepira_mobile/features/auth/auth_providers.dart';
 import 'package:tepira_mobile/features/auth/login_screen.dart';
 import 'package:tepira_mobile/features/goals/goals_screen.dart';
+import 'package:tepira_mobile/features/settings/settings_screen.dart';
 
 import 'helpers/fake_auth_repository.dart';
 import 'helpers/fake_goals_repository.dart';
+import 'helpers/fake_google_id_token_source.dart';
 import 'helpers/fake_session_store.dart';
 
 void main() {
@@ -93,7 +99,7 @@ void main() {
   group('TepiraApp routing', () {
     Future<ProviderContainer> pumpApp(
       WidgetTester tester,
-      FakeAuthRepository repository, {
+      AuthRepository repository, {
       bool settle = true,
     }) async {
       final container = ProviderContainer(
@@ -219,6 +225,98 @@ void main() {
       expect(find.byType(LoginScreen), findsOneWidget);
       expect(find.text('Sesi desamu sudah berakhir'), findsNothing);
       expect(store.token, isNull);
+    });
+
+    group('Pengaturan', () {
+      String location(ProviderContainer container) => container
+          .read(routerProvider)
+          .routerDelegate
+          .currentConfiguration
+          .uri
+          .toString();
+
+      Future<void> openSettings(WidgetTester tester) async {
+        await tester.tap(find.byKey(const Key('open-settings')));
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> signOut(WidgetTester tester, {required bool confirm}) async {
+        await tester.tap(find.byKey(const Key('sign-out')));
+        await tester.pumpAndSettle();
+        final answer = confirm ? 'confirm-sign-out' : 'cancel-sign-out';
+        await tester.tap(find.byKey(Key(answer)));
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('the HUD avatar opens Pengaturan for the stored user',
+          (tester) async {
+        await pumpApp(tester, FakeAuthRepository(restoredUser: testUser));
+
+        await openSettings(tester);
+
+        expect(find.byType(SettingsScreen), findsOneWidget);
+        expect(find.text('asep@example.com'), findsOneWidget);
+      });
+
+      testWidgets('"Keluar" clears the store and lands on a plain /login',
+          (tester) async {
+        final store = FakeSessionStore(token: 'jwe', userJson: '{}');
+        final repository =
+            FakeAuthRepository(restoredUser: testUser, store: store);
+        final container = await pumpApp(tester, repository);
+        await openSettings(tester);
+
+        await signOut(tester, confirm: true);
+
+        expect(find.byType(LoginScreen), findsOneWidget);
+        expect(find.text('Sesi desamu sudah berakhir'), findsNothing);
+        expect(location(container), '/login');
+        expect(container.read(authStateProvider), const AuthSignedOut());
+        expect(repository.signOutCalls, 1);
+        expect(store.token, isNull);
+        expect(store.userJson, isNull);
+      });
+
+      testWidgets('"Batal" keeps the session and stays on Pengaturan',
+          (tester) async {
+        final store = FakeSessionStore(token: 'jwe', userJson: '{}');
+        final repository =
+            FakeAuthRepository(restoredUser: testUser, store: store);
+        final container = await pumpApp(tester, repository);
+        await openSettings(tester);
+
+        await signOut(tester, confirm: false);
+
+        expect(find.byType(SettingsScreen), findsOneWidget);
+        expect(find.byType(LoginScreen), findsNothing);
+        expect(container.read(authStateProvider), const AuthSignedIn(testUser));
+        expect(repository.signOutCalls, 0);
+        expect(store.token, 'jwe');
+      });
+
+      testWidgets('a failing Google sign-out still clears the session',
+          (tester) async {
+        final store = FakeSessionStore(
+          token: 'jwe',
+          userJson: jsonEncode(testUser.toJson()),
+        );
+        final google = FakeGoogleIdTokenSource(
+          signOutError: PlatformException(code: 'sign_out_failed'),
+        );
+        final container = await pumpApp(
+          tester,
+          ApiAuthRepository(dio: Dio(), sessionStore: store, google: google),
+        );
+        await openSettings(tester);
+
+        await signOut(tester, confirm: true);
+
+        expect(google.signOutCalls, 1);
+        expect(store.token, isNull);
+        expect(store.userJson, isNull);
+        expect(find.byType(LoginScreen), findsOneWidget);
+        expect(location(container), '/login');
+      });
     });
   });
 }

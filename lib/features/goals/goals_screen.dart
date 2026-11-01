@@ -148,14 +148,30 @@ class _Hud extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
-          ExcludeSemantics(
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: c.mintSoft,
-              foregroundColor: c.mintText,
-              child: Text(
-                shownName.characters.first.toUpperCase(),
-                style: villageText(fontSize: 14, fontWeight: FontWeight.w900),
+          Semantics(
+            container: true,
+            button: true,
+            label: 'Pengaturan',
+            child: InkResponse(
+              key: const Key('open-settings'),
+              onTap: () => context.push(kSettingsPath),
+              radius: 24,
+              child: SizedBox.square(
+                dimension: 44,
+                child: ExcludeSemantics(
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: c.mintSoft,
+                    foregroundColor: c.mintText,
+                    child: Text(
+                      shownName.characters.first.toUpperCase(),
+                      style: villageText(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
