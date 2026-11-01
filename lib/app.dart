@@ -36,13 +36,22 @@ String _loginFor(Uri location) {
 
 /// Whether [path] is the login page. go_router matches paths
 /// case-insensitively, so `/LOGIN` is the login page too.
-bool _isLoginPath(String path) => path.toLowerCase() == kLoginPath;
+/// A single trailing slash (`/login/`) still names the login page.
+bool _isLoginPath(String path) {
+  final lower = path.toLowerCase();
+  final trimmed = lower.length > 1 && lower.endsWith('/')
+      ? lower.substring(0, lower.length - 1)
+      : lower;
+  return trimmed == kLoginPath;
+}
 
 /// The remembered page, accepted only as an in-app path.
 ///
 /// Rejects anything that could leave the app: a scheme, an authority
 /// (`//host`, or `/\host`, which [Uri.parse] reads as `//host`), any
 /// backslash, whitespace or control character, and the login page itself.
+/// The checks run on the parsed, dot-segment-normalised path, and that form
+/// is what is returned, so `/..//host` cannot collapse into `//host`.
 String _returnTarget(Uri login) {
   final target = login.queryParameters[kReturnToParam];
   if (target == null ||
@@ -56,8 +65,9 @@ String _returnTarget(Uri login) {
       !uri.hasScheme &&
       !uri.hasAuthority &&
       uri.path.startsWith('/') &&
+      !uri.path.startsWith('//') &&
       !_isLoginPath(uri.path);
-  return inApp ? target : kHomePath;
+  return inApp ? uri.toString() : kHomePath;
 }
 
 /// Backslashes, whitespace and control characters (incl. DEL).

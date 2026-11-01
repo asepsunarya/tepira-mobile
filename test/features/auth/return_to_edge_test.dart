@@ -86,6 +86,54 @@ void main() {
         isNotNull,
       ),
     );
+
+    test('from=/login/ (one trailing slash) goes to /', () {
+      expect(afterSignInWithFrom('/login/'), kHomePath);
+      expect(afterSignInWithFrom('/LOGIN/'), kHomePath);
+    });
+
+    test('signed-in on /login/ is moved off the login page', () {
+      expect(
+        authRedirect(const AuthSignedIn(testUser), Uri.parse('/login/')),
+        kHomePath,
+      );
+    });
+
+    test('signed-out on /login/ stays (no redirect loop)', () {
+      expect(authRedirect(const AuthSignedOut(), Uri.parse('/login/')), isNull);
+    });
+  });
+
+  group('dot segments cannot collapse into an authority', () {
+    test('raw /login?from=%2F..%2F%2Fevil.com%2Fgoal%2F1 goes to /', () {
+      expect(
+        afterSignIn('/login?from=%2F..%2F%2Fevil.com%2Fgoal%2F1'),
+        kHomePath,
+      );
+    });
+
+    for (final from in [
+      '/..//evil.com/goal/1',
+      '/./..//x',
+      '/a/../..//x',
+      '/%2e%2e//x',
+      '/%2E%2E//x',
+    ]) {
+      test('from=$from goes to /', () {
+        expect(afterSignInWithFrom(from), kHomePath, reason: from);
+      });
+    }
+
+    test('raw encoded dot segments go to /', () {
+      expect(afterSignIn('/login?from=%2F%2e%2e%2F%2Fx'), kHomePath);
+      expect(afterSignIn('/login?from=%2F.%2F..%2F%2Fx'), kHomePath);
+      expect(afterSignIn('/login?from=%2Fa%2F..%2F..%2F%2Fx'), kHomePath);
+    });
+
+    test('harmless dot segments return the normalised in-app path', () {
+      expect(afterSignInWithFrom('/x/../goal/1'), '/goal/1');
+      expect(afterSignInWithFrom('/./goal/1?a=b'), '/goal/1?a=b');
+    });
   });
 
   group('login loops are broken', () {
