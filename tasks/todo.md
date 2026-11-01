@@ -7,7 +7,7 @@ Rincian tiap tugas ada di `tasks/plan.md`. Satu commit per tugas.
 
 ## Fase 2. Fondasi mobile (paralel dengan Fase 1)
 - [x] T3 Dependensi (`google_sign_in`, `google_fonts`, `flutter_svg`), tema village, widget bersama, golden
-- [ ] T4 `core-network`: `SessionStore`, cookie interceptor, pemetaan error + unit test
+- [x] T4 `core-network`: `SessionStore`, cookie interceptor, pemetaan error + unit test
 
 ## Fase 1. Backend di repo `tepira` (branch `feature/mobile-api`)
 - [ ] T1 `POST /api/mobile/session` + unit test
