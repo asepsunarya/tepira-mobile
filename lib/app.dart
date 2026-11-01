@@ -7,6 +7,7 @@ import 'core/theme.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_screen.dart';
 import 'features/goals/goals_screen.dart';
+import 'features/settings/settings_screen.dart';
 
 const String kLoginPath = '/login';
 const String kHomePath = '/';
@@ -101,6 +102,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const _ComingSoon(title: 'Catat'),
       ),
       GoRoute(
+        path: kSettingsPath,
+        builder: (context, state) => const _Settings(),
+      ),
+      GoRoute(
         path: kLoginPath,
         builder: (context, state) => const LoginScreen(),
       ),
@@ -139,6 +144,30 @@ class _Desa extends ConsumerWidget {
     final auth = ref.watch(authStateProvider);
     return GoalsScreen(
       userName: auth is AuthSignedIn ? auth.user.name : null,
+    );
+  }
+}
+
+/// Pengaturan for the signed-in user. Signing out lands on a plain
+/// `/login`, so signing in again opens the Desa rather than Pengaturan.
+class _Settings extends ConsumerWidget {
+  const _Settings();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authStateProvider);
+    // Signed out, the router is already on its way to /login.
+    if (auth is! AuthSignedIn) return const SizedBox.shrink();
+    return SettingsScreen(
+      user: auth.user,
+      onSignOut: () async {
+        // Read both before awaiting: this widget is gone once the state
+        // flips to signed out.
+        final controller = ref.read(authStateProvider.notifier);
+        final router = ref.read(routerProvider);
+        await controller.signOut();
+        router.go(kLoginPath);
+      },
     );
   }
 }

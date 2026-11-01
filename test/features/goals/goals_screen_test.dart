@@ -39,6 +39,7 @@ Future<void> _pumpDesa(
         GoalRoutes.create,
         GoalRoutes.detailPattern,
         GoalRoutes.record,
+        kSettingsPath,
       ])
         GoRoute(
           path: path,
@@ -268,6 +269,33 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('page /record'), findsOneWidget);
+    });
+
+    testWidgets('the HUD avatar opens /settings', (tester) async {
+      await _pumpDesa(tester, FakeGoalsRepository([_threeGoals]));
+
+      await tester.tap(find.byKey(const Key('open-settings')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('page /settings'), findsOneWidget);
+    });
+
+    testWidgets('the HUD avatar is a 44px button named Pengaturan',
+        (tester) async {
+      await _pumpDesa(tester, FakeGoalsRepository([_threeGoals]));
+
+      final avatar = find.byKey(const Key('open-settings'));
+      expect(tester.getSize(avatar), const Size(44, 44));
+      expect(
+        tester.getSemantics(avatar),
+        matchesSemantics(
+          label: 'Pengaturan',
+          isButton: true,
+          hasTapAction: true,
+          hasFocusAction: true,
+          isFocusable: true,
+        ),
+      );
     });
 
     testWidgets('back from a pushed page returns to the same list',

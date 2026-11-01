@@ -6,3 +6,6 @@ abstract final class GoalRoutes {
 
   static String detail(int id) => '/goal/$id';
 }
+
+/// Path of the Pengaturan screen (artboard Pengaturan).
+const String kSettingsPath = '/settings';
