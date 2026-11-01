@@ -230,7 +230,10 @@ Tidak ada endpoint; klien menghapus token dari secure storage. Token tetap berla
   `POST /api/mobile/session`, menyimpan `token` + `user` di `flutter_secure_storage`.
 - [ ] `authStateProvider` (Riverpod) punya tiga keadaan: `unknown` (saat baca storage),
   `signedOut`, `signedIn(user)`.
-- [ ] go_router redirect: `signedOut` → `/login`; `signedIn` di `/login` → `/`.
+- [ ] go_router redirect: `signedOut` → `/login` (halaman selain `/` diingat di `?from=`);
+  `signedIn` di `/login` → target `from` yang sudah divalidasi sebagai path di dalam app
+  (tanpa skema/authority, setelah normalisasi dot-segment, bukan `/login`), selain itu → `/`.
+  *Keputusan koordinator (T7): return-to via `?from=` masuk T7.*
 - [ ] 403 `not_allowed` menampilkan pesan "Akun ini belum terdaftar di tepira.id" di layar Masuk.
 - [ ] `UnauthorizedException` dari endpoint mana pun mengosongkan sesi dan membuka overlay
   "Sesi desamu sudah berakhir" (artboard `SesiBerakhir`, tab pertama).
@@ -264,6 +267,9 @@ Tidak ada endpoint; klien menghapus token dari secure storage. Token tetap berla
   keypad, catatan opsional; sukses → detail kavling dimuat ulang dan tahap bangunan bisa
   berubah. Bagian Jajan dan catat cepat **tidak** termasuk spec ini (tab Jajan dinonaktifkan).
 - [ ] Widget test untuk Desa (loading, kosong, 3 goal), Kavling, dan Setor (validasi nominal 0).
+- [ ] Persen tampilan = `floor(saved * 100 / target)` dibatasi 0–100, jadi tidak pernah 100%
+  sebelum `saved >= target`. *Keputusan koordinator (T7): pembulatan ke bawah disengaja.*
+  Contoh: Rp8.750.000/Rp12.000.000 tampil 72%, sedangkan artboard `Main.dc.html` menulis 73%.
 - [ ] Golden test minimal untuk `GoalRow` dan `GoalProgress` dengan tema baru.
 
 ### Lintas modul
