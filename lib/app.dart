@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/routes.dart';
 import 'core/theme.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_screen.dart';
@@ -34,7 +35,20 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: kHomePath,
-        builder: (context, state) => const GoalsScreen(),
+        builder: (context, state) => const _Desa(),
+      ),
+      // Placeholders until T8 (detail), T9 (new goal) and T10 (deposit).
+      GoRoute(
+        path: GoalRoutes.create,
+        builder: (context, state) => const _ComingSoon(title: 'Bangun kavling'),
+      ),
+      GoRoute(
+        path: GoalRoutes.detailPattern,
+        builder: (context, state) => const _ComingSoon(title: 'Kavling'),
+      ),
+      GoRoute(
+        path: GoalRoutes.record,
+        builder: (context, state) => const _ComingSoon(title: 'Catat'),
       ),
       GoRoute(
         path: kLoginPath,
@@ -62,6 +76,34 @@ class TepiraApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       builder: (context, child) =>
           restoring ? const _RestoringSession() : child!,
+    );
+  }
+}
+
+/// The Desa screen with the signed-in user's name.
+class _Desa extends ConsumerWidget {
+  const _Desa();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authStateProvider);
+    return GoalsScreen(
+      userName: auth is AuthSignedIn ? auth.user.name : null,
+    );
+  }
+}
+
+/// Stand-in for a screen a later task builds.
+class _ComingSoon extends StatelessWidget {
+  const _ComingSoon({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: const Center(child: Text('Segera hadir')),
     );
   }
 }

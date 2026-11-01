@@ -19,7 +19,7 @@ Rincian tiap tugas ada di `tasks/plan.md`. Satu commit per tugas.
 
 ## Fase 4. Goals
 - [x] T6 DTO, model, `buildStage`, `GoalsRepository` + unit test
-- [ ] T7 Layar Desa: skeleton, kosong, daftar, muat ulang + widget test
+- [x] T7 Layar Desa: skeleton, kosong, daftar, muat ulang + widget test
 - [ ] T8 Layar Kavling: ilustrasi tahap, angka, riwayat + widget test
 - [ ] T9 Layar Bangun kavling + test validasi
 - [ ] T10 Layar Setor + test

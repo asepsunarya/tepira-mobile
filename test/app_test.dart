@@ -7,11 +7,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tepira_mobile/app.dart';
 import 'package:tepira_mobile/data/api_client.dart';
 import 'package:tepira_mobile/data/auth/auth_repository.dart';
+import 'package:tepira_mobile/data/goals/goals_repository.dart';
 import 'package:tepira_mobile/features/auth/auth_providers.dart';
 import 'package:tepira_mobile/features/auth/login_screen.dart';
 import 'package:tepira_mobile/features/goals/goals_screen.dart';
 
 import 'helpers/fake_auth_repository.dart';
+import 'helpers/fake_goals_repository.dart';
 import 'helpers/fake_session_store.dart';
 
 void main() {
@@ -45,7 +47,14 @@ void main() {
       bool settle = true,
     }) async {
       final container = ProviderContainer(
-        overrides: [authRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          authRepositoryProvider.overrideWithValue(repository),
+          goalsRepositoryProvider.overrideWithValue(
+            FakeGoalsRepository([
+              [testGoal()],
+            ]),
+          ),
+        ],
       );
       addTearDown(container.dispose);
       await tester.pumpWidget(
@@ -79,11 +88,32 @@ void main() {
       expect(find.byType(LoginScreen), findsOneWidget);
     });
 
-    testWidgets('a stored session starts on /', (tester) async {
+    testWidgets('a stored session starts on / with the user name',
+        (tester) async {
       await pumpApp(tester, FakeAuthRepository(restoredUser: testUser));
 
       expect(find.byType(GoalsScreen), findsOneWidget);
+      expect(find.text('Asep'), findsOneWidget);
+      expect(find.text('Dana darurat'), findsOneWidget);
     });
+
+    for (final (path, title) in [
+      ('/goal/new', 'Bangun kavling'),
+      ('/goal/7', 'Kavling'),
+      ('/record', 'Catat'),
+    ]) {
+      testWidgets('$path has a placeholder page until its task lands',
+          (tester) async {
+        final container =
+            await pumpApp(tester, FakeAuthRepository(restoredUser: testUser));
+
+        container.read(routerProvider).go(path);
+        await tester.pumpAndSettle();
+
+        expect(find.text(title), findsOneWidget);
+        expect(find.text('Segera hadir'), findsOneWidget);
+      });
+    }
 
     testWidgets('signing in moves /login to /', (tester) async {
       await pumpApp(tester, FakeAuthRepository());
