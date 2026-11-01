@@ -19,7 +19,9 @@ class GoalProgress extends StatelessWidget {
         children: [
           LinearProgressIndicator(value: ratio, minHeight: 8),
           const SizedBox(height: 4),
-          Text('$percent% dari target'),
+          // The label above already announces the percentage; reading the
+          // caption too would merge into one duplicated label.
+          ExcludeSemantics(child: Text('$percent% dari target')),
         ],
       ),
     );

@@ -1,0 +1,48 @@
+{
+  "ok": true,
+  "asOf": "2026-11-01T07:00:00.000Z",
+  "goal": {
+    "id": 12,
+    "title": "Laptop kerja",
+    "description": "Ganti laptop lama sebelum proyek baru",
+    "target": 15000000,
+    "saved": 6200000,
+    "percent": 41.3,
+    "remaining": 8800000,
+    "deadline": "2027-04-30",
+    "daysLeft": 180,
+    "perMonthNeeded": 1466667,
+    "createdAt": "2026-06-01T03:15:00.000Z",
+    "lastContribution": {
+      "date": "2026-10-28T12:45:00.000Z",
+      "amount": 1200000
+    },
+    "contributionCount": 4,
+    "contributions": [
+      {
+        "id": 142,
+        "amount": 1200000,
+        "note": "Sisa jajan Oktober",
+        "date": "2026-10-28T12:45:00.000Z"
+      },
+      {
+        "id": 130,
+        "amount": 1500000,
+        "note": "Bonus proyek",
+        "date": "2026-09-25T08:00:00.000Z"
+      },
+      {
+        "id": 117,
+        "amount": 1500000,
+        "note": null,
+        "date": "2026-08-26T10:30:00.000Z"
+      },
+      {
+        "id": 101,
+        "amount": 2000000,
+        "note": "Gaji Juni",
+        "date": "2026-06-25T09:00:00.000Z"
+      }
+    ]
+  }
+}

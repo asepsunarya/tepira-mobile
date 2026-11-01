@@ -13,7 +13,7 @@ repo (Next.js 15, Prisma, Auth.js Google login); this app is an API client only.
 
 ## Tech Stack
 
-- Flutter 3.x (stable), Dart 3.x, Material 3, dark-first theme
+- Flutter 3.x (stable), Dart 3.x, Material 3, light village theme (SPEC §4: pastel palette, Nunito 700–900)
 - State: Riverpod (`flutter_riverpod`); navigation: `go_router`
 - Networking: `dio` against the tepira API (`https://tepira.asepsunarya.com/api/...`)
 - Auth: Google Sign-In, session cookie / token stored in `flutter_secure_storage`

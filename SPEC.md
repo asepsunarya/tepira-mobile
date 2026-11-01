@@ -32,7 +32,8 @@ Bukan untuk publik umum dulu.
 Dibaca dari `asepsunarya/tepira` commit `9d366c5`:
 
 - Auth: Auth.js v5 (`next-auth@5.0.0-beta`), provider Google, `session.strategy = "jwt"`,
-  cookie `authjs.session-token` (JWE, kunci `AUTH_SECRET`). Allowlist email lewat
+  cookie sesi `__Secure-authjs.session-token` di https (produksi) dan `authjs.session-token`
+  di http (dev lokal) (JWE, kunci `AUTH_SECRET`). Allowlist email lewat
   `TEPIRA_DEFAULT_USER_EMAIL` + `TEPIRA_ALLOWED_EMAILS`.
 - Tidak ada endpoint JSON untuk daftar goal yang memakai sesi pengguna. `/api/cyrene/goals`
   memakai Bearer token pemilik tunggal (`TEPIRA_API_KEY`) dan selalu bertindak sebagai
@@ -48,58 +49,171 @@ Kesimpulan: ADR 0001 benar, perlu perubahan kecil di backend. Spec ini mendefini
 
 ## 3. Kontrak `backend-mobile-api` (dikerjakan di repo `tepira`)
 
-Semua di bawah `/api/mobile/*`, JSON, `Cache-Control: no-store`. Error memakai bentuk
-`{ "ok": false, "error": "<kode>", "message": "<Indonesia>" }`.
+Sumber kebenaran: `api-contract.md` dari handler asli di branch `feature/mobile-api` repo
+`tepira` (`app/api/mobile/**/route.ts`), dibangkitkan 2026-11-01 dengan jam tetap
+`2026-11-01T07:00:00.000Z` dan data fiktif. SPEC mengikuti backend, bukan sebaliknya.
+Fixture dari generator yang sama ada di `test/fixtures/` (`mobile_goals.json` = 3.2,
+`mobile_goal_detail.json` = 3.3); pakai untuk test parsing.
+
+Aturan umum:
+
+- Host sama dengan web (produksi `https://tepira.asepsunarya.com`), path `/api/mobile/*`.
+- Semua respons JSON dengan header `Cache-Control: no-store, max-age=0, private`,
+  `Vary: Cookie`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`.
+- **Amplop.** Sukses: `{ "ok": true, ... }`. Error (semua endpoint):
+  `{ "ok": false, "error": "<kode>", "message": "<teks Indonesia, tampilkan apa adanya>" }`.
+  Klien bercabang berdasarkan status HTTP + `error`; `message` tidak pernah di-parse.
+- **Nama field camelCase.** Uang (`target`, `saved`, `remaining`, `perMonthNeeded`, `amount`)
+  = `int` rupiah. `percent` = angka 0–100, boleh satu desimal (mis. `41.3`), jadi `num`
+  di Dart. `id` goal/setoran = `int`; `id` user = `String`.
+- **Tanggal.** `asOf`, `createdAt`, `expiresAt`, `lastContribution.date`,
+  `contributions[].date` = ISO-8601 UTC dengan milidetik (`2026-10-28T12:45:00.000Z`).
+  `deadline` = tanggal kalender `YYYY-MM-DD` (WIB) atau `null`.
+- **Nullable, tidak pernah hilang:** `description`, `deadline`, `daysLeft`, `perMonthNeeded`,
+  `lastContribution`, `note`, `user.name`, `user.email`, `user.image`. `daysLeft` dan
+  `perMonthNeeded` `null` bila tanpa deadline; `perMonthNeeded` juga `null` bila goal sudah
+  tercapai. `daysLeft` = `0` bila deadline sudah lewat.
+- Kode error yang dipakai: `bad_request` 400, `unauthorized` 401, `invalid_token` 401,
+  `not_allowed` 403, `account_not_linked` 403, `not_found` 404,
+  `unsupported_media_type` 415, `rate_limited` 429, `server_error` 500.
 
 ### 3.1 `POST /api/mobile/session`
 
-Tukar Google ID token dari perangkat menjadi sesi yang sama dengan web.
+Tukar Google ID token dari perangkat menjadi token sesi Auth.js yang sama dengan web.
 
-- Body: `{ "idToken": "<google id token>" }`
-- Server: verifikasi token ke Google (`google-auth-library`, audience = client ID Android/iOS
-  yang didaftarkan), cek allowlist dengan `isAllowedEmail`, cari/buat `User` + `Account`
-  lewat Prisma adapter seperti alur web, lalu **encode JWT Auth.js** (`encode` dari
-  `next-auth/jwt`, secret `AUTH_SECRET`, salt nama cookie) dan kembalikan tokennya.
-- Respons 200: `{ "ok": true, "token": "<jwe>", "expiresAt": "<ISO>", "user": { "id", "name", "email", "image" } }`
-- 401 `invalid_token`, 403 `not_allowed` (email di luar allowlist), 429 bila dibatasi.
-- Alasan desain: dengan token yang sama persis seperti cookie web, mobile cukup mengirim
-  `Cookie: authjs.session-token=<token>` dan **semua route lama yang memanggil `auth()`
-  (`/api/contribution`, dll.) langsung bekerja tanpa diubah**. Tidak ada skema token kedua.
+- Aktif hanya bila env `TEPIRA_MOBILE_GOOGLE_CLIENT_IDS` (daftar client ID Google dipisah
+  koma, diterima sebagai `aud`) terisi; kalau tidak, **404 `not_found`** untuk setiap
+  permintaan (dicek sebelum rate limit).
+- Request: `Content-Type: application/json`, body `{ "idToken": "<Google ID token>" }`
+  (string 1–4096 karakter; key lain diabaikan).
+- Respons 200:
+
+```json
+{
+  "ok": true,
+  "token": "<Auth.js JWE, ~500 karakter>",
+  "expiresAt": "2026-12-01T07:00:00.000Z",
+  "user": {
+    "id": "user_owner",
+    "name": "Rina Contoh",
+    "email": "rina@example.test",
+    "image": "https://example.test/avatar/rina.png"
+  }
+}
+```
+
+- `expiresAt` = sekarang + 30 hari. `user` berisi tepat `id`, `name`, `email`, `image`.
+- Memakai token: kirim di setiap request sebagai cookie sesi Auth.js,
+  `Cookie: __Secure-authjs.session-token=<token>` di produksi (`AUTH_URL` https) dan
+  `Cookie: authjs.session-token=<token>` di dev lokal (`AUTH_URL` http). Nama cookie juga
+  salt enkripsi: nama salah ⇒ dianggap belum masuk (401 di endpoint goal). Dengan token yang
+  sama persis seperti cookie web, route lama yang memanggil `auth()` (`/api/contribution`,
+  dll.) langsung bekerja. Tidak ada skema token kedua.
+- Error:
+  - `404` `not_found` — "Data tidak ditemukan." (fitur nonaktif, env kosong)
+  - `400` `bad_request` — "Permintaan tidak valid: idToken wajib diisi." (`idToken`
+    hilang/tidak valid, juga body bukan JSON)
+  - `401` `invalid_token` — "Token Google tidak valid atau sudah kedaluwarsa. Coba masuk lagi."
+    (signature/aud/issuer salah atau kedaluwarsa)
+  - `403` `not_allowed` — "Akun ini belum terdaftar di tepira.id." (email di luar allowlist
+    atau belum diverifikasi Google)
+  - `403` `account_not_linked` — "Email ini sudah terdaftar dengan akun lain. Masuk lewat web
+    tepira.id dulu." (email ada tanpa akun Google tertaut)
+  - `429` `rate_limited` — "Terlalu banyak percobaan masuk. Coba lagi sebentar lagi."
+    (10 percobaan/menit per IP; header `Retry-After: <detik>`, mis. `6`)
+  - `500` `server_error` — sertifikat Google tak terjangkau / konfigurasi server salah
 
 ### 3.2 `GET /api/mobile/goals`
 
-- Auth: cookie sesi. Filter `userOwnedWhere(userId)`.
-- Respons: `{ "ok": true, "asOf": "<ISO>", "goals": [ { "id", "title", "description", "target", "saved", "percent", "remaining", "deadline": "YYYY-MM-DD"|null, "daysLeft": int|null, "perMonthNeeded": int|null, "createdAt", "lastContribution": { "date", "amount" }|null, "contributionCount": int } ] }`
-- Urutan sama dengan `/api/cyrene/goals` (belum selesai dulu, lalu deadline terdekat).
-- Logika `percent`/`remaining`/`daysLeft`/`perMonthNeeded` memakai `goalPlan` yang sudah ada.
+- Auth: cookie sesi. Urutan: yang belum selesai dulu, lalu deadline terdekat, lalu tanpa
+  deadline, lalu terbaru; yang sudah selesai (`saved >= target`) paling akhir.
+- Respons 200 (= `test/fixtures/mobile_goals.json`, satu item ditampilkan):
+
+```json
+{
+  "ok": true,
+  "asOf": "2026-11-01T07:00:00.000Z",
+  "goals": [
+    {
+      "id": 12,
+      "title": "Laptop kerja",
+      "description": "Ganti laptop lama sebelum proyek baru",
+      "target": 15000000,
+      "saved": 6200000,
+      "percent": 41.3,
+      "remaining": 8800000,
+      "deadline": "2027-04-30",
+      "daysLeft": 180,
+      "perMonthNeeded": 1466667,
+      "createdAt": "2026-06-01T03:15:00.000Z",
+      "lastContribution": {
+        "date": "2026-10-28T12:45:00.000Z",
+        "amount": 1200000
+      },
+      "contributionCount": 4
+    }
+  ]
+}
+```
+
+- Error: `401` `unauthorized` — "Sesi sudah berakhir. Silakan masuk lagi."; `500` `server_error`.
 
 ### 3.3 `GET /api/mobile/goals/{id}`
 
-- Seperti satu item di 3.2 plus `"contributions": [ { "id", "amount", "note", "date": "<ISO>" } ]`
-  terbaru dulu, maksimal 200.
-- 404 `not_found` bila bukan milik user.
+- Auth: cookie sesi. Respons 200 `{ "ok": true, "asOf": "<ISO>", "goal": { ... } }`:
+  field item sama dengan 3.2 ditambah `contributions` (terbaru dulu, seri diurutkan `id`
+  lebih besar dulu, maksimal 200; `saved`/`contributionCount` tetap menghitung semua).
+  Contoh lengkap: `test/fixtures/mobile_goal_detail.json`. Bentuk satu setoran:
+
+```json
+{ "id": 117, "amount": 1500000, "note": null, "date": "2026-08-26T10:30:00.000Z" }
+```
+
+- Error:
+  - `401` `unauthorized` — "Sesi sudah berakhir. Silakan masuk lagi."
+  - `404` `not_found` — "Data tidak ditemukan." (tidak ada, milik user lain, atau id bukan
+    int32 positif, mis. `abc`)
+  - `500` `server_error`
 
 ### 3.4 `POST /api/mobile/goals`
 
-- Body: `{ "title": string 1..60, "description"?: string ≤200, "target": int > 0, "deadline"?: "YYYY-MM-DD" }`
-- Validasi sama dengan `createGoal`. Respons 201 dengan item goal (bentuk 3.2).
+- Auth: cookie sesi. `Content-Type: application/json` (`charset` boleh).
+- Body: `title` string 1–60 karakter (di-trim, tanpa karakter kontrol) **wajib**;
+  `target` integer 1..2147483647 **wajib** (angka JSON, bukan string);
+  `description` string ≤200 karakter, opsional (`""`/`null` → `null`);
+  `deadline` `"YYYY-MM-DD"` opsional (`""`/`null` → `null`). Key lain diabaikan.
+- Respons **201** `{ "ok": true, "goal": { ... } }` dengan item bentuk 3.2. Contoh: body
+  `{"title": "Kamera mirrorless", "description": "Untuk konten", "target": 9000000, "deadline": "2027-06-30"}`
+  → `goal` dengan `id` 16, `saved` 0, `percent` 0, `remaining` 9000000, `daysLeft` 241,
+  `perMonthNeeded` 1000000, `createdAt` = waktu server, `lastContribution` null,
+  `contributionCount` 0. Body `{"title": "Dana pendidikan", "target": 20000000}` → `description`,
+  `deadline`, `daysLeft`, `perMonthNeeded` semuanya `null`.
+- Error:
+  - `401` `unauthorized` — "Sesi sudah berakhir. Silakan masuk lagi."
+  - `415` `unsupported_media_type` — "Format permintaan harus JSON." (Content-Type bukan JSON)
+  - `400` `bad_request` dengan salah satu pesan: "Judul harus diisi, maksimal 60 karakter.",
+    "Target harus berupa angka bulat lebih dari 0.", "Tanggal target harus berformat
+    YYYY-MM-DD.", "Isi permintaan harus berupa objek JSON." (body bukan objek / JSON tidak
+    valid), "Deskripsi harus berupa teks.", "Deskripsi maksimal 200 karakter."
+  - `500` `server_error`
 
 ### 3.5 Tambah setoran
 
-Memakai endpoint yang sudah ada: `POST /api/contribution` (multipart `goalId`, `amount`,
-`note`). Respons `{ "success": true }`. Tidak perlu endpoint baru. Setelah sukses, klien
-memanggil ulang 3.3.
+Tidak di bawah `/api/mobile`: memakai endpoint yang sudah ada `POST /api/contribution`
+(multipart form `goalId`, `amount`, `note`) dengan cookie sesi yang sama. Setelah sukses,
+klien memanggil ulang 3.3.
 
 ### 3.6 Keluar
 
-Tidak ada endpoint; klien menghapus token dari secure storage. JWT tetap berlaku sampai
-kedaluwarsa (sama seperti web saat cookie dihapus).
+Tidak ada endpoint; klien menghapus token dari secure storage. Token tetap berlaku sampai
+`expiresAt` (sama seperti web saat cookie dihapus).
 
 ## 4. Acceptance criteria
 
 ### `core-network`
 - [ ] `ApiClient` (dio) memakai base URL dari `--dart-define=TEPIRA_API_BASE_URL`, default `https://tepira.asepsunarya.com/api`.
-- [ ] Interceptor menambahkan `Cookie: authjs.session-token=<token>` bila token ada.
+- [ ] Interceptor menambahkan cookie sesi bila token ada, hanya ke origin API; nama mengikuti
+  skema base URL: https → `__Secure-authjs.session-token`, http → `authjs.session-token`.
 - [ ] 401 → `UnauthorizedException`, 403 → `ForbiddenException`, 404 → `NotFoundException`,
   5xx dan `{ok:false}` → `ServerException`, timeout/socket → `NetworkException`; semua
   subclass `AppException` dengan `message` Indonesia untuk UI.
