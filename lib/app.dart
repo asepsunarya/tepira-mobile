@@ -19,7 +19,7 @@ const String kReturnToParam = 'from';
 /// `/` in [kReturnToParam]; after sign-in they go there, else to `/`. While
 /// the stored session is still being read nothing moves.
 String? authRedirect(AuthState auth, Uri location) {
-  final onLogin = location.path == kLoginPath;
+  final onLogin = _isLoginPath(location.path);
   return switch (auth) {
     AuthUnknown() => null,
     AuthSignedOut() => onLogin ? null : _loginFor(location),
@@ -34,15 +34,34 @@ String _loginFor(Uri location) {
       .toString();
 }
 
+/// Whether [path] is the login page. go_router matches paths
+/// case-insensitively, so `/LOGIN` is the login page too.
+bool _isLoginPath(String path) => path.toLowerCase() == kLoginPath;
+
 /// The remembered page, accepted only as an in-app path.
+///
+/// Rejects anything that could leave the app: a scheme, an authority
+/// (`//host`, or `/\host`, which [Uri.parse] reads as `//host`), any
+/// backslash, whitespace or control character, and the login page itself.
 String _returnTarget(Uri login) {
   final target = login.queryParameters[kReturnToParam];
-  final inApp = target != null &&
-      target.startsWith('/') &&
-      !target.startsWith('//') &&
-      Uri.tryParse(target)?.path != kLoginPath;
+  if (target == null ||
+      !target.startsWith('/') ||
+      target.startsWith('//') ||
+      target.contains(_unsafeTargetChars)) {
+    return kHomePath;
+  }
+  final uri = Uri.tryParse(target);
+  final inApp = uri != null &&
+      !uri.hasScheme &&
+      !uri.hasAuthority &&
+      uri.path.startsWith('/') &&
+      !_isLoginPath(uri.path);
   return inApp ? target : kHomePath;
 }
+
+/// Backslashes, whitespace and control characters (incl. DEL).
+final RegExp _unsafeTargetChars = RegExp(r'[\\\s\x00-\x1F\x7F]');
 
 /// The app router. It re-runs [authRedirect] whenever [authStateProvider]
 /// changes, so sign-in, sign-out and an expired session all navigate.

@@ -80,12 +80,6 @@ void main() {
         expect(_percent(4611686018427387904 ~/ 2, 4611686018427387904), 50);
         expect(_percent(100000000000000000, 200000000000000000), 50);
       },
-      skip: 'BUG (low impact): displayPercent computes saved * 100 in 64-bit '
-          'ints; for saved > ~9.2e16 rupiah it overflows and returns a '
-          'negative/garbage percent (e.g. 1e17/2e17 is not 50). Unrealistic '
-          'amounts; unverified whether the server caps target. Fix: compare '
-          'saved ~/ (target / 100) style or use BigInt when saved > '
-          'maxInt ~/ 100.',
     );
   });
 

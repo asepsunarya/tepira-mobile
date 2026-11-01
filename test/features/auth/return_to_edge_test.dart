@@ -64,15 +64,6 @@ void main() {
       test(
         'from=$from goes to /',
         () => expect(afterSignInWithFrom(from), kHomePath),
-        skip: 'BUG: _returnTarget only checks startsWith("/") and not '
-            'startsWith("//"), so "$from" is returned as the redirect. Dart '
-            r'Uri.parse treats "\" like "/", so it becomes "//evil.com" '
-            '(authority evil.com, empty path). In the app, go_router then '
-            'throws an assertion (match.dart: uri.path.startsWith('
-            'newMatchedLocation)) and the user stays stuck on /login; in a '
-            'browser it is the classic open-redirect pattern. Fix: reject '
-            r'any "\", or require Uri.parse(target) to have no scheme and '
-            'no authority.',
       );
     }
 
@@ -86,11 +77,6 @@ void main() {
     test(
       'from=/LOGIN goes to /',
       () => expect(afterSignInWithFrom('/LOGIN'), kHomePath),
-      skip: 'BUG (minor): "/LOGIN" is returned. go_router matches routes '
-          'case-insensitively, so a signed-in user lands on LoginScreen '
-          'again; authRedirect compares path == "/login" exactly, so it '
-          'never moves them on. Same for a signed-in user opening /LOGIN '
-          'directly. Fix: compare paths case-insensitively.',
     );
 
     test(
@@ -99,8 +85,6 @@ void main() {
         authRedirect(const AuthSignedIn(testUser), Uri.parse('/LOGIN')),
         isNotNull,
       ),
-      skip: 'BUG (minor): see from=/LOGIN; returns null so LoginScreen '
-          'stays up for a signed-in user.',
     );
   });
 
