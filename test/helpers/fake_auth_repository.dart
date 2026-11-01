@@ -25,6 +25,12 @@ class FakeAuthRepository implements AuthRepository {
   /// When set, [restore] waits for it before answering.
   Completer<void>? restoreGate;
 
+  /// When set, [signInWithGoogle] waits for it before answering.
+  Completer<void>? signInGate;
+
+  /// When set, [signOut] waits for it before clearing the store.
+  Completer<void>? signOutGate;
+
   int signInCalls = 0;
   int signOutCalls = 0;
 
@@ -37,6 +43,7 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<AuthUser?> signInWithGoogle() async {
     signInCalls++;
+    await signInGate?.future;
     final error = signInError;
     if (error != null) throw error;
     final user = signInUser;
@@ -47,6 +54,7 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async {
     signOutCalls++;
+    await signOutGate?.future;
     await store.clear();
   }
 }

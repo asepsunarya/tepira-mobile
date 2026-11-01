@@ -136,4 +136,76 @@ void main() {
       expect(container.read(authStateProvider), const AuthSignedOut());
     });
   });
+
+  group('signIn serialization', () {
+    test('concurrent calls share one Google sign-in', () async {
+      final repository = FakeAuthRepository()..signInGate = Completer<void>();
+      final container = _container(repository);
+      await _settled(container);
+      final controller = container.read(authStateProvider.notifier);
+
+      final first = controller.signIn();
+      final second = controller.signIn();
+      await Future<void>.delayed(Duration.zero);
+      repository.signInGate!.complete();
+      await Future.wait([first, second]);
+
+      expect(repository.signInCalls, 1);
+      expect(container.read(authStateProvider), const AuthSignedIn(testUser));
+    });
+
+    test('a later call starts a new sign-in', () async {
+      final repository = FakeAuthRepository()..signInUser = null;
+      final container = _container(repository);
+      await _settled(container);
+      final controller = container.read(authStateProvider.notifier);
+
+      await controller.signIn();
+      await controller.signIn();
+
+      expect(repository.signInCalls, 2);
+    });
+
+    test('a failed sign-in does not block the next one', () async {
+      final repository = FakeAuthRepository()
+        ..signInError = const NetworkException();
+      final container = _container(repository);
+      await _settled(container);
+      final controller = container.read(authStateProvider.notifier);
+      await expectLater(controller.signIn(), throwsA(isA<NetworkException>()));
+
+      repository.signInError = null;
+      await controller.signIn();
+
+      expect(repository.signInCalls, 2);
+      expect(container.read(authStateProvider), const AuthSignedIn(testUser));
+    });
+
+    test('sign-in right after a 401 waits for the session to be cleared',
+        () async {
+      final store = FakeSessionStore(token: 'old', userJson: '{}');
+      final repository =
+          FakeAuthRepository(restoredUser: testUser, store: store)
+            ..signOutGate = Completer<void>();
+      final container = _container(repository);
+      await _settled(container);
+      container.read(unauthorizedEventsProvider).notify();
+      expect(
+        await _settled(container),
+        const AuthSignedOut(sessionExpired: true),
+      );
+
+      final signIn = container.read(authStateProvider.notifier).signIn();
+      await Future<void>.delayed(Duration.zero);
+      expect(repository.signInCalls, 0);
+
+      repository.signOutGate!.complete();
+      await signIn;
+
+      expect(repository.signInCalls, 1);
+      expect(container.read(authStateProvider), const AuthSignedIn(testUser));
+      // The late clear() of the expired session did not wipe the new one.
+      expect(store.token, 'jwe');
+    });
+  });
 }

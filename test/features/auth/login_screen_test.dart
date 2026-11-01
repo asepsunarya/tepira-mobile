@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +9,7 @@ import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/core/theme.dart';
 import 'package:tepira_mobile/data/api_client.dart';
 import 'package:tepira_mobile/data/auth/auth_repository.dart';
+import 'package:tepira_mobile/data/auth/google_id_token_source.dart';
 import 'package:tepira_mobile/features/auth/auth_providers.dart';
 import 'package:tepira_mobile/features/auth/login_screen.dart';
 
@@ -88,6 +92,19 @@ void main() {
     });
   }
 
+  testWidgets('an unexpected Google plugin error shows a friendly message',
+      (tester) async {
+    final repository = FakeAuthRepository()
+      ..signInError = PlatformException(code: 'sign_in_failed');
+    final container = await _pumpLogin(tester, repository);
+
+    await _tapGoogle(tester);
+
+    expect(find.text(kGoogleSignInFailedMessage), findsOneWidget);
+    expect(container.read(authStateProvider), const AuthSignedOut());
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('a retry clears the previous error', (tester) async {
     final repository = FakeAuthRepository()
       ..signInError = const NetworkException()
@@ -125,6 +142,32 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Sesi desamu sudah berakhir'), findsNothing);
+      expect(repository.signInCalls, 1);
+      expect(container.read(authStateProvider), const AuthSignedIn(testUser));
+    });
+
+    testWidgets('a double tap on "Masuk lagi" starts one sign-in',
+        (tester) async {
+      final repository = FakeAuthRepository(restoredUser: testUser)
+        ..signInGate = Completer<void>();
+      final container = await _pumpLogin(tester, repository);
+      container.read(unauthorizedEventsProvider).notify();
+      await tester.pumpAndSettle();
+
+      // Both taps land before the overlay is rebuilt away.
+      await tester.tap(find.text('Masuk lagi'));
+      await tester.tap(find.text('Masuk lagi'));
+      await tester.pump();
+      // The Google button is disabled while the sign-in runs.
+      await tester.tap(
+        find.byKey(const Key('google-sign-in')),
+        warnIfMissed: false,
+      );
+      await tester.pump();
+
+      repository.signInGate!.complete();
+      await tester.pumpAndSettle();
+
       expect(repository.signInCalls, 1);
       expect(container.read(authStateProvider), const AuthSignedIn(testUser));
     });

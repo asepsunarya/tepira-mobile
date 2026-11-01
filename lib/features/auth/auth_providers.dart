@@ -51,6 +51,13 @@ class AuthSignedIn extends AuthState {
 class AuthController extends Notifier<AuthState> {
   AuthRepository get _repository => ref.read(authRepositoryProvider);
 
+  /// The sign-in that is running, shared by every caller until it ends.
+  Future<void>? _signIn;
+
+  /// The sign-out started by a 401, which a new sign-in must wait for:
+  /// otherwise its late `clear()` would wipe the session just stored.
+  Future<void>? _expiredSignOut;
+
   @override
   AuthState build() {
     final subscription = ref
@@ -75,7 +82,16 @@ class AuthController extends Notifier<AuthState> {
 
   /// Runs the Google sign-in. Stays signed out when the user cancels.
   /// Throws [AppException] with a message for the Login screen.
-  Future<void> signIn() async {
+  ///
+  /// Calls made while a sign-in is running join it instead of opening a
+  /// second Google picker.
+  Future<void> signIn() {
+    return _signIn ??= _runSignIn().whenComplete(() => _signIn = null);
+  }
+
+  Future<void> _runSignIn() async {
+    final pendingSignOut = _expiredSignOut;
+    if (pendingSignOut != null) await pendingSignOut;
     final user = await _repository.signInWithGoogle();
     if (user != null) state = AuthSignedIn(user);
   }
@@ -95,7 +111,19 @@ class AuthController extends Notifier<AuthState> {
   Future<void> _onUnauthorized() async {
     if (state is! AuthSignedIn) return;
     state = const AuthSignedOut(sessionExpired: true);
-    await _repository.signOut();
+    final signOut = _signOutQuietly();
+    _expiredSignOut = signOut;
+    await signOut;
+    if (identical(_expiredSignOut, signOut)) _expiredSignOut = null;
+  }
+
+  Future<void> _signOutQuietly() async {
+    try {
+      await _repository.signOut();
+    } on Object {
+      // The session is already treated as ended; a failed clear must not
+      // block the next sign-in.
+    }
   }
 }
 
