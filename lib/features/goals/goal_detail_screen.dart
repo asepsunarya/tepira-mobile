@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -463,6 +465,9 @@ class _ContributionRow extends StatelessWidget {
 
   final Contribution contribution;
 
+  static const double _dateWidth = 76;
+  static const double _gap = 10;
+
   @override
   Widget build(BuildContext context) {
     final c = VillageColors.of(context);
@@ -482,34 +487,53 @@ class _ContributionRow extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 76,
-                child: Text(
-                  date,
-                  style: villageText(fontSize: 11, color: c.redup),
+          // The amount is the row's key fact: it takes the room it needs,
+          // capped at what is left after the date, and scales down (never
+          // clips) when even that is too narrow, e.g. at text scale 2.0 on a
+          // 320 px screen. The note gets whatever remains.
+          child: LayoutBuilder(
+            builder: (context, constraints) => Row(
+              children: [
+                SizedBox(
+                  width: _dateWidth,
+                  child: Text(
+                    date,
+                    style: villageText(fontSize: 11, color: c.redup),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: villageText(fontSize: 13, color: c.ink),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: villageText(fontSize: 13, color: c.ink),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                amount,
-                style: villageText(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  color: c.mintText,
+                const SizedBox(width: _gap),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: math.max(
+                      0,
+                      constraints.maxWidth - _dateWidth - 6 - _gap,
+                    ),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      amount,
+                      maxLines: 1,
+                      style: villageText(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        color: c.mintText,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

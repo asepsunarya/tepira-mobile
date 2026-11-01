@@ -684,13 +684,6 @@ void main() {
           });
         }
       },
-      skip: 'BUG: _ContributionRow lays out a fixed 76 px date, the note '
-          '(Expanded) and the amount as an unconstrained Text in one Row. At '
-          'text scale 2.0 on a 320 px wide screen the amount alone does not '
-          'fit: a realistic +Rp1.200.000 overflows by 0.4 px and '
-          '+Rp999.999.999.999 by 87 px (RenderFlex overflowed on the right). '
-          '(goal_detail_screen.dart:485). The amount needs Flexible/FittedBox or '
-          'the row needs to wrap.',
     );
 
     testWidgets('text scale 2.0 on 320x568: error card does not overflow',
