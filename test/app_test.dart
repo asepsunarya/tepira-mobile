@@ -14,6 +14,7 @@ import 'package:tepira_mobile/data/auth/auth_repository.dart';
 import 'package:tepira_mobile/data/goals/goals_repository.dart';
 import 'package:tepira_mobile/features/auth/auth_providers.dart';
 import 'package:tepira_mobile/features/auth/login_screen.dart';
+import 'package:tepira_mobile/features/goals/contribute_screen.dart';
 import 'package:tepira_mobile/features/goals/goal_detail_screen.dart';
 import 'package:tepira_mobile/features/goals/goals_screen.dart';
 import 'package:tepira_mobile/features/goals/new_goal_screen.dart';
@@ -171,21 +172,31 @@ void main() {
       expect(find.byType(NewGoalScreen), findsOneWidget);
     });
 
-    for (final (path, title) in [
-      ('/record', 'Catat'),
-    ]) {
-      testWidgets('$path has a placeholder page until its task lands',
-          (tester) async {
-        final container =
-            await pumpApp(tester, FakeAuthRepository(restoredUser: testUser));
+    testWidgets('/record?goal= opens the Setor screen with that goal',
+        (tester) async {
+      final container =
+          await pumpApp(tester, FakeAuthRepository(restoredUser: testUser));
 
-        container.read(routerProvider).go(path);
-        await tester.pumpAndSettle();
+      container.read(routerProvider).go('/record?goal=7');
+      await tester.pumpAndSettle();
 
-        expect(find.text(title), findsOneWidget);
-        expect(find.text('Segera hadir'), findsOneWidget);
-      });
-    }
+      final screen =
+          tester.widget<ContributeScreen>(find.byType(ContributeScreen));
+      expect(screen.goalParam, '7');
+    });
+
+    testWidgets('/record without a goal opens the Setor screen',
+        (tester) async {
+      final container =
+          await pumpApp(tester, FakeAuthRepository(restoredUser: testUser));
+
+      container.read(routerProvider).go('/record');
+      await tester.pumpAndSettle();
+
+      final screen =
+          tester.widget<ContributeScreen>(find.byType(ContributeScreen));
+      expect(screen.goalParam, isNull);
+    });
 
     testWidgets('/goal/:id opens the Kavling screen of that goal',
         (tester) async {
