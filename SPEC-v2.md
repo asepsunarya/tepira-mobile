@@ -101,6 +101,11 @@ Dibaca dari `asepsunarya/tepira` `main` commit `aa9a99d` (2026-11-01). Endpoint 
   (termasuk dicadangkan), `debts` = jumlah |saldo utang|, `reserved` = jumlah saldo dicadangkan,
   `netWorth = assets − debts`, `free` (Uang bebas) `= netWorth − reserved`. Saldo tampilan utang
   negatif (`walletDisplayBalance`). Bila kedua flag `true`, utang menang.
+- **Saldo dompet aset bisa negatif (overdraft).** Data produksi sudah berisi dompet non-utang
+  bersaldo < 0 (jajan melebihi saldo; web tidak menolaknya). Ini sah, bukan data rusak
+  (keputusan koordinator 2026-11-01, K14). `summarizeWallets` menjumlahkan saldo aset apa adanya,
+  jadi `assets`, `reserved`, `netWorth`, dan `free` bisa turun di bawah nol. Aturan ≥ 0 hanya untuk
+  dompet utang (§3.2, §3.3, §11 asumsi 11).
 - **Validasi dompet web** (`app/wallets/actions.ts:9 parseWalletForm`): nama wajib (di-trim),
   `type` di luar daftar jadi `other`, `credit`/`paylater` ⇒ `isDebt`, utang + dicadangkan ditolak
   ("Dompet tidak bisa sekaligus hutang dan dana dicadangkan."). Urutan daftar:
@@ -274,7 +279,8 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
 ```
 
 - `balance` = nilai mentah di DB (untuk utang bisa positif atau negatif, tergantung cara web
-  menyimpannya); `displayBalance` = `walletDisplayBalance` (utang selalu negatif). Klien menampilkan
+  menyimpannya; untuk aset bisa negatif bila overdraft, §2); `displayBalance` =
+  `walletDisplayBalance` (utang selalu negatif; aset = `balance`, termasuk yang negatif). Klien menampilkan
   `displayBalance`. `totals` = `summarizeWallets` atas semua dompet user. `spentThisMonth` =
   jumlah jajan dompet itu di bulan WIB berjalan (artboard `Dompet`: "jajan bulan ini").
 - Error: `401` `unauthorized`; `500` `server_error`.
@@ -456,6 +462,14 @@ Alasan tiap bagian:
   jumlah yang sama, jadi `free` tidak berubah. Karena itu basis `wallet` tidak menghitungnya. Basis
   `budget` menghitungnya karena anggaran bulan (`computeMonthSummary`) juga menghitungnya
   (contoh H; keputusan produk §14 Q2).
+- **Saldo aset negatif (K14).** Dompet aset yang overdraft masuk `free` dengan nilai negatifnya;
+  tidak ada saldo dompet yang dibatasi ke 0 sebelum dijumlahkan, karena membatasi per dompet
+  akan menyembunyikan utang nyata ke bank dan membuat Uang bebas terlalu tinggi. Satu-satunya batas
+  0 ada di akhir: `allowance = max(0, …)`. Jadi `free` dan `F0` boleh negatif, `allowance` paling
+  kecil 0, dan `remaining = allowance − E_today'` boleh negatif (`over_today`), sama dengan aturan
+  `remaining` lain. Contoh: dompet tunai −40.000, kartu kredit 900.000, tanpa anggaran, jajan
+  hari ini 50.000 dari tunai → `free` = −940.000, `F0` = −890.000, `allowance` 0, `remaining`
+  **−50.000**, `over_today`. Klien tidak menghitung ulang dan tidak membatasi angka ini.
 - **Pembulatan ke bawah** (`floor`, rupiah penuh). Untuk batas belanja, pembulatan ke bawah lebih
   aman daripada `ceil` yang dipakai laju setoran goal (`GoalHelper.tsx:35`).
 - **`allowance` tidak dijamin tetap sepanjang hari.** Nilainya berubah bila ada jajan bertanggal
@@ -545,6 +559,11 @@ Alasan tiap bagian:
 
 - Bentuk `expense` dipakai juga di 3.6–3.8. `walletId`/`walletName` `null` bila dompet sudah
   dihapus di web (baris yatim). `placeName` selalu dikirim; v2 tidak menulisnya.
+- **Saldo tidak dicek sebelum jajan.** Dompet aset (termasuk dicadangkan) boleh menjadi negatif
+  karena jajan ini (overdraft, K14); route tidak menolak dan tidak membatasi. Dompet utang hanya
+  bertambah (`increment`), jadi saldo utang yang ≥ 0 tetap ≥ 0.
+- `walletId` wajib dan server **tidak pernah** memilih dompet sendiri, jadi dompet dicadangkan hanya
+  terpakai bila app mengirim id-nya.
 - Boleh membayar dari dompet dicadangkan (backend mengizinkan; §14 Q2). Jajan itu masuk `spent`,
   `budget.spent`, dan `safeToday` basis `budget`, tetapi tidak mengubah `free`, jadi tidak
   mengurangi `safeToday` basis `wallet` (§3.4 contoh H).
@@ -555,8 +574,12 @@ Alasan tiap bagian:
     100.000.000.", "Dompet wajib dipilih.", "Kategori tidak dikenal.", "Catatan maksimal 120
     karakter.", "Sumber dana harus gaji atau bonus.", "Tanggal harus berformat YYYY-MM-DD,
     paling lama 7 hari ke belakang atau besok.", "Isi permintaan harus berupa objek JSON."
-  - `400` `wallet_not_found` "Dompet tidak ditemukan. Pilih dompet lain."
-  - `500` `server_error`
+  - `400` `wallet_not_found` "Dompet tidak ditemukan. Pilih dompet lain." (dompet milik user lain
+    atau tidak ada; dijawab di dalam transaksi sebelum dedupe, tanpa tulis)
+  - `500` `server_error`. Bila Postgres membatalkan transaksi karena deadlock (`40P01`) atau
+    gagal serialisasi (`40001`; Prisma `P2034`, atau `P2010` dengan `meta.code`), respons tetap
+    `500` `server_error` dengan header `Retry-After: 1`: tidak ada yang tertulis dan permintaan
+    yang sama boleh dikirim ulang (dedupe 120 detik menjaga kirim ulang setelah commit).
 
 ### 3.6 `GET /api/mobile/expenses?year=&month=`
 
@@ -984,7 +1007,9 @@ Tidak ada dependensi baru. `flutter_secure_storage` (sudah ada) dipakai juga unt
 10. "Ditabung bulan ini" = setoran saja, tanpa `salary.savingsAllocation` (beda dengan laporan web).
 11. Saldo dompet utang tersimpan ≥ 0. Web mengizinkan nilai negatif, dan untuk dompet seperti itu
     jajan menggerakkan saldo ke arah yang salah (bug backend yang sudah ada, §3.3). B3 memeriksa
-    data nyata sebelum implementasi.
+    data nyata sebelum implementasi. Aturan ≥ 0 ini **hanya** untuk dompet utang.
+12. Saldo dompet aset (non-utang) boleh negatif; overdraft ada di data produksi (K14). Semua
+    hitungan total dan aman dipakai hari ini menerima saldo aset negatif tanpa membatasinya.
 
 ## 12. Keputusan
 
@@ -1008,6 +1033,10 @@ Tidak ada dependensi baru. `flutter_secure_storage` (sudah ada) dipakai juga unt
 - K12. **Revalidasi web** setelah setiap tulis mobile, dengan daftar path yang sama seperti web.
 - K13. **Uji backend**: logika murni di modul tanpa import (`node --test` biasa); handler lewat
   harness `test/harness/` (`--import`); balapan diuji manual di Postgres sekali pakai.
+- K14. **Overdraft dompet aset** (keputusan koordinator 2026-11-01): dompet non-utang boleh
+  bersaldo negatif, termasuk karena jajan dari mobile. Uang bebas dan aman dipakai hari ini
+  menjumlahkan saldo aset negatif apa adanya (tidak ada pembatasan per dompet); hanya angka aman
+  akhir (`allowance`) yang dibatasi minimal 0 (§3.4). Dompet utang tetap ≥ 0.
 
 **Produk (disetujui 2026-11-01, §14):**
 
