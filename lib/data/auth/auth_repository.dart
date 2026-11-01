@@ -69,7 +69,17 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   Future<AuthUser?> signInWithGoogle() async {
-    final idToken = await _google.signIn();
+    final String? idToken;
+    try {
+      idToken = await _google.signIn();
+    } on AppException {
+      rethrow;
+    } on Object {
+      // Any other failure from the platform plugin (e.g. a PlatformException
+      // from `account.authentication`) must still reach the Login screen as
+      // a readable message, not as an unhandled error.
+      throw const ApiException(kGoogleSignInFailedMessage);
+    }
     if (idToken == null) return null;
 
     final Response<Object?> response;

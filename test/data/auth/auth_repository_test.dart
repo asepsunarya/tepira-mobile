@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/data/api_client.dart';
 import 'package:tepira_mobile/data/auth/auth_repository.dart';
 import 'package:tepira_mobile/data/auth/auth_user.dart';
+import 'package:tepira_mobile/data/auth/google_id_token_source.dart';
 
 import '../../helpers/fake_google_id_token_source.dart';
 import '../../helpers/fake_http_adapter.dart';
@@ -158,6 +160,19 @@ void main() {
         throwsA(isA<NetworkException>()),
       );
       expect(s.adapter.requests, isEmpty);
+    });
+
+    test('an unexpected Google plugin error becomes a friendly message',
+        () async {
+      final s = _Setup()
+        ..google.error = PlatformException(code: 'sign_in_failed');
+
+      await expectLater(
+        s.repository.signInWithGoogle(),
+        _throwsMessage<ApiException>(kGoogleSignInFailedMessage),
+      );
+      expect(s.adapter.requests, isEmpty);
+      expect(s.store.token, isNull);
     });
 
     test('response without token is a ServerException and stores nothing',
