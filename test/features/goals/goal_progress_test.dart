@@ -53,4 +53,12 @@ void main() {
 
     expect(find.text('0% dari target'), findsOneWidget);
   });
+
+  testWidgets('shows 99% at 99.96%, never 100% before the target',
+      (tester) async {
+    await _pump(tester, const GoalProgress(saved: 9996, target: 10000));
+
+    expect(find.text('99% dari target'), findsOneWidget);
+    expect(find.bySemanticsLabel('Progres 99%'), findsOneWidget);
+  });
 }
