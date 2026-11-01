@@ -1,0 +1,45 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+*.iml
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata.bak
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/google-services.json
+*.jks
+*.keystore
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Runner/GoogleService-Info.plist
+*.xcuserstate
+
+# Secrets and environment
+.env
+.env.*
+!.env.example
+
+# IDE / OS noise
+.idea/
+.vscode/settings.json
+.DS_Store
+Thumbs.db
+*.log
+
+# Claude Code: per-user settings and hook caches
+.claude/settings.local.json
+.claude/sdd-cache/
+.claude/.simplify-ignore-cache/
