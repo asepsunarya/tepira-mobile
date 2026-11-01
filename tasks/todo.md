@@ -18,7 +18,7 @@ Rincian tiap tugas ada di `tasks/plan.md`. Satu commit per tugas.
 - [x] T5 Login Google → sesi → redirect; overlay sesi berakhir; test provider
 
 ## Fase 4. Goals
-- [ ] T6 DTO, model, `buildStage`, `GoalsRepository` + unit test
+- [x] T6 DTO, model, `buildStage`, `GoalsRepository` + unit test
 - [ ] T7 Layar Desa: skeleton, kosong, daftar, muat ulang + widget test
 - [ ] T8 Layar Kavling: ilustrasi tahap, angka, riwayat + widget test
 - [ ] T9 Layar Bangun kavling + test validasi
