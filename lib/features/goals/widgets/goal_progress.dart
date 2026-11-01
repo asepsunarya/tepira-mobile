@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../model/display_percent.dart';
+
 /// Progress bar for a savings goal. Amounts are whole rupiah.
 class GoalProgress extends StatelessWidget {
   const GoalProgress({super.key, required this.saved, required this.target});
@@ -11,7 +13,7 @@ class GoalProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final percent = (ratio * 100).round();
+    final percent = displayPercent(saved: saved, target: target);
     return Semantics(
       label: 'Progres $percent%',
       child: Column(

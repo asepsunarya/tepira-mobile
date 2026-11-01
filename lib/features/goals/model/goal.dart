@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 /// A savings goal ("kavling") as the API reports it. Money is int rupiah.
 /// [percent] is kept as sent by the server but is not used for display or
 /// stage; the displayed percent and stage are computed on the client from
-/// [saved] and [target] (SPEC §12 Q4).
+/// [saved] and [target] via `displayPercent(saved, target)` (SPEC §12 Q4).
 @immutable
 class Goal {
   const Goal({
@@ -28,7 +28,8 @@ class Goal {
   final int target;
   final int saved;
 
-  /// 0 to 100, may have one decimal (e.g. 41.3).
+  /// Server value, 0 to 100 with one decimal (e.g. 41.3). It rounds, so it
+  /// can read 100.0 before the goal is reached; see `displayPercent`.
   final double percent;
   final int remaining;
 
