@@ -22,7 +22,7 @@ import '../../helpers/fake_goals_repository.dart';
 final DateTime _now = DateTime.utc(2026, 11, 1, 12);
 
 /// Repository whose [list] answers [listAnswer] (thrown when an
-/// [Exception]) and whose [create] answers [createAnswer]. [onCreate] runs
+/// [Exception], awaited when a [Future]) and whose [create] answers [createAnswer]. [onCreate] runs
 /// when [create] is called, before it answers (e.g. to store the goal).
 class _Repo implements GoalsRepository {
   _Repo({required this.createAnswer, Object? listAnswer})
@@ -41,6 +41,7 @@ class _Repo implements GoalsRepository {
     listCalls++;
     final answer = listAnswer;
     if (answer is Exception) throw answer;
+    if (answer is Future<List<Goal>>) return answer;
     return answer as List<Goal>;
   }
 
@@ -267,15 +268,14 @@ void main() {
     });
 
     testWidgets(
-      'BUG: Desa refresh failed (AsyncError keeping stale data): the stale '
-      'list is still taken as the snapshot and an older identical goal is '
-      'adopted',
+      'Desa refresh failed (AsyncError keeping stale data): the stale list is '
+      'not taken as the snapshot and an older identical goal is not adopted',
       (tester) async {
         // Desa loaded [] earlier; since then an identical goal was created
         // elsewhere and the Desa's refresh failed (offline). goalsProvider
         // is AsyncError but valueOrNull still returns the stale []. The
-        // guard should treat that as "not loaded" and pre-fetch (or have no
-        // snapshot), but it uses [] and adopts goal 420.
+        // guard must treat that as "not loaded" and pre-fetch (or have no
+        // snapshot) instead of using [] and adopting goal 420.
         final repo = _Repo(createAnswer: const NetworkException());
         final container = await _pump(tester, repo);
         repo.listAnswer = const NetworkException();
@@ -291,8 +291,39 @@ void main() {
 
         expect(find.text('kavling 420'), findsNothing);
       },
-      skip: true,
     );
+
+    testWidgets(
+        'Desa list still loading (refresh in flight, stale data kept): the '
+        'screen loads its own list as the snapshot', (tester) async {
+      final repo = _Repo(createAnswer: const NetworkException());
+      final container = await _pump(tester, repo);
+      expect(repo.listCalls, 1);
+
+      // The Desa's refresh hangs; meanwhile an identical goal was created
+      // elsewhere.
+      final pending = Completer<List<Goal>>();
+      repo.listAnswer = pending.future;
+      unawaited(container.read(goalsProvider.notifier).refresh());
+      await tester.pump();
+      final state = container.read(goalsProvider);
+      expect(state.isLoading, isTrue);
+      expect(state.valueOrNull, isEmpty, reason: 'stale value kept');
+      expect(repo.listCalls, 2, reason: 'Desa refresh started');
+
+      repo.listAnswer = [_goal(430, ago: const Duration(minutes: 5))];
+      await _fill(tester);
+      await _tap(tester, 'submit');
+
+      expect(repo.listCallsAtCreate, [3], reason: 'own snapshot load');
+      expect(repo.createCalls, 1);
+      expect(find.text('kavling 430'), findsNothing);
+      expect(find.text(kNewGoalRecoveredMessage), findsNothing);
+      expect(_uncertain, findsOneWidget);
+
+      pending.complete(<Goal>[]);
+      await tester.pumpAndSettle();
+    });
   });
 
   group('repeated retries after Ambiguous', () {

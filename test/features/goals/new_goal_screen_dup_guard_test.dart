@@ -185,6 +185,7 @@ void main() {
         '400 ApiException',
         const ApiException('Target tidak valid.', statusCode: 400)
       ),
+      ('422', const ApiException('Target tidak valid.', statusCode: 422)),
       ('500', const ServerException(statusCode: 500)),
       ('401', const UnauthorizedException()),
     ]) {

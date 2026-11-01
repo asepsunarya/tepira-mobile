@@ -88,6 +88,10 @@ final class _Ambiguous extends _CreateCheck {
 /// again before creating and does not create while the list cannot be
 /// loaded or (without a snapshot) already holds an identical goal.
 ///
+/// Accepted trade-off: an identical goal created on another device between
+/// the snapshot and a lost create may be opened as recovered, but a
+/// duplicate is never created.
+///
 /// Editing the title or target before a retry makes it a different goal:
 /// only goals with the current title and target are looked for.
 class NewGoalScreen extends ConsumerStatefulWidget {
@@ -217,14 +221,18 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
     context.pushReplacement(GoalRoutes.detail(goal.id));
   }
 
-  /// Ids of the goals that exist now: the Desa list when it has loaded,
-  /// else a fresh load. Null when the list cannot be loaded.
+  /// Ids of the goals that exist now: the Desa list when it has settled
+  /// data, else a fresh load. Null when the list cannot be loaded.
   Future<Set<int>?> _snapshotIds() async {
     // Only look at goalsProvider when something already holds it: reading
-    // it otherwise would start a second, unawaited load.
-    final loaded =
-        ref.exists(goalsProvider) ? ref.read(goalsProvider).valueOrNull : null;
-    if (loaded != null) return loaded.map((goal) => goal.id).toSet();
+    // it otherwise would start a second, unawaited load. Its data is used
+    // only when settled: while reloading or after a failed refresh it still
+    // carries the previous, possibly stale list.
+    final cached = ref.exists(goalsProvider) ? ref.read(goalsProvider) : null;
+    if (cached case AsyncData(:final value)
+        when !cached.isLoading && !cached.hasError) {
+      return value.map((goal) => goal.id).toSet();
+    }
     try {
       final goals = await ref.read(goalsRepositoryProvider).list();
       return goals.map((goal) => goal.id).toSet();
