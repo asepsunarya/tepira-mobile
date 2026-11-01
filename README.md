@@ -6,18 +6,33 @@ web app ada di repo `tepira` (Next.js + Prisma); app ini hanya klien API.
 
 ## Mulai
 
-Butuh Flutter stable 3.x. Platform folder (`android/`, `ios/`) belum ada di
-repo ini, jadi setelah clone jalankan sekali:
+Butuh Flutter stable 3.x. Folder `android/` dan `ios/` sudah di-commit
+(applicationId / bundle ID `id.tepira.tepira_mobile` / `id.tepira.tepiraMobile`).
 
 ```bash
-flutter create . --org id.tepira --project-name tepira_mobile --platforms android,ios
 flutter pub get
 flutter run
 ```
 
-`flutter create .` hanya menambah file yang belum ada; `lib/`, `test/`, dan
-`pubspec.yaml` tidak ditimpa. Commit folder `android/` dan `ios/` yang dihasilkan
-(kecuali file yang sudah ada di `.gitignore`).
+## APK dari CI
+
+Workflow `.github/workflows/apk.yml` membangun APK release di setiap push ke
+`main` (atau manual lewat *Run workflow*) dan mengunggahnya sebagai artifact
+`tepira-apk-<sha>`. Konfigurasi repo:
+
+| Nama | Jenis | Isi |
+|---|---|---|
+| `ANDROID_KEYSTORE_BASE64` | secret | `base64 -w0 upload-keystore.jks` |
+| `ANDROID_KEYSTORE_PASSWORD` | secret | password keystore |
+| `ANDROID_KEY_ALIAS` | secret | alias key |
+| `ANDROID_KEY_PASSWORD` | secret | password key |
+| `TEPIRA_GOOGLE_SERVER_CLIENT_ID` | secret atau variable | lihat *Login Google* |
+| `TEPIRA_GOOGLE_IOS_CLIENT_ID` | secret atau variable | lihat *Login Google* |
+
+Tanpa secret keystore, APK ditandatangani dengan debug key (tetap bisa
+di-install untuk test). Lokal, release signing dibaca dari
+`android/key.properties` (`storeFile`, `storePassword`, `keyAlias`,
+`keyPassword`) bila file itu ada; file ini dan `*.jks` di-ignore git.
 
 ## Perintah
 
