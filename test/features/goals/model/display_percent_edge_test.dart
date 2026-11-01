@@ -83,6 +83,52 @@ void main() {
     );
   });
 
+  group('exact-int boundary (2^53 - 1) ~/ 100 = 90071992547409', () {
+    // Below or at the boundary saved * 100 stays within 2^53 - 1, so it is
+    // exact on the web too; above it displayPercent switches to BigInt.
+    const boundary = 90071992547409;
+
+    int reference(int saved, int target) =>
+        (BigInt.from(saved) * BigInt.from(100) ~/ BigInt.from(target)).toInt();
+
+    test('the boundary is the largest saved with saved * 100 <= 2^53 - 1', () {
+      expect(boundary * 100, lessThanOrEqualTo(9007199254740991));
+      expect((boundary + 1) * 100, greaterThan(9007199254740991));
+    });
+
+    for (final saved in [boundary - 1, boundary, boundary + 1, boundary + 2]) {
+      test('saved $saved matches exact floor for nearby targets', () {
+        for (final target in [
+          saved + 1,
+          saved + 2,
+          saved * 2,
+          saved * 2 + 1,
+          saved * 3 - 1,
+          saved * 100 ~/ 73,
+          saved * 100 ~/ 73 + 1,
+          saved * 100 ~/ 99,
+          saved * 100 ~/ 99 + 1,
+        ]) {
+          expect(
+            _percent(saved, target),
+            reference(saved, target),
+            reason: '$saved / $target',
+          );
+        }
+      });
+    }
+
+    test('one rupiah short of the target at the boundary is 99%', () {
+      expect(_percent(boundary, boundary + 1), 99);
+      expect(_percent(boundary + 1, boundary + 2), 99);
+    });
+
+    test('exactly half on either side of the boundary is 50%', () {
+      expect(_percent(boundary, boundary * 2), 50);
+      expect(_percent(boundary + 1, (boundary + 1) * 2), 50);
+    });
+  });
+
   group('fractional server percent is not used', () {
     test('99.96% (server would say 100.0) still shows 99 and atap', () {
       expect(_percent(99960, 100000), 99);

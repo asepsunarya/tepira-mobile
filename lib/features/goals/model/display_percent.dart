@@ -13,7 +13,8 @@ int displayPercent({required int saved, required int target}) {
   return (BigInt.from(saved) * _hundred ~/ BigInt.from(target)).toInt();
 }
 
-/// The largest saved amount for which `saved * 100` fits in a 64-bit int.
-const int _maxExactSaved = 9223372036854775807 ~/ 100;
+/// The largest saved amount for which `saved * 100` is exact on every
+/// platform: on the web an int is a double, exact only up to 2^53 - 1.
+const int _maxExactSaved = 9007199254740991 ~/ 100;
 
 final BigInt _hundred = BigInt.from(100);
