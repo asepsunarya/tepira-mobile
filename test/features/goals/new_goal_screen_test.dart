@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:tepira_mobile/core/clock.dart';
 import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/core/routes.dart';
 import 'package:tepira_mobile/core/theme.dart';
@@ -26,7 +27,8 @@ typedef _CreateCall = ({
 /// [FakeGoalsRepository] that records [create] calls and answers with
 /// [createResult] (thrown when it is an [Exception]) after [createGate].
 class _CreatingRepository extends FakeGoalsRepository {
-  _CreatingRepository({this.createResult}) : super([<Goal>[]]);
+  _CreatingRepository({this.createResult, List<Object>? listResults})
+      : super(listResults ?? [<Goal>[]]);
 
   Object? createResult;
   Completer<void>? createGate;
@@ -65,6 +67,10 @@ class _Desa extends ConsumerWidget {
   }
 }
 
+/// The fixed "now" of these tests: three minutes after [testGoal]'s
+/// default `createdAt`.
+final DateTime _now = DateTime.utc(2026, 11, 1, 0, 3);
+
 /// Pumps the Desa stand-in, then opens `/goal/new` on top of it.
 Future<GoRouter> _pumpNewGoal(
   WidgetTester tester,
@@ -83,15 +89,20 @@ Future<GoRouter> _pumpNewGoal(
       ),
       GoRoute(
         path: GoalRoutes.detailPattern,
-        builder: (context, state) =>
-            Text('kavling ${state.pathParameters['id']}'),
+        // A Scaffold, so a snackbar shown while navigating here is visible.
+        builder: (context, state) => Scaffold(
+          body: Text('kavling ${state.pathParameters['id']}'),
+        ),
       ),
     ],
   );
   addTearDown(router.dispose);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [goalsRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        goalsRepositoryProvider.overrideWithValue(repository),
+        clockProvider.overrideWithValue(() => _now),
+      ],
       child:
           MaterialApp.router(theme: buildVillageTheme(), routerConfig: router),
     ),
@@ -347,26 +358,6 @@ void main() {
       });
     }
 
-    testWidgets('a lost connection asks to retry, and retry works',
-        (tester) async {
-      final repository =
-          _CreatingRepository(createResult: const NetworkException());
-      await _pumpNewGoal(tester, repository);
-
-      await _fill(tester);
-      await _tapSubmit(tester);
-      await tester.pumpAndSettle();
-
-      expect(find.text(kNewGoalNetworkMessage), findsOneWidget);
-
-      repository.createResult = null;
-      await _tapSubmit(tester);
-      await tester.pumpAndSettle();
-
-      expect(repository.createCalls, hasLength(2));
-      expect(find.text('kavling 16'), findsOneWidget);
-    });
-
     testWidgets('a 500 shows the server message', (tester) async {
       final repository = _CreatingRepository(
         createResult: const ServerException(statusCode: 500),
@@ -381,6 +372,201 @@ void main() {
         find.text('Server sedang bermasalah. Coba lagi nanti.'),
         findsOneWidget,
       );
+    });
+  });
+
+  group('create fails on the network (outcome unknown)', () {
+    final lostErrors = <(String, AppException)>[
+      ('timeout', const NetworkException()),
+      ('502', const ServerException(statusCode: 502)),
+      ('503', const ServerException(statusCode: 503)),
+      ('504', const ServerException(statusCode: 504)),
+    ];
+
+    for (final (name, error) in lostErrors) {
+      testWidgets(
+        'after $name, a matching goal created just now is opened with a '
+        'notice, without retrying',
+        (tester) async {
+          final repository = _CreatingRepository(
+            createResult: error,
+            listResults: [
+              <Goal>[],
+              [
+                testGoal(id: 3, title: 'Lain', target: 9000000),
+                testGoal(id: 21, title: 'Kamera mirrorless', target: 9000000),
+              ],
+            ],
+          );
+          await _pumpNewGoal(tester, repository);
+
+          await _fill(tester);
+          await _tapSubmit(tester);
+          await tester.pumpAndSettle();
+
+          expect(repository.createCalls, hasLength(1));
+          expect(find.text('kavling 21'), findsOneWidget);
+          expect(find.text(kNewGoalRecoveredMessage), findsOneWidget);
+          expect(find.textContaining('belum'), findsNothing);
+        },
+      );
+
+      testWidgets(
+        'after $name without a match, says to check first and does not '
+        'retry by itself',
+        (tester) async {
+          final repository = _CreatingRepository(createResult: error);
+          await _pumpNewGoal(tester, repository);
+
+          await _fill(tester);
+          await _tapSubmit(tester);
+          await tester.pumpAndSettle();
+          await tester.pump(const Duration(minutes: 1));
+          await tester.pumpAndSettle();
+
+          expect(repository.createCalls, hasLength(1));
+          expect(find.byType(NewGoalScreen), findsOneWidget);
+          expect(find.text(kNewGoalUncertainTitle), findsOneWidget);
+          expect(find.byKey(const Key('uncertain-retry')), findsOneWidget);
+          expect(find.byKey(const Key('submitError')), findsNothing);
+          expect(find.textContaining('belum dipatok'), findsNothing);
+          // The Desa list was reloaded to look for the goal.
+          expect(repository.listCalls, greaterThanOrEqualTo(2));
+        },
+      );
+    }
+
+    testWidgets('a same-named goal with another target is not a match', (
+      tester,
+    ) async {
+      final repository = _CreatingRepository(
+        createResult: const NetworkException(),
+        listResults: [
+          <Goal>[],
+          [testGoal(id: 21, title: 'Kamera mirrorless', target: 8000000)],
+        ],
+      );
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      await _tapSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text(kNewGoalUncertainTitle), findsOneWidget);
+      expect(find.text('kavling 21'), findsNothing);
+    });
+
+    testWidgets('an old goal with the same title and target is not a match', (
+      tester,
+    ) async {
+      final repository = _CreatingRepository(
+        createResult: const NetworkException(),
+        listResults: [
+          <Goal>[],
+          [
+            testGoal(
+              id: 21,
+              title: 'Kamera mirrorless',
+              target: 9000000,
+              createdAt: _now.subtract(const Duration(days: 2)),
+            ),
+          ],
+        ],
+      );
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      await _tapSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text(kNewGoalUncertainTitle), findsOneWidget);
+      expect(find.text('kavling 21'), findsNothing);
+    });
+
+    testWidgets('when the list also fails, says to check first', (
+      tester,
+    ) async {
+      final repository = _CreatingRepository(
+        createResult: const NetworkException(),
+        listResults: [<Goal>[], const NetworkException()],
+      );
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      await _tapSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(repository.createCalls, hasLength(1));
+      expect(find.text(kNewGoalUncertainTitle), findsOneWidget);
+    });
+
+    testWidgets('the explicit retry creates when the goal is still missing', (
+      tester,
+    ) async {
+      final repository = _CreatingRepository(
+        createResult: const NetworkException(),
+      );
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      await _tapSubmit(tester);
+      await tester.pumpAndSettle();
+      expect(repository.createCalls, hasLength(1));
+
+      repository.createResult = null;
+      await tester.ensureVisible(find.byKey(const Key('uncertain-retry')));
+      await tester.tap(find.byKey(const Key('uncertain-retry')));
+      await tester.pumpAndSettle();
+
+      expect(repository.createCalls, hasLength(2));
+      expect(find.text('kavling 16'), findsOneWidget);
+    });
+
+    testWidgets(
+      'the explicit retry opens the goal instead when it has appeared '
+      'meanwhile',
+      (tester) async {
+        final repository = _CreatingRepository(
+          createResult: const NetworkException(),
+          listResults: [
+            <Goal>[],
+            <Goal>[],
+            [testGoal(id: 21, title: 'Kamera mirrorless', target: 9000000)],
+          ],
+        );
+        await _pumpNewGoal(tester, repository);
+
+        await _fill(tester);
+        await _tapSubmit(tester);
+        await tester.pumpAndSettle();
+        expect(find.text(kNewGoalUncertainTitle), findsOneWidget);
+
+        repository.createResult = null;
+        await tester.ensureVisible(find.byKey(const Key('uncertain-retry')));
+        await tester.tap(find.byKey(const Key('uncertain-retry')));
+        await tester.pumpAndSettle();
+
+        expect(repository.createCalls, hasLength(1));
+        expect(find.text('kavling 21'), findsOneWidget);
+        expect(find.text(kNewGoalRecoveredMessage), findsOneWidget);
+      },
+    );
+
+    testWidgets('"Cek daftar di Desa" goes back to the Desa', (tester) async {
+      final repository = _CreatingRepository(
+        createResult: const NetworkException(),
+      );
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      await _tapSubmit(tester);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('uncertain-check')));
+      await tester.tap(find.byKey(const Key('uncertain-check')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('desa'), findsOneWidget);
+      expect(repository.createCalls, hasLength(1));
     });
   });
 }
