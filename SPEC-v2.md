@@ -510,22 +510,31 @@ Alasan tiap bagian:
   - `source` `"gaji"` | `"bonus"`, opsional, default `"gaji"`.
   - `date` `"YYYY-MM-DD"` opsional, aturan `parseExpenseDate`: 7 hari WIB ke belakang sampai
     besok; hari ini atau kosong = waktu server sekarang; hari lain = 12:00 WIB hari itu.
+    **Klien wajib tidak mengirim `date` untuk "hari ini"** (kosong = sekarang). Dengan begitu
+    kirim ulang yang melewati tengah malam WIB tetap di-dedupe: permintaan pertama bertanggal
+    hari H yang dikirim ulang setelah 00:00 WIB akan dibaca sebagai "kemarin" (12:00 WIB) dan
+    tidak cocok dengan baris pertama, sedangkan `date` kosong selalu dicocokkan dengan jendela
+    waktu (langkah 3).
 - **Tidak** memakai `createExpenseWithWallet`, karena helper itu membuka transaksinya sendiri,
   tidak punya dedupe, dan melempar `Error` generik untuk dompet asing (§2). Route mengikuti pola
   Cyrene (`app/api/cyrene/expenses/route.ts:68-121`). Kunci, cek, dan sisip berada dalam **satu**
   `prisma.$transaction` (`maxWait 5_000`, `timeout 10_000`, seperti `:124`):
-  1. `SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${'tepira-mobile-expense:' + userId}))`.
-     Ini kunci per user dengan prefiks sendiri (Cyrene memakai `tepira-cyrene-expense:`) yang
-     dilepas otomatis saat commit/rollback. Karena prefiksnya berbeda, jajan identik yang dikirim
-     bersamaan dari mobile dan Cyrene tidak saling menunggu dan tidak di-dedupe; keduanya
-     tercatat. Ini diterima: dua kanal berbeda hampir pasti berarti dua niat berbeda.
+  1. `SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${'tepira-expense:' + userId}))`
+     (`expenseLockKey` di `lib/cyrene/core.ts`). Ini kunci per user yang **sama** untuk mobile dan
+     Cyrene (`app/api/cyrene/expenses/route.ts` memakai kunci yang sama), dilepas otomatis saat
+     commit/rollback. Jajan identik dari kanal mana pun (mobile atau Cyrene, termasuk satu dari
+     masing-masing) dalam jendela 120 detik di-dedupe: permintaan kedua menunggu kunci, lalu
+     menjawab **200** `deduped: true` dengan baris yang sudah ada, tanpa tulis (B4-2).
   2. Cari dompet: `tx.wallet.findFirst({ where: { id: walletId, ...userOwnedWhere(userId) } })`.
      Tidak ada → kembalikan `{kind:"wallet_not_found"}` → `400 wallet_not_found`.
   3. **Dedupe:** `tx.expense.findFirst({ where: { ...owned, ...expenseDedupeWhere(input, wallet.id,
      now) }, orderBy: [{ createdAt: "desc" }, { id: "desc" }] })`. Ada → kembalikan baris itu
      (`deduped: true`, 200, tanpa tulis, tanpa revalidasi). Aturannya sama dengan Cyrene: nominal,
      dompet, kategori, catatan, sumber, dan tanggal identik, dibuat dalam 120 detik
-     (`lib/cyrene/core.ts:541-559`).
+     (`expenseDedupeWhere`, `lib/cyrene/core.ts`). Untuk `date` kosong, `date` baris harus di
+     `now − 120 s ≤ date ≤ now + 60 s` (keduanya inklusif); kelonggaran +60 detik menyerap selisih
+     jam antar-instans server. `now` dibaca **setelah** kunci (B4-1). Tanggal hari lain dicocokkan
+     persis (12:00 WIB hari itu).
   4. `createExpenseInTx(tx, userId, wallet, data)`, ekspor **baru** di `lib/wallet-expenses.ts`:
      `expense.create` lalu `wallet.updateMany({ where: { id, ...owned }, data: { balance:
      applyExpenseToWalletBalance(wallet.isDebt, amount) } })` dengan cek `count === 1`. Cek gagal
@@ -570,6 +579,10 @@ Alasan tiap bagian:
 - Setelah commit, route memanggil revalidasi web (§3), hanya bila baris baru dibuat.
 - Error:
   - `401` `unauthorized`; `415` `unsupported_media_type`
+  - `413` `payload_too_large` "Isi permintaan terlalu besar." bila body > 64 KB (65.536 byte).
+    Batas ini ada di `readJsonBody` (`lib/mobile/http.ts`), jadi berlaku juga untuk
+    `POST /api/mobile/wallets` dan `PATCH /api/mobile/wallets/{id}`; body sah semua route ini jauh
+    di bawah 1 KB.
   - `400` `bad_request` dengan salah satu pesan: "Nominal harus berupa angka bulat antara 1 dan
     100.000.000.", "Dompet wajib dipilih.", "Kategori tidak dikenal.", "Catatan maksimal 120
     karakter.", "Sumber dana harus gaji atau bonus.", "Tanggal harus berformat YYYY-MM-DD,
@@ -1026,6 +1039,8 @@ Tidak ada dependensi baru. `flutter_secure_storage` (sudah ada) dipakai juga unt
   klien dengan fixture penjaga.
 - K9. **Buat jajan mengikuti pola Cyrene**: kunci advisory per user, dompet, dedupe, dan sisip
   dalam satu transaksi, lewat `createExpenseInTx` baru. `createExpenseWithWallet` tidak diubah.
+  Kunci advisory dipakai bersama mobile dan Cyrene (`tepira-expense:<userId>`), jadi jajan identik
+  lintas kanal dalam 120 detik di-dedupe (B4-2, keputusan koordinator 2026-11-01).
 - K10. **Kunci baris jajan** (`lockExpense`, `FOR UPDATE`) di ubah, hapus, dan undo Cyrene; gerak
   saldo diurutkan menurut `walletId`.
 - K11. **Semantik PATCH**: tidak dikirim = tetap, `null` = kosongkan (hanya field nullable);
