@@ -194,11 +194,9 @@ void main() {
       expect(repo.createCalls.single.title, 'b' * 60);
     });
 
-    // BUG: NewGoalInput.titleError counts UTF-16 units (String.length); the
-    // server counts code points (Array.from(title).length).
+    // Name length counts code points like the server (Array.from(title)).
     testWidgets(
-      'BUG: a 31-emoji name (31 code points) is rejected client-side although '
-      'the server accepts it (new_goal_input.dart:18)',
+      'a 31-emoji name (31 code points, 62 UTF-16 units) is sent',
       (tester) async {
         final repo = _CreatingRepository();
         await _pump(tester, repo);
@@ -209,7 +207,6 @@ void main() {
         expect(find.text('Nama goal maksimal 60 karakter.'), findsNothing);
         expect(repo.createCalls.single.title, '🏠' * 31);
       },
-      skip: true,
     );
 
     testWidgets('a whitespace-only name (tabs/NBSP) is rejected',
@@ -350,31 +347,58 @@ void main() {
       expect(repo.createCalls.single.target, 1500000);
     });
 
-    // BUG: _RupiahDigitsFormatter strips every non-digit, so the decimal part
-    // of a pasted Indonesian amount ("Rp1.500.000,00") is glued onto the
-    // integer part and 150.000.000 (100x) is submitted without any warning.
-    for (final (paste, inflated) in [
-      ('Rp1.500.000,00', 150000000),
-      ('1.500.000,50', 150000050),
+    // Rupiah has no cents: a pasted decimal part (separator + 1-2 digits at
+    // the end) is dropped instead of being glued onto the integer part.
+    for (final (paste, shown, sent) in [
+      ('Rp1.500.000,00', '1.500.000', 1500000),
+      ('1.500.000,50', '1.500.000', 1500000),
+      ('1500000.00', '1.500.000', 1500000),
+      ('Rp 1.500.000,00,-', '1.500.000', 1500000),
+      ('1,50', '1', 1),
     ]) {
-      testWidgets(
-        'BUG: pasting "$paste" silently submits $inflated instead of 1500000 '
-        'or a validation error (new_goal_screen.dart:300)',
-        (tester) async {
-          final repo = _CreatingRepository();
-          await _pump(tester, repo);
+      testWidgets('pasting "$paste" drops the decimal part and sends $sent',
+          (tester) async {
+        final repo = _CreatingRepository();
+        await _pump(tester, repo);
 
-          await _fill(tester, target: paste);
-          await _submitAndSettle(tester);
+        await _fill(tester, target: paste);
+        expect(_fieldText(tester, _targetField), shown);
+        await _submitAndSettle(tester);
 
-          // Must be 1.500.000 or a validation error; never the inflated value.
-          for (final call in repo.createCalls) {
-            expect(call.target, 1500000);
-          }
-        },
-        skip: true,
-      );
+        expect(repo.createCalls.single.target, sent);
+      });
     }
+
+    testWidgets('deleting the last digit only removes that digit',
+        (tester) async {
+      final repo = _CreatingRepository();
+      await _pump(tester, repo);
+
+      await _fill(tester, target: '1500000');
+      expect(_fieldText(tester, _targetField), '1.500.000');
+      // Backspace leaves "1.500.00", which must not read as ",00" cents.
+      await tester.enterText(_targetField, '1.500.00');
+      expect(_fieldText(tester, _targetField), '150.000');
+    });
+
+    testWidgets('typing digits one by one groups them as before',
+        (tester) async {
+      final repo = _CreatingRepository();
+      await _pump(tester, repo);
+
+      var shown = '';
+      for (final (digit, expected) in [
+        ('1', '1'),
+        ('5', '15'),
+        ('0', '150'),
+        ('0', '1.500'),
+        ('0', '15.000'),
+      ]) {
+        await tester.enterText(_targetField, '$shown$digit');
+        shown = _fieldText(tester, _targetField);
+        expect(shown, expected);
+      }
+    });
   });
 
   group('description', () {

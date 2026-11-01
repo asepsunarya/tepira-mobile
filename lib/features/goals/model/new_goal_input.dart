@@ -2,6 +2,8 @@
 /// rules of `POST /api/mobile/goals` (SPEC section 3.4), so a form that passes
 /// here is only rejected by the server for reasons the client cannot see.
 abstract final class NewGoalInput {
+  /// Length limits count Unicode code points (`String.runes`), like the
+  /// server's `Array.from(s).length`, not UTF-16 units: an emoji counts as 1.
   static const int maxTitleLength = 60;
   static const int maxDescriptionLength = 200;
 
@@ -15,7 +17,7 @@ abstract final class NewGoalInput {
   static String? titleError(String raw) {
     final title = raw.trim();
     if (title.isEmpty) return 'Nama goal harus diisi.';
-    if (title.length > maxTitleLength) {
+    if (title.runes.length > maxTitleLength) {
       return 'Nama goal maksimal $maxTitleLength karakter.';
     }
     if (title.contains(_controlChars)) {
@@ -46,7 +48,7 @@ abstract final class NewGoalInput {
 
   /// Error for the optional description, or null when it is valid.
   static String? descriptionError(String raw) =>
-      raw.trim().length > maxDescriptionLength
+      raw.trim().runes.length > maxDescriptionLength
           ? 'Deskripsi maksimal $maxDescriptionLength karakter.'
           : null;
 

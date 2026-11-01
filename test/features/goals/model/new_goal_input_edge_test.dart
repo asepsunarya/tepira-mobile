@@ -35,10 +35,6 @@ void main() {
       () {
         expect(NewGoalInput.titleError('😀' * 31), isNull);
       },
-      skip: 'BUG: titleError counts UTF-16 code units (String.length) but the '
-          'server counts code points (Array.from(title).length), so names '
-          'with emoji/astral characters are rejected client-side while the '
-          'server would accept them (new_goal_input.dart:18)',
     );
 
     test(
@@ -46,9 +42,6 @@ void main() {
       () {
         expect(NewGoalInput.titleError('${'a' * 59}🏠'), isNull);
       },
-      skip: 'BUG: titleError counts UTF-16 code units, server counts code '
-          'points; a 60-code-point name ending in an emoji is wrongly '
-          'rejected (new_goal_input.dart:18)',
     );
 
     test('61 code points with an emoji is rejected (both sides agree)', () {
@@ -168,9 +161,11 @@ void main() {
       () {
         expect(NewGoalInput.descriptionError('😀' * 101), isNull);
       },
-      skip: 'BUG: descriptionError counts UTF-16 code units but the server '
-          'counts code points, so a description with emoji is rejected '
-          'client-side below the real 200 limit (new_goal_input.dart:50)',
     );
+
+    test('200 emoji (200 code points) is accepted, 201 is rejected', () {
+      expect(NewGoalInput.descriptionError('😀' * 200), isNull);
+      expect(NewGoalInput.descriptionError('😀' * 201), isNotNull);
+    });
   });
 }

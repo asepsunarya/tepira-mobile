@@ -289,15 +289,24 @@ class _Label extends StatelessWidget {
 /// Keeps only digits and groups them by thousands with `.`: typing
 /// `1500000` shows `1.500.000`. Signs, commas and letters are dropped, so the
 /// field never holds a negative or decimal amount.
+///
+/// Rupiah has no cents, so a pasted amount ending in a decimal part
+/// (`Rp1.500.000,00`, `1.500.000,50`, `1,50`) loses that part before the
+/// non-digits are stripped; otherwise `,00` would be glued on and the amount
+/// would grow 100x. Only a separator followed by 1 or 2 digits (optionally
+/// `-` or `,-`) at the very end counts as decimal; a group of 3 digits is a
+/// thousands group (`1,500,000`, `IDR 750.000`).
 class _RupiahDigitsFormatter extends TextInputFormatter {
   const _RupiahDigitsFormatter();
+
+  static final RegExp _decimalTail = RegExp(r'(?<=[0-9])[.,][0-9]{1,2},?-?$');
 
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final digits = newValue.text
+    final digits = _dropDecimalTail(oldValue, newValue)
         .replaceAll(RegExp(r'[^0-9]'), '')
         .replaceFirst(RegExp(r'^0+(?=[0-9])'), '');
     final grouped = StringBuffer();
@@ -310,5 +319,32 @@ class _RupiahDigitsFormatter extends TextInputFormatter {
       text: text,
       selection: TextSelection.collapsed(offset: text.length),
     );
+  }
+
+  /// [newValue]'s text without a trailing decimal part that came in with this
+  /// edit. The field itself only ever holds `.`-grouped digits, so a decimal
+  /// tail that already overlaps the old text (deleting the last digit of
+  /// `1.500.000` gives `1.500.00`) or that sits before the caret's end (a
+  /// comma typed mid-number) is left alone and those edits behave as before.
+  static String _dropDecimalTail(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.trimRight();
+    final match = _decimalTail.firstMatch(text);
+    if (match == null) return newValue.text;
+    final caret = newValue.selection.isValid
+        ? newValue.selection.end
+        : newValue.text.length;
+    if (caret < text.length) return newValue.text;
+    final old = oldValue.text;
+    var prefix = 0;
+    while (prefix < old.length &&
+        prefix < text.length &&
+        old.codeUnitAt(prefix) == text.codeUnitAt(prefix)) {
+      prefix++;
+    }
+    if (match.start < prefix) return newValue.text;
+    return text.substring(0, match.start);
   }
 }

@@ -207,8 +207,9 @@ void main() {
       await tester.enterText(find.byKey(const Key('target')), '-5000');
       expect(find.text('5.000'), findsOneWidget);
 
+      // Rupiah has no cents: the decimal part is dropped, not glued on.
       await tester.enterText(find.byKey(const Key('target')), '12,5');
-      expect(find.text('125'), findsOneWidget);
+      expect(find.text('12'), findsOneWidget);
     });
 
     testWidgets('the target is grouped by thousands', (tester) async {
