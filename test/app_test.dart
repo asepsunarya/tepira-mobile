@@ -18,25 +18,75 @@ import 'helpers/fake_session_store.dart';
 
 void main() {
   group('authRedirect', () {
+    String? redirect(AuthState auth, String location) =>
+        authRedirect(auth, Uri.parse(location));
+
     test('unknown never redirects', () {
-      expect(authRedirect(const AuthUnknown(), '/'), isNull);
-      expect(authRedirect(const AuthUnknown(), '/login'), isNull);
+      expect(redirect(const AuthUnknown(), '/'), isNull);
+      expect(redirect(const AuthUnknown(), '/login'), isNull);
+      expect(redirect(const AuthUnknown(), '/goal/1'), isNull);
     });
 
-    test('signedOut goes to /login from anywhere else', () {
-      expect(authRedirect(const AuthSignedOut(), '/'), '/login');
-      expect(authRedirect(const AuthSignedOut(), '/goal/1'), '/login');
+    test('signedOut goes to /login from /', () {
+      expect(redirect(const AuthSignedOut(), '/'), '/login');
       expect(
-        authRedirect(const AuthSignedOut(sessionExpired: true), '/'),
+        redirect(const AuthSignedOut(sessionExpired: true), '/'),
         '/login',
       );
-      expect(authRedirect(const AuthSignedOut(), '/login'), isNull);
+      expect(redirect(const AuthSignedOut(), '/login'), isNull);
+      expect(
+        redirect(const AuthSignedOut(), '/login?from=%2Fgoal%2F1'),
+        isNull,
+      );
+    });
+
+    test('signedOut remembers any other page in ?from', () {
+      expect(
+        redirect(const AuthSignedOut(), '/goal/1'),
+        '/login?from=%2Fgoal%2F1',
+      );
+      expect(
+        redirect(const AuthSignedOut(sessionExpired: true), '/record?goal=3'),
+        '/login?from=%2Frecord%3Fgoal%3D3',
+      );
     });
 
     test('signedIn leaves /login for / and stays elsewhere', () {
-      expect(authRedirect(const AuthSignedIn(testUser), '/login'), '/');
-      expect(authRedirect(const AuthSignedIn(testUser), '/'), isNull);
-      expect(authRedirect(const AuthSignedIn(testUser), '/goal/1'), isNull);
+      expect(redirect(const AuthSignedIn(testUser), '/login'), '/');
+      expect(redirect(const AuthSignedIn(testUser), '/'), isNull);
+      expect(redirect(const AuthSignedIn(testUser), '/goal/1'), isNull);
+    });
+
+    test('signedIn on /login returns to the remembered page', () {
+      expect(
+        redirect(const AuthSignedIn(testUser), '/login?from=%2Fgoal%2F1'),
+        '/goal/1',
+      );
+      expect(
+        redirect(
+          const AuthSignedIn(testUser),
+          '/login?from=%2Frecord%3Fgoal%3D3',
+        ),
+        '/record?goal=3',
+      );
+    });
+
+    test('signedIn ignores a remembered page outside the app', () {
+      for (final from in [
+        'https://evil.example/x',
+        '//evil.example/x',
+        'goal/1',
+        '/login',
+        '/login?from=%2Fgoal%2F1',
+        '',
+      ]) {
+        final login = Uri(path: '/login', queryParameters: {'from': from});
+        expect(
+          authRedirect(const AuthSignedIn(testUser), login),
+          '/',
+          reason: from,
+        );
+      }
     });
   });
 
@@ -114,6 +164,21 @@ void main() {
         expect(find.text('Segera hadir'), findsOneWidget);
       });
     }
+
+    testWidgets('signing in returns to the page asked for while signed out',
+        (tester) async {
+      final container = await pumpApp(tester, FakeAuthRepository());
+      container.read(routerProvider).go('/goal/7');
+      await tester.pumpAndSettle();
+      expect(find.byType(LoginScreen), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('google-sign-in')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kavling'), findsOneWidget);
+      final router = container.read(routerProvider);
+      expect(router.routerDelegate.currentConfiguration.uri.path, '/goal/7');
+    });
 
     testWidgets('signing in moves /login to /', (tester) async {
       await pumpApp(tester, FakeAuthRepository());

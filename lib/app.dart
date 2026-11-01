@@ -11,15 +11,37 @@ import 'features/goals/goals_screen.dart';
 const String kLoginPath = '/login';
 const String kHomePath = '/';
 
+/// Query parameter of `/login` that remembers the page asked for.
+const String kReturnToParam = 'from';
+
 /// Where the router sends [location] for [auth], or null to stay.
-/// Signed-out users only see `/login`; signed-in users never do. While the
-/// stored session is still being read nothing moves.
-String? authRedirect(AuthState auth, String location) {
+/// Signed-out users only see `/login`, which remembers any page other than
+/// `/` in [kReturnToParam]; after sign-in they go there, else to `/`. While
+/// the stored session is still being read nothing moves.
+String? authRedirect(AuthState auth, Uri location) {
+  final onLogin = location.path == kLoginPath;
   return switch (auth) {
     AuthUnknown() => null,
-    AuthSignedOut() => location == kLoginPath ? null : kLoginPath,
-    AuthSignedIn() => location == kLoginPath ? kHomePath : null,
+    AuthSignedOut() => onLogin ? null : _loginFor(location),
+    AuthSignedIn() => onLogin ? _returnTarget(location) : null,
   };
+}
+
+String _loginFor(Uri location) {
+  final target = location.toString();
+  if (target == kHomePath) return kLoginPath;
+  return Uri(path: kLoginPath, queryParameters: {kReturnToParam: target})
+      .toString();
+}
+
+/// The remembered page, accepted only as an in-app path.
+String _returnTarget(Uri login) {
+  final target = login.queryParameters[kReturnToParam];
+  final inApp = target != null &&
+      target.startsWith('/') &&
+      !target.startsWith('//') &&
+      Uri.tryParse(target)?.path != kLoginPath;
+  return inApp ? target : kHomePath;
 }
 
 /// The app router. It re-runs [authRedirect] whenever [authStateProvider]
@@ -30,8 +52,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final router = GoRouter(
     initialLocation: kHomePath,
     refreshListenable: auth,
-    redirect: (context, state) =>
-        authRedirect(auth.value, state.matchedLocation),
+    redirect: (context, state) => authRedirect(auth.value, state.uri),
     routes: [
       GoRoute(
         path: kHomePath,
