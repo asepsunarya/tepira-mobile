@@ -30,3 +30,26 @@ final goalsProvider =
     AsyncNotifierProvider.autoDispose<GoalsNotifier, List<Goal>>(
   GoalsNotifier.new,
 );
+
+/// One goal with its deposit history for the Kavling screen, keyed by goal
+/// id. Disposed when the screen goes away, so every visit loads fresh data.
+class GoalDetailNotifier
+    extends AutoDisposeFamilyAsyncNotifier<GoalDetail, int> {
+  @override
+  Future<GoalDetail> build(int arg) =>
+      ref.watch(goalsRepositoryProvider).detail(arg);
+
+  /// Reloads the goal, like [GoalsNotifier.refresh]: the current detail stays
+  /// visible while loading and a failure lands in the state, not the caller.
+  Future<void> refresh() async {
+    ref.invalidateSelf();
+    try {
+      await future;
+    } on Object {
+      // Already exposed as AsyncError in the state.
+    }
+  }
+}
+
+final goalDetailProvider = AsyncNotifierProvider.autoDispose
+    .family<GoalDetailNotifier, GoalDetail, int>(GoalDetailNotifier.new);

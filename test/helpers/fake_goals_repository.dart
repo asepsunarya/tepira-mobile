@@ -27,12 +27,22 @@ Goal testGoal({
   );
 }
 
-/// [GoalsRepository] whose [list] answers from [listResults] in order (the
-/// last one repeats). An [Exception] entry is thrown instead of returned.
+/// [GoalsRepository] whose [list] answers from [listResults] and [detail]
+/// from [detailResults], each in order (the last one repeats). An
+/// [Exception] entry is thrown instead of returned.
 class FakeGoalsRepository implements GoalsRepository {
-  FakeGoalsRepository(this.listResults);
+  FakeGoalsRepository(this.listResults, {this.detailResults = const []});
 
   final List<Object> listResults;
+
+  /// Answers of [detail], like [listResults]: in order, the last repeats.
+  final List<Object> detailResults;
+
+  /// When set, [detail] waits for it before answering.
+  Completer<void>? detailGate;
+
+  /// Goal ids [detail] was called with, in order.
+  final List<int> detailIds = [];
 
   /// When set, [list] waits for it before answering.
   Completer<void>? listGate;
@@ -56,7 +66,15 @@ class FakeGoalsRepository implements GoalsRepository {
   }
 
   @override
-  Future<GoalDetail> detail(int id) => throw UnimplementedError();
+  Future<GoalDetail> detail(int id) async {
+    final calls = detailIds.length;
+    final result = detailResults[
+        calls < detailResults.length ? calls : detailResults.length - 1];
+    detailIds.add(id);
+    await detailGate?.future;
+    if (result is Exception) throw result;
+    return result as GoalDetail;
+  }
 
   @override
   Future<Goal> create({
