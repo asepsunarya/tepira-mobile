@@ -32,7 +32,8 @@ Bukan untuk publik umum dulu.
 Dibaca dari `asepsunarya/tepira` commit `9d366c5`:
 
 - Auth: Auth.js v5 (`next-auth@5.0.0-beta`), provider Google, `session.strategy = "jwt"`,
-  cookie `authjs.session-token` (JWE, kunci `AUTH_SECRET`). Allowlist email lewat
+  cookie sesi `__Secure-authjs.session-token` di https (produksi) dan `authjs.session-token`
+  di http (dev lokal) (JWE, kunci `AUTH_SECRET`). Allowlist email lewat
   `TEPIRA_DEFAULT_USER_EMAIL` + `TEPIRA_ALLOWED_EMAILS`.
 - Tidak ada endpoint JSON untuk daftar goal yang memakai sesi pengguna. `/api/cyrene/goals`
   memakai Bearer token pemilik tunggal (`TEPIRA_API_KEY`) dan selalu bertindak sebagai
@@ -63,7 +64,7 @@ Tukar Google ID token dari perangkat menjadi sesi yang sama dengan web.
 - Respons 200: `{ "ok": true, "token": "<jwe>", "expiresAt": "<ISO>", "user": { "id", "name", "email", "image" } }`
 - 401 `invalid_token`, 403 `not_allowed` (email di luar allowlist), 429 bila dibatasi.
 - Alasan desain: dengan token yang sama persis seperti cookie web, mobile cukup mengirim
-  `Cookie: authjs.session-token=<token>` dan **semua route lama yang memanggil `auth()`
+  `Cookie: __Secure-authjs.session-token=<token>` (https; `authjs.session-token` di http lokal) dan **semua route lama yang memanggil `auth()`
   (`/api/contribution`, dll.) langsung bekerja tanpa diubah**. Tidak ada skema token kedua.
 
 ### 3.2 `GET /api/mobile/goals`
@@ -99,7 +100,8 @@ kedaluwarsa (sama seperti web saat cookie dihapus).
 
 ### `core-network`
 - [ ] `ApiClient` (dio) memakai base URL dari `--dart-define=TEPIRA_API_BASE_URL`, default `https://tepira.asepsunarya.com/api`.
-- [ ] Interceptor menambahkan `Cookie: authjs.session-token=<token>` bila token ada.
+- [ ] Interceptor menambahkan cookie sesi bila token ada, hanya ke origin API; nama mengikuti
+  skema base URL: https → `__Secure-authjs.session-token`, http → `authjs.session-token`.
 - [ ] 401 → `UnauthorizedException`, 403 → `ForbiddenException`, 404 → `NotFoundException`,
   5xx dan `{ok:false}` → `ServerException`, timeout/socket → `NetworkException`; semua
   subclass `AppException` dengan `message` Indonesia untuk UI.

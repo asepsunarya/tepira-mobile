@@ -35,7 +35,8 @@ core-network ──► auth ──► goals (Desa → Kavling → Bangun → Set
 **T1. `POST /api/mobile/session`**
 - `lib/mobile/session.ts`: verifikasi Google ID token (`google-auth-library`), audience dari
   `TEPIRA_MOBILE_GOOGLE_CLIENT_IDS` (koma), `isAllowedEmail`, upsert User+Account lewat
-  Prisma adapter, `encode()` JWT Auth.js dengan `AUTH_SECRET` dan salt `authjs.session-token`.
+  Prisma adapter, `encode()` JWT Auth.js dengan `AUTH_SECRET` dan salt = nama cookie
+  (`__Secure-authjs.session-token` di https/produksi, `authjs.session-token` di http lokal).
 - Rate limit per IP seperti `guard()`; tidak pernah log token.
 - Kriteria: 200 dengan `token` yang diterima `auth()` saat dikirim sebagai cookie; 401 token
   salah; 403 email di luar allowlist. Unit test `lib/mobile/session.test.ts` dengan verifier palsu.
@@ -69,7 +70,7 @@ core-network ──► auth ──► goals (Desa → Kavling → Bangun → Set
 **T4. `core-network`: sesi di header + pemetaan error**
 - `lib/data/session_store.dart`: `flutter_secure_storage` (`token`, `user` JSON), antarmuka
   `SessionStore` agar bisa dipalsukan.
-- `lib/data/api_client.dart`: interceptor `onRequest` menambah `Cookie: authjs.session-token=<token>`;
+- `lib/data/api_client.dart`: interceptor `onRequest` menambah cookie sesi (`__Secure-authjs.session-token` untuk base URL https, `authjs.session-token` untuk http);
   `onError` memetakan 401/403/404/5xx/timeout ke subclass `AppException` (tambah `ForbiddenException`,
   `NotFoundException`, `ServerException` di `core/errors.dart`).
 - Kriteria: unit test dengan `dio` adapter palsu untuk setiap status dan untuk ada/tidaknya cookie.
