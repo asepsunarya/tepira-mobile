@@ -29,9 +29,16 @@ const String kNewGoalUncertainMessage =
 const String kNewGoalRecoveredMessage =
     'Kavling ini sudah terpatok tadi, meski koneksinya sempat terputus.';
 
-/// How far a goal's `createdAt` may be from now and still count as the one
-/// this screen just tried to create. Wide enough for a slow request and some
-/// clock skew between the phone and the server.
+/// Shown when an explicit retry cannot load the goals list to check whether
+/// the earlier attempt was stored. Nothing is created until it can check.
+const String kNewGoalCheckFailedMessage =
+    'Belum bisa cek daftar kavling. Coba lagi sebentar lagi supaya tidak '
+    'terpatok dua kali.';
+
+/// Clock-skew allowance for matching a goal to this screen's attempts: its
+/// `createdAt` must be no earlier than the first attempt minus this, and no
+/// later than now plus this. Wide enough for a slow request and some clock
+/// skew between the phone and the server.
 const Duration kNewGoalMatchWindow = Duration(minutes: 10);
 
 /// The Bangun kavling screen (`/goal/new`, artboard BuatGoal): name, target,
@@ -41,10 +48,34 @@ const Duration kNewGoalMatchWindow = Duration(minutes: 10);
 ///
 /// A create that fails on the network (timeout, no connection, 502/503/504)
 /// may still have been stored, so it is never retried by itself and the user
-/// is not told it was not saved. The goals list is reloaded and a goal with
-/// the same title and target created in the last few minutes is opened with
-/// a notice. Without a match the screen says the connection dropped and
-/// offers an explicit retry, which checks the list again before creating.
+/// is not told it was not saved. The goals list is reloaded and a new goal
+/// with the same title and target (one not in the list before the first
+/// attempt, created around that attempt) is opened with a notice. Without a
+/// match the screen says the connection dropped and offers an explicit
+/// retry, which checks the list again before creating and does not create
+/// while the list cannot be loaded.
+/// Outcome of looking for a goal an uncertain create may have stored.
+sealed class _CreateCheck {
+  const _CreateCheck();
+}
+
+/// The goal turned up in the reloaded list.
+final class _Found extends _CreateCheck {
+  const _Found(this.goal);
+
+  final Goal goal;
+}
+
+/// The list loaded and holds no matching goal.
+final class _NotFound extends _CreateCheck {
+  const _NotFound();
+}
+
+/// The list could not be loaded, so it is unknown whether the goal exists.
+final class _Unverified extends _CreateCheck {
+  const _Unverified();
+}
+
 class NewGoalScreen extends ConsumerStatefulWidget {
   const NewGoalScreen({super.key});
 
@@ -66,6 +97,15 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
   /// True after a create failed on the network and no matching goal was
   /// found: the goal may exist, so the next submit checks the list first.
   bool _uncertain = false;
+
+  /// When the first create of the current attempt sequence started (by
+  /// [clockProvider]). Kept across retries while [_uncertain].
+  DateTime? _attemptStart;
+
+  /// Ids of the goals already known before the first create of the current
+  /// attempt sequence, or null when the list was not loaded then. Those
+  /// goals are never taken for the one this screen created.
+  Set<int>? _knownIds;
 
   @override
   void dispose() {
@@ -103,9 +143,27 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
 
     if (_uncertain) {
       // The previous attempt may have been stored: look before creating.
-      final existing = await _findCreated(title, target);
-      if (!mounted) return;
-      if (existing != null) return _openRecovered(existing);
+      switch (await _findCreated(title, target)) {
+        case _Found(:final goal):
+          if (!mounted) return;
+          return _openRecovered(goal);
+        case _Unverified():
+          // Cannot tell whether it was stored: creating now could duplicate.
+          if (!mounted) return;
+          setState(() {
+            _submitting = false;
+            _submitError = kNewGoalCheckFailedMessage;
+          });
+          return;
+        case _NotFound():
+          if (!mounted) return;
+      }
+    } else {
+      // A fresh attempt: remember what already exists, so a goal from
+      // before this submit is never "recovered" as the new one.
+      _attemptStart = ref.read(clockProvider)();
+      _knownIds =
+          ref.read(goalsProvider).valueOrNull?.map((goal) => goal.id).toSet();
     }
 
     final Goal goal;
@@ -120,9 +178,10 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
       if (!mounted) return;
       if (error is NetworkException || isGatewayError(error)) {
         // Outcome unknown: the goal may have been stored. Never retry here.
-        final existing = await _findCreated(title, target);
+        final check = await _findCreated(title, target);
         if (!mounted) return;
-        if (existing != null) return _openRecovered(existing);
+        if (check case _Found(:final goal)) return _openRecovered(goal);
+        // Not found or not verifiable: the goal may exist either way.
         setState(() {
           _submitting = false;
           _uncertain = true;
@@ -140,29 +199,37 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
     context.pushReplacement(GoalRoutes.detail(goal.id));
   }
 
-  /// Reloads the goals and returns the newest one with [title] and [target]
-  /// whose `createdAt` is within [kNewGoalMatchWindow] of now, or null when
-  /// there is none or the list cannot be loaded.
-  Future<Goal?> _findCreated(String title, int target) async {
+  /// Reloads the goals and looks for the newest one with [title] and
+  /// [target] that this screen may have created: not known before the first
+  /// attempt ([_knownIds]) and created between the first attempt minus
+  /// [kNewGoalMatchWindow] and now plus [kNewGoalMatchWindow].
+  ///
+  /// [_Unverified] when the list cannot be loaded, which is not the same as
+  /// [_NotFound]: the goal may still exist.
+  Future<_CreateCheck> _findCreated(String title, int target) async {
     ref.invalidate(goalsProvider);
     final List<Goal> goals;
     try {
       goals = await ref.read(goalsRepositoryProvider).list();
     } on AppException {
-      return null;
+      return const _Unverified();
     }
     final now = ref.read(clockProvider)();
+    final from = (_attemptStart ?? now).subtract(kNewGoalMatchWindow);
+    final until = now.add(kNewGoalMatchWindow);
+    final known = _knownIds ?? const <int>{};
     Goal? match;
     for (final goal in goals) {
+      if (known.contains(goal.id)) continue;
       if (goal.title.trim() != title || goal.target != target) continue;
-      if (goal.createdAt.difference(now).abs() > kNewGoalMatchWindow) {
+      if (goal.createdAt.isBefore(from) || goal.createdAt.isAfter(until)) {
         continue;
       }
       if (match == null || goal.createdAt.isAfter(match.createdAt)) {
         match = goal;
       }
     }
-    return match;
+    return match == null ? const _NotFound() : _Found(match);
   }
 
   void _openRecovered(Goal goal) {

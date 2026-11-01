@@ -304,8 +304,6 @@ void main() {
         expect(find.text('kavling 60'), findsNothing);
         expect(_uncertain, findsOneWidget);
       },
-      skip: true, // BUG new_goal_screen.dart:146-161 — _findCreated has no
-      // pre-submit snapshot / createdAt >= attemptStart bound (uses abs()).
     );
   });
 
@@ -357,8 +355,6 @@ void main() {
         expect(repo.createCalls, 1);
         expect(_uncertain, findsOneWidget);
       },
-      skip: true, // BUG new_goal_screen.dart:104-109 + 151-153 — a failed
-      // list check returns null, which the retry treats as "not created".
     );
 
     testWidgets('slow list check: submit disabled, double tap is ignored',
