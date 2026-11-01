@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,19 +28,46 @@ String sessionCookieNameFor(Uri apiBaseUrl) =>
         ? kSecureSessionCookieName
         : kSessionCookieName;
 
+/// Request `extra` key: when true, a 401 answer is not reported to
+/// [UnauthorizedEvents]. Set by the sign-in request, whose 401 means "invalid
+/// Google token", not "session expired".
+const String kSkipUnauthorizedEvent = 'tepira.skipUnauthorizedEvent';
+
+/// Broadcasts every 401 from the API so the auth layer can end the session,
+/// whichever repository made the request.
+class UnauthorizedEvents {
+  final _controller = StreamController<void>.broadcast();
+
+  Stream<void> get stream => _controller.stream;
+
+  void notify() => _controller.add(null);
+
+  Future<void> close() => _controller.close();
+}
+
+final unauthorizedEventsProvider = Provider<UnauthorizedEvents>((ref) {
+  final events = UnauthorizedEvents();
+  ref.onDispose(events.close);
+  return events;
+});
+
 /// Single dio instance for the tepira API. Repositories depend on this; screens never do.
 final dioProvider = Provider<Dio>(
   (ref) => createApiDio(
     baseUrl: kApiBaseUrl,
     sessionStore: ref.watch(sessionStoreProvider),
+    onUnauthorized: ref.watch(unauthorizedEventsProvider).notify,
   ),
 );
 
 /// Builds the API client. Failed requests surface as a [DioException] whose
-/// `error` is an [AppException] subclass.
+/// `error` is an [AppException] subclass. [onUnauthorized] runs for every
+/// [UnauthorizedException] unless the request opted out with
+/// [kSkipUnauthorizedEvent].
 Dio createApiDio({
   required String baseUrl,
   required SessionStore sessionStore,
+  void Function()? onUnauthorized,
 }) {
   final dio = Dio(
     BaseOptions(
@@ -54,8 +83,24 @@ Dio createApiDio({
       apiBaseUrl: Uri.parse(baseUrl),
     ),
     ErrorMappingInterceptor(),
+    if (onUnauthorized != null) UnauthorizedInterceptor(onUnauthorized),
   ]);
   return dio;
+}
+
+/// Calls [onUnauthorized] when a request fails with [UnauthorizedException].
+/// Must run after [ErrorMappingInterceptor].
+class UnauthorizedInterceptor extends Interceptor {
+  UnauthorizedInterceptor(this.onUnauthorized);
+
+  final void Function() onUnauthorized;
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) {
+    final skip = err.requestOptions.extra[kSkipUnauthorizedEvent] == true;
+    if (err.error is UnauthorizedException && !skip) onUnauthorized();
+    handler.next(err);
+  }
 }
 
 /// Adds the Auth.js session cookie (`<name>=<token>`) to the `Cookie` header
