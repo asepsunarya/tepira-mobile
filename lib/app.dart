@@ -8,6 +8,7 @@ import 'features/auth/auth_providers.dart';
 import 'features/auth/login_screen.dart';
 import 'features/goals/goal_detail_screen.dart';
 import 'features/goals/goals_screen.dart';
+import 'features/goals/new_goal_screen.dart';
 import 'features/settings/settings_screen.dart';
 
 const String kLoginPath = '/login';
@@ -89,10 +90,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: kHomePath,
         builder: (context, state) => const _Desa(),
       ),
-      // Placeholders until T9 (new goal) and T10 (deposit).
       GoRoute(
         path: GoalRoutes.create,
-        builder: (context, state) => const _ComingSoon(title: 'Bangun kavling'),
+        builder: (context, state) => const NewGoalScreen(),
       ),
       GoRoute(
         path: GoalRoutes.detailPattern,
@@ -100,6 +100,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           goalId: GoalRoutes.parseId(state.pathParameters['id']!),
         ),
       ),
+      // Placeholder until T10 (deposit).
       GoRoute(
         path: GoalRoutes.record,
         builder: (context, state) => const _ComingSoon(title: 'Catat'),

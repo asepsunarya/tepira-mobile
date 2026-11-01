@@ -16,6 +16,7 @@ import 'package:tepira_mobile/features/auth/auth_providers.dart';
 import 'package:tepira_mobile/features/auth/login_screen.dart';
 import 'package:tepira_mobile/features/goals/goal_detail_screen.dart';
 import 'package:tepira_mobile/features/goals/goals_screen.dart';
+import 'package:tepira_mobile/features/goals/new_goal_screen.dart';
 import 'package:tepira_mobile/features/goals/model/goal.dart';
 import 'package:tepira_mobile/features/settings/settings_screen.dart';
 
@@ -160,8 +161,17 @@ void main() {
       expect(find.text('Dana darurat'), findsOneWidget);
     });
 
+    testWidgets('/goal/new opens the Bangun kavling screen', (tester) async {
+      final container =
+          await pumpApp(tester, FakeAuthRepository(restoredUser: testUser));
+
+      container.read(routerProvider).go('/goal/new');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NewGoalScreen), findsOneWidget);
+    });
+
     for (final (path, title) in [
-      ('/goal/new', 'Bangun kavling'),
       ('/record', 'Catat'),
     ]) {
       testWidgets('$path has a placeholder page until its task lands',
