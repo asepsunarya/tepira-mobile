@@ -2,11 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tepira_mobile/features/goals/widgets/goal_progress.dart';
 
+import '../../core/widgets/village_test_app.dart';
+
 Future<void> _pump(WidgetTester tester, Widget child) {
   return tester.pumpWidget(MaterialApp(home: Scaffold(body: child)));
 }
 
 void main() {
+  testWidgets('empty, partial, near-full and full bars match the golden',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 300);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpVillage(
+      tester,
+      SizedBox(
+        width: 358,
+        child: Column(
+          children: [
+            for (final (saved, target) in [
+              (0, 10000000),
+              (3450000, 10000000),
+              (9996, 10000),
+              (15000000, 10000000),
+            ]) ...[
+              GoalProgress(saved: saved, target: target),
+              const SizedBox(height: 12),
+            ],
+          ],
+        ),
+      ),
+    );
+
+    await expectLater(
+      find.byKey(goldenKey),
+      matchesGoldenFile('goldens/goal_progress.png'),
+    );
+  });
+
   testWidgets('shows 25% when a quarter of the target is saved',
       (tester) async {
     await _pump(tester, const GoalProgress(saved: 250000, target: 1000000));
