@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Panduan gaya tepira village</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+</style>
+</helmet>
+<div style="width: 860px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; padding: 28px; display: flex; flex-direction: column; gap: 18px; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; justify-content: space-between; align-items: flex-end">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Panduan gaya</span>
+      <h1 style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.4px">Token untuk lib/core/theme.dart</h1>
+    </div>
+    <span style="font-size: 12px; font-weight: 800; color: #74647a">Sumber: tepira-village app/globals.css & landing.css</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; flex: 1 1 0; min-height: 0">
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Warna</span>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{colors}}" as="c" hint-placeholder-count="16">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <div style="height: 44px; border-radius: 12px; background: {{c.hex}}; border: 2px solid #ffffff; box-shadow: 0 4px 10px rgba(120,60,100,0.12)"></div>
+            <span style="font-size: 11px; font-weight: 900">{{c.name}}</span>
+            <span style="font-size: 10px; font-weight: 800; color: #74647a">{{c.hex}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background: #fffaf7; border: 2px solid #ffffff; border-radius: 16px; padding: 10px 12px; font-size: 11px; font-weight: 800; color: #66566b; line-height: 1.5">Teks di atas krem memakai ink #5a4a5e, label redup #74647a (lolos 4.5:1), bukan #9a8aa0 milik web. Tombol utama memakai gradien #cf3b7b ke #bf3571 agar teks putih kontras, pink #ff7eb3 hanya untuk progres, chip, dan aksen.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Tipografi · Nunito</span>
+      <div style="background: #fffaf7; border: 2px solid #ffffff; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 10px rgba(120,60,100,0.12)">
+        <sc-for list="{{type}}" as="t" hint-placeholder-count="7">
+          <div style="display: flex; align-items: baseline; gap: 10px">
+            <span style="font-size: {{t.size}}; font-weight: {{t.weight}}; line-height: 1.15; letter-spacing: {{t.tracking}}; flex: 1 1 0">{{t.sample}}</span>
+            <span style="font-size: 10px; font-weight: 800; color: #74647a; white-space: nowrap">{{t.spec}}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px">Bentuk & jarak</span>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+        <div style="background: #fffaf7; border: 2px solid #ffffff; border-radius: 22px; padding: 10px; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 11px; font-weight: 900">Kartu 22</span>
+          <span style="font-size: 10px; font-weight: 800; color: #74647a">border 2 putih, bayangan 0 10 30 rgba(120,60,100,.18)</span>
+        </div>
+        <div style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 11px; font-weight: 900">Tile 12–16</span>
+          <span style="font-size: 10px; font-weight: 800; color: #74647a">border 2 #f6ebf0, tanpa bayangan</span>
+        </div>
+        <div style="background: #ffd3e4; border-radius: 999px; padding: 10px; display: flex; flex-direction: column; gap: 2px; color: #c2457d">
+          <span style="font-size: 11px; font-weight: 900">Pil 999</span>
+          <span style="font-size: 10px; font-weight: 800">chip, tombol, badge</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; font-size: 10px; font-weight: 800; color: #74647a; flex-wrap: wrap">
+        <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Gutter 16</span>
+        <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Jarak kartu 12</span>
+        <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Padding kartu 14–16</span>
+        <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Sentuh min 44</span>
+        <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Tombol utama 56</span>
+        <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Dock 62×62</span>
+        <span style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 999px; padding: 4px 10px">Progres 6–10</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":860,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      colors: [
+        { name: 'Langit', hex: '#cfe9f7' }, { name: 'Langit muda', hex: '#e3f2fb' }, { name: 'Kertas', hex: '#fbf1f5' }, { name: 'Kartu', hex: '#fffaf7' },
+        { name: 'Ink', hex: '#5a4a5e' }, { name: 'Ink 2', hex: '#66566b' }, { name: 'Redup', hex: '#74647a' }, { name: 'Garis', hex: '#f1e4ea' },
+        { name: 'Pink', hex: '#ff7eb3' }, { name: 'Pink lembut', hex: '#ffd3e4' }, { name: 'Pink teks', hex: '#c2457d' }, { name: 'CTA', hex: '#cf3b7b' },
+        { name: 'Mint', hex: '#6cc8ad' }, { name: 'Mint lembut', hex: '#dcf5ec' }, { name: 'Mint teks', hex: '#1f8a63' }, { name: 'Koin', hex: '#f3c35b' },
+        { name: 'Koin tua', hex: '#cc922c' }, { name: 'Peach', hex: '#f0a06a' }, { name: 'Merah', hex: '#c23b3b' }, { name: 'Biru', hex: '#5b9ae0' }
+      ],
+      type: [
+        { sample: 'Judul layar besar', size: '30px', weight: '900', tracking: '-0.5px', spec: '30 / 900 / -0.5' },
+        { sample: 'Nominal utama Rp3.450.000', size: '26px', weight: '900', tracking: '-0.4px', spec: '26 / 900 / -0.4' },
+        { sample: 'Judul kartu', size: '18px', weight: '900', tracking: '0', spec: '18 / 900' },
+        { sample: 'Judul bar & tombol utama', size: '15px', weight: '900', tracking: '0', spec: '15–16 / 900' },
+        { sample: 'Nama item di daftar', size: '14px', weight: '800', tracking: '0', spec: '14 / 800' },
+        { sample: 'Isi paragraf, 1.5 baris', size: '13px', weight: '700', tracking: '0', spec: '13 / 700 / lh 1.5' },
+        { sample: 'LABEL KECIL KAPITAL', size: '10px', weight: '800', tracking: '0.03em', spec: '10–11 / 800 / caps' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Riwayat catatan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button,input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 56px 16px 0 16px">
+    <a href="Main.dc.html" aria-label="Kembali ke desa" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #5a4a5e">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <span style="font-size: 15px; font-weight: 900">Riwayat · November</span>
+    <div style="width: 44px; height: 44px"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <div style="display: flex; gap: 6px">
+      <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+        <button type="button" onClick="{{f.pick}}" style="flex: 1 1 0; height: 36px; border-radius: 999px; border: 2px solid {{f.border}}; background: {{f.bg}}; color: {{f.color}}; font-size: 12px; font-weight: 900; cursor: pointer">{{f.label}}</button>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+      <div style="background: #ffffff; border: 2px solid #cdeee3; border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 10px; font-weight: 800; color: #74647a; text-transform: uppercase">Ditabung</span>
+        <span style="font-size: 14px; font-weight: 900; color: #1f8a63">Rp1.250.000</span>
+      </div>
+      <div style="background: #ffffff; border: 2px solid #ffd0d0; border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 10px; font-weight: 800; color: #74647a; text-transform: uppercase">Dipakai</span>
+        <span style="font-size: 14px; font-weight: 900; color: #c23b3b">Rp2.180.000</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+        <span style="font-size: 11px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 4px 0 4px">{{g.day}}</span>
+        <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+          <button type="button" onClick="{{r.pick}}" style="display: flex; gap: 10px; align-items: center; font-size: 13px; background: #ffffff; border-radius: 12px; padding: 8px 10px; border: 2px solid {{r.border}}; color: #5a4a5e; text-align: left; cursor: pointer; width: 100%">
+            <span style="flex: 0 0 40px; font-size: 11px; font-weight: 800; color: #74647a">{{r.time}}</span>
+            <div style="display: flex; flex-direction: column; flex: 1 1 0; min-width: 0">
+              <span style="font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.note}}</span>
+              <span style="font-size: 11px; font-weight: 800; color: #74647a">{{r.meta}}</span>
+            </div>
+            <span style="font-weight: 900; color: {{r.color}}">{{r.amount}}</span>
+          </button>
+        </sc-for>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px; text-align: center; font-size: 11px; font-weight: 800; color: #74647a">Ketuk catatan untuk mengubah atau menghapus.</div>
+
+  <sc-if value="{{editing}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; background: rgba(90,74,94,0.35)"></div>
+    <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #fffaf7; border: 2px solid #ffffff; border-radius: 26px 26px 0 0; box-shadow: 0 -18px 40px -20px rgba(120,60,100,0.5); padding: 16px 16px 36px 16px; display: flex; flex-direction: column; gap: 12px">
+      <div style="width: 40px; height: 5px; border-radius: 999px; background: #e4d9e0; align-self: center"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <span style="font-size: 16px; font-weight: 900">Ubah catatan</span>
+        <button type="button" onClick="{{close}}" aria-label="Tutup" style="width: 36px; height: 36px; border-radius: 12px; border: 0; background: #f8f0f4; color: #5a4a5e; cursor: pointer; font-size: 16px; font-weight: 900">×</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <label for="e-nominal" style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">Nominal</label>
+          <input id="e-nominal" type="text" inputmode="numeric" value="{{edit.amountRaw}}" style="height: 46px; box-sizing: border-box; border: 2px solid #f1e4ea; border-radius: 12px; background: #fff8fb; padding: 0 12px; font-size: 16px; font-weight: 900; color: #5a4a5e; outline: none">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <label for="e-tgl" style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">Tanggal</label>
+          <input id="e-tgl" type="date" value="{{edit.date}}" style="height: 46px; box-sizing: border-box; border: 2px solid #f1e4ea; border-radius: 12px; background: #fff8fb; padding: 0 10px; font-size: 14px; font-weight: 700; color: #5a4a5e; outline: none">
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <label for="e-catatan" style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">Catatan</label>
+        <input id="e-catatan" type="text" value="{{edit.note}}" style="height: 46px; box-sizing: border-box; border: 2px solid #f1e4ea; border-radius: 12px; background: #fff8fb; padding: 0 12px; font-size: 14px; font-weight: 700; color: #5a4a5e; outline: none">
+      </div>
+      <div style="display: flex; gap: 8px">
+        <button type="button" onClick="{{close}}" style="flex: 1 1 0; height: 52px; border-radius: 999px; border: 0; background: linear-gradient(180deg, #cf3b7b, #bf3571); color: #ffffff; font-size: 15px; font-weight: 900; cursor: pointer; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">Simpan</button>
+        <button type="button" onClick="{{close}}" style="height: 52px; padding: 0 18px; border-radius: 999px; border: 2px solid #ffc9c9; background: #ffe0e0; color: #c23b3b; font-size: 14px; font-weight: 900; cursor: pointer">Hapus</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { filter: 'Semua', editing: null };
+  }
+  renderVals() {
+    const s = this.state;
+    const filters = ['Semua', 'Setoran', 'Jajan'].map((l) => {
+      const on = l === s.filter;
+      return { label: l, pick: () => this.setState({ filter: l }), bg: on ? '#ffd3e4' : '#ffffff', border: on ? '#ff7eb3' : '#f1e4ea', color: on ? '#c2457d' : '#5a4a5e' };
+    });
+    const data = [
+      { day: 'Hari ini', rows: [
+        { id: 1, time: '07:12', note: 'Setoran harian', meta: 'Dana darurat · GoPay', amount: '+Rp20.000', amountRaw: '20.000', date: '2026-11-01', kind: 'Setoran' },
+        { id: 2, time: '12:30', note: 'Bakso', meta: 'Makan harian · GoPay', amount: '-Rp15.000', amountRaw: '15.000', date: '2026-11-01', kind: 'Jajan' }
+      ] },
+      { day: 'Kemarin', rows: [
+        { id: 3, time: '08:05', note: 'Kopi susu', meta: 'Nongkrong · Tunai · Kopi Toko Djawa', amount: '-Rp28.000', amountRaw: '28.000', date: '2026-10-31', kind: 'Jajan' },
+        { id: 4, time: '21:40', note: 'Sisa uang jajan', meta: 'Dana darurat · Tunai', amount: '+Rp15.000', amountRaw: '15.000', date: '2026-10-31', kind: 'Setoran' },
+        { id: 5, time: '23:59', note: 'Spotify', meta: 'Langganan · Kartu kredit · otomatis', amount: '-Rp54.900', amountRaw: '54.900', date: '2026-10-31', kind: 'Jajan' }
+      ] }
+    ];
+    const groups = data.map((g) => ({
+      day: g.day,
+      rows: g.rows.filter((r) => s.filter === 'Semua' || r.kind === s.filter).map((r) => ({
+        ...r,
+        color: r.kind === 'Setoran' ? '#1f8a63' : '#c23b3b',
+        border: r.kind === 'Setoran' ? '#cdeee3' : '#ffe0d6',
+        pick: () => this.setState({ editing: r })
+      }))
+    })).filter((g) => g.rows.length > 0);
+    return {
+      filters,
+      groups,
+      editing: !!s.editing,
+      edit: s.editing || { amountRaw: '', date: '', note: '' },
+      close: () => this.setState({ editing: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

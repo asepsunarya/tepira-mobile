@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Pilih tempat jajan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button,input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="position: absolute; inset: 0; background: rgba(90,74,94,0.35)"></div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #fffaf7; border: 2px solid #ffffff; border-radius: 26px 26px 0 0; box-shadow: 0 -18px 40px -20px rgba(120,60,100,0.5); padding: 16px 16px 36px 16px; display: flex; flex-direction: column; gap: 12px">
+    <div style="width: 40px; height: 5px; border-radius: 999px; background: #e4d9e0; align-self: center"></div>
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <span style="font-size: 16px; font-weight: 900">Tempat (opsional)</span>
+      <a href="TambahSetoran.dc.html" aria-label="Tutup" style="width: 36px; height: 36px; border-radius: 12px; background: #f8f0f4; color: #5a4a5e; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900">×</a>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px; background: #fff8fb; border: 2px solid #f1e4ea; border-radius: 14px; padding: 0 12px; height: 46px">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#74647a" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+      <label for="tempat" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Nama tempat</label>
+      <input id="tempat" type="text" placeholder="Warung, toko, SPBU…" style="flex: 1 1 0; min-width: 0; height: 40px; border: 0; background: transparent; font-size: 14px; font-weight: 700; color: #5a4a5e; outline: none">
+    </div>
+
+    <button type="button" onClick="{{toggleLoc}}" style="display: flex; align-items: center; gap: 10px; background: {{locBg}}; border: 2px solid {{locBorder}}; border-radius: 14px; padding: 10px 12px; color: #5a4a5e; text-align: left; cursor: pointer">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b9ae0" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="2"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg>
+      <div style="display: flex; flex-direction: column; flex: 1 1 0">
+        <span style="font-size: 13px; font-weight: 900">{{locTitle}}</span>
+        <span style="font-size: 11px; font-weight: 800; color: #74647a">{{locHint}}</span>
+      </div>
+    </button>
+
+    <span style="font-size: 11px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em; padding-left: 4px">{{listTitle}}</span>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{places}}" as="p" hint-placeholder-count="4">
+        <button type="button" onClick="{{p.pick}}" style="display: flex; align-items: center; gap: 10px; background: {{p.bg}}; border: 2px solid {{p.border}}; border-radius: 12px; padding: 8px 10px; color: #5a4a5e; text-align: left; cursor: pointer">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c2457d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z"></path><circle cx="12" cy="11" r="2"></circle></svg>
+          <div style="display: flex; flex-direction: column; flex: 1 1 0; min-width: 0">
+            <span style="font-size: 13px; font-weight: 800">{{p.name}}</span>
+            <span style="font-size: 11px; font-weight: 800; color: #74647a">{{p.meta}}</span>
+          </div>
+          <span style="font-size: 11px; font-weight: 900; color: {{p.limitColor}}; white-space: nowrap">{{p.limit}}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <a href="TambahSetoran.dc.html" style="height: 52px; border-radius: 999px; background: linear-gradient(180deg, #cf3b7b, #bf3571); color: #ffffff; font-weight: 900; font-size: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">{{cta}}</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { loc: true, sel: 0 };
+  }
+  renderVals() {
+    const s = this.state;
+    const nearby = [
+      { name: 'Kopi Toko Djawa', meta: 'Nongkrong · 120 m · 6 kali bulan ini', limit: 'Rp53 rb lagi', limitColor: '#a87a12' },
+      { name: 'Bakso Pak Ujang', meta: 'Makan harian · 150 m · 9 kali', limit: 'tanpa batas', limitColor: '#74647a' },
+      { name: 'Indomaret Tubagus', meta: 'Belanja kecil · 300 m · 4 kali', limit: 'lewat batas', limitColor: '#c23b3b' },
+      { name: 'Tempat baru di sini', meta: 'Simpan koordinat lokasi saat ini', limit: '', limitColor: '#74647a' }
+    ];
+    const places = nearby.map((p, i) => {
+      const on = i === s.sel;
+      return { ...p, pick: () => this.setState({ sel: i }), bg: on ? '#fff5f9' : '#ffffff', border: on ? '#ff7eb3' : '#f6ebf0' };
+    });
+    return {
+      places,
+      toggleLoc: () => this.setState({ loc: !s.loc }),
+      locBg: s.loc ? '#eef6ff' : '#ffffff',
+      locBorder: s.loc ? '#a8dcf3' : '#f1e4ea',
+      locTitle: s.loc ? 'Lokasiku aktif · Dago, Bandung' : 'Lokasiku mati',
+      locHint: s.loc ? 'Daftar diurutkan dari yang terdekat. Ketuk untuk mematikan.' : 'Nyalakan untuk melihat tempat di sekitar dan menyimpan koordinat.',
+      listTitle: s.loc ? 'Di sekitar sini' : 'Tempat yang pernah dipakai',
+      cta: 'Pakai ' + nearby[s.sel].name
+    };
+  }
+}
+</script>
+</body>
+</html>

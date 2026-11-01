@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Catat lewat suara</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="position: absolute; inset: 0; background: rgba(90,74,94,0.35)"></div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #fffaf7; border: 2px solid #ffffff; border-radius: 26px 26px 0 0; box-shadow: 0 -18px 40px -20px rgba(120,60,100,0.5); padding: 16px 16px 36px 16px; display: flex; flex-direction: column; gap: 16px; align-items: center">
+    <div style="width: 40px; height: 5px; border-radius: 999px; background: #e4d9e0"></div>
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
+      <span style="font-size: 16px; font-weight: 900">Catat lewat suara</span>
+      <a href="TambahSetoran.dc.html" aria-label="Tutup" style="width: 36px; height: 36px; border-radius: 12px; background: #f8f0f4; color: #5a4a5e; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900">×</a>
+    </div>
+
+    <button type="button" onClick="{{toggle}}" aria-label="{{micAria}}" style="width: 96px; height: 96px; border-radius: 48px; border: 0; background: {{micBg}}; color: #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: {{micShadow}}">
+      <svg aria-hidden="true" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>
+    </button>
+
+    <div style="display: flex; align-items: flex-end; gap: 4px; height: 28px" aria-hidden="true">
+      <sc-for list="{{bars}}" as="b" hint-placeholder-count="12">
+        <span style="width: 6px; height: {{b.h}}; border-radius: 3px; background: {{b.bg}}"></span>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center">
+      <span style="font-size: 14px; font-weight: 900">{{status}}</span>
+      <span style="font-size: 12px; font-weight: 800; color: #74647a">{{hint}}</span>
+    </div>
+
+    <div style="width: 100%; background: #fff8fb; border: 2px solid #f1e4ea; border-radius: 14px; padding: 12px; min-height: 48px; box-sizing: border-box; font-size: 16px; font-weight: 800; color: {{textColor}}" aria-live="polite">{{text}}</div>
+
+    <div style="width: 100%; display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 11px; font-weight: 800; color: #74647a; text-transform: uppercase; letter-spacing: 0.03em; padding-left: 4px">Terbaca sebagai</span>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{parsed}}" as="p" hint-placeholder-count="4">
+          <div style="background: #ffffff; border: 2px solid #f6ebf0; border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: 10px; font-weight: 800; color: #74647a; text-transform: uppercase">{{p.label}}</span>
+            <span style="font-size: 13px; font-weight: 900; color: {{p.color}}">{{p.value}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <a href="GoalDetail.dc.html" style="width: 100%; height: 52px; border-radius: 999px; background: {{ctaBg}}; color: #ffffff; font-weight: 900; font-size: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">{{cta}}</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { phase: 'listening' };
+  }
+  renderVals() {
+    const phase = this.state.phase;
+    const listening = phase === 'listening';
+    const done = phase === 'done';
+    const heights = [8, 16, 24, 14, 28, 10, 20, 26, 12, 18, 22, 8];
+    const bars = heights.map((h) => ({ h: (listening ? h : 6) + 'px', bg: listening ? '#ff7eb3' : '#e4d9e0' }));
+    const parsed = done ? [
+      { label: 'Nominal', value: 'Rp20.000', color: '#1f8a63' },
+      { label: 'Ke kavling', value: 'Dana darurat', color: '#5a4a5e' },
+      { label: 'Dompet', value: 'GoPay', color: '#5a4a5e' },
+      { label: 'Tanggal', value: 'Hari ini', color: '#5a4a5e' }
+    ] : [
+      { label: 'Nominal', value: '…', color: '#b8aabd' },
+      { label: 'Ke kavling', value: '…', color: '#b8aabd' },
+      { label: 'Dompet', value: '…', color: '#b8aabd' },
+      { label: 'Tanggal', value: '…', color: '#b8aabd' }
+    ];
+    return {
+      toggle: () => this.setState({ phase: listening ? 'done' : 'listening' }),
+      micAria: listening ? 'Berhenti mendengarkan' : 'Catat lewat suara',
+      micBg: listening ? 'linear-gradient(180deg, #cf3b7b, #bf3571)' : '#b8aabd',
+      micShadow: listening ? '0 0 0 12px rgba(255,126,179,0.25), 0 14px 26px -12px rgba(191,53,113,0.7)' : 'none',
+      bars,
+      status: listening ? 'Mendengarkan…' : 'Selesai',
+      hint: listening ? 'Ucapkan nominal, kavling, dan dompetnya. Ketuk mikrofon untuk berhenti.' : 'Ketuk mikrofon untuk mengulang. Teks bisa diedit sebelum disimpan.',
+      text: done ? 'nabung dua puluh ribu dana darurat pakai gopay' : 'nabung dua puluh ribu…',
+      textColor: done ? '#5a4a5e' : '#74647a',
+      parsed,
+      cta: done ? 'Setor Rp20.000' : 'Menunggu ucapan',
+      ctaBg: done ? 'linear-gradient(180deg, #cf3b7b, #bf3571)' : '#d9ccd5'
+    };
+  }
+}
+</script>
+</body>
+</html>

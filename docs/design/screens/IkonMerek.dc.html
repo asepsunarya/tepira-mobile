@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Ikon merek dompet dan bank</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+</style>
+</helmet>
+<div style="width: 860px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; padding: 28px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <span style="font-size: 11px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Ikon merek</span>
+    <h1 style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.4px">Logo resmi dompet, bank, dan kartu</h1>
+    <span style="font-size: 12px; font-weight: 800; color: #74647a">Logo berwarna penuh dari koleksi idn-finance-logo (MIT). Dipakai di WalletTile: tile putih 44 px, logo muat di dalam 32×20.</span>
+  </div>
+
+  <span style="font-size: 11px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">E-wallet</span>
+  <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px">
+    <sc-for list="{{wallets}}" as="w" hint-placeholder-count="8">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
+        <div style="width: 88px; height: 52px; border-radius: 14px; background: #ffffff; border: 2px solid #f1e4ea; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(120,60,100,0.12)">
+          <img src="{{w.src}}" alt="{{w.name}}" style="width: 72px; height: 32px; object-fit: contain">
+        </div>
+        <span style="font-size: 10px; font-weight: 900">{{w.name}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <span style="font-size: 11px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Bank & bank digital</span>
+  <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px">
+    <sc-for list="{{banks}}" as="w" hint-placeholder-count="8">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
+        <div style="width: 88px; height: 52px; border-radius: 14px; background: #ffffff; border: 2px solid #f1e4ea; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(120,60,100,0.12)">
+          <img src="{{w.src}}" alt="{{w.name}}" style="width: 72px; height: 32px; object-fit: contain">
+        </div>
+        <span style="font-size: 10px; font-weight: 900">{{w.name}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <span style="font-size: 11px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Kartu, uang elektronik & QR</span>
+  <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px">
+    <sc-for list="{{cards}}" as="w" hint-placeholder-count="8">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px">
+        <div style="width: 88px; height: 52px; border-radius: 14px; background: #ffffff; border: 2px solid #f1e4ea; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(120,60,100,0.12)">
+          <img src="{{w.src}}" alt="{{w.name}}" style="width: 72px; height: 32px; object-fit: contain">
+        </div>
+        <span style="font-size: 10px; font-weight: 900">{{w.name}}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <span style="font-size: 11px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Varian ikon kecil (Arcticons, putih di atas warna merek) untuk avatar 28 px</span>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap">
+    <sc-for list="{{marks}}" as="m" hint-placeholder-count="12">
+      <div style="width: 36px; height: 36px; border-radius: 11px; background: {{m.bg}}; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.12)" title="{{m.name}}">
+        <img src="{{m.src}}" alt="{{m.name}}" style="width: 24px; height: 24px">
+      </div>
+    </sc-for>
+    <div style="width: 36px; height: 36px; border-radius: 11px; background: #dcf5ec; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.08); color: #1f8a63; font-size: 11px; font-weight: 900">Rp</div>
+    <div style="width: 36px; height: 36px; border-radius: 11px; background: #f3e8ee; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.08); color: #74647a; font-size: 11px; font-weight: 900">AB</div>
+  </div>
+
+  <div style="margin-top: auto; background: #fffaf7; border: 2px solid #ffffff; border-radius: 16px; padding: 10px 12px; font-size: 11px; font-weight: 800; color: #66566b; line-height: 1.5">Aturan: daftar dan kartu memakai logo resmi di tile putih; avatar kecil (chip dompet, kolom Catat, widget) memakai varian Arcticons di warna merek. Cocokkan dari nama dompet: "GoPay" → gopay, "Kartu kredit BCA" → bca + badge Visa/Mastercard, tak dikenal → inisial. Flutter: assets/brands/*.svg via flutter_svg, peta nama→aset+warna di core/brands.dart. Sumber: github.com/wynhnzz/idn-finance-logo (MIT), Arcticons (CC BY-SA 4.0). Logo tetap milik merek masing-masing.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":860,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      wallets: [
+        { name: 'GoPay', src: '/_blob/80ae5963e87248dc3453f6f7dcdef70a' },
+        { name: 'OVO', src: '/_blob/b1123303f930137dc8b9775bb1b53e2c' },
+        { name: 'DANA', src: '/_blob/a678fdfcc32ea842b0b3ec37c0636a52' },
+        { name: 'ShopeePay', src: '/_blob/e3bc733388b4860c0ab4a87aa43dbfcd' },
+        { name: 'LinkAja', src: '/_blob/bf597c11b732f48248f18cd5ca9b4d32' },
+        { name: 'Flip', src: '/_blob/ae9d03b3ef17c2c7a7e09608580a5530' },
+        { name: 'Tokopedia', src: '/_blob/d3e983849c663a0e9b71c9d83c3bb4e2' },
+        { name: 'QRIS', src: '/_blob/b83a9533bcaa55ac6aa45f347a3e6574' }
+      ],
+      banks: [
+        { name: 'BCA', src: '/_blob/9ad0f3450c048e25bcd9da18ac2a8d7f' },
+        { name: 'Mandiri', src: '/_blob/9c4361febb82e312cf42f7be7dc174cc' },
+        { name: 'BNI', src: '/_blob/86c89a819decccb739857c5d24808ae1' },
+        { name: 'BRI', src: '/_blob/9dff5cfe8810ec205ee7d41029f1465c' },
+        { name: 'BTN', src: '/_blob/01292ce1a8df56e8e349222ddf738b23' },
+        { name: 'Jenius', src: '/_blob/5c6f20c34963a3e92da7bf03545c0863' },
+        { name: 'Jago', src: '/_blob/a040ed64064ef73093d6f4f3557701c2' },
+        { name: 'SeaBank', src: '/_blob/b83632a6d3d1aa2e92e2b19ec58dbae7' }
+      ],
+      cards: [
+        { name: 'Visa', src: '/_blob/b70273dcb616dd3a7d264af83ec9620e' },
+        { name: 'Mastercard', src: '/_blob/114d42651c560df5a3260ac24bfbd7e5' },
+        { name: 'JCB', src: '/_blob/ecddc84eb5184790bbe526ad506b8256' },
+        { name: 'blu by BCA', src: '/_blob/687dae8b5e6bc5a0bd207ba565e01af8' },
+        { name: 'Flazz', src: '/_blob/621501b297da87f46d21cc17d230d40b' },
+        { name: 'e-Money', src: '/_blob/3b8475d0faf11888876fb39c9a61f029' },
+        { name: 'Brizzi', src: '/_blob/b7203330113e8d1e5c8cb646e6d26a46' },
+        { name: 'TapCash', src: '/_blob/349c98f0f9d5b337293a3bf6afa361c6' }
+      ],
+      marks: [
+        { name: 'GoPay', bg: '#00AED6', src: '/_blob/7fb61681122fc765303e5cb48eba74f1' },
+        { name: 'OVO', bg: '#4C3494', src: '/_blob/db10b0fd5d47626a36b85a156d92ca92' },
+        { name: 'DANA', bg: '#108EE9', src: '/_blob/3c9c9002f52de118536df5d66f36d29e' },
+        { name: 'ShopeePay', bg: '#EE4D2D', src: '/_blob/0faad0f8c7142c86fb7c3f313c97deda' },
+        { name: 'Jenius', bg: '#1DB0B3', src: '/_blob/bbd8e02abb4676da5e43721faf0892f5' },
+        { name: 'Jago', bg: '#F5B400', src: '/_blob/dce3fbd8af102ba24af8099001cdfa71' },
+        { name: 'SeaBank', bg: '#F26522', src: '/_blob/f180b67e878dab58a99489b552a10ee2' },
+        { name: 'BCA', bg: '#0060AF', src: '/_blob/8d3fa4e84168a2cd0827472fca34eb2d' },
+        { name: 'Mandiri', bg: '#003D79', src: '/_blob/7162b8081a432b5fe702b638766edecd' },
+        { name: 'BNI', bg: '#F15A22', src: '/_blob/2641532b5047a50aa9c80bb339da26d6' },
+        { name: 'BRI', bg: '#00529C', src: '/_blob/ea3470bee67c03db1df8bf32b31e8bdc' },
+        { name: 'Flip', bg: '#FD6542', src: '/_blob/701c255d8b10805f000709d1668e217d' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

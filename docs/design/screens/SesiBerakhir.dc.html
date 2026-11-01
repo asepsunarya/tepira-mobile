@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Sesi berakhir dan galat</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; padding: 56px 16px 36px 16px; gap: 12px; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; gap: 4px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; border-radius: 16px; padding: 4px; box-shadow: 0 6px 16px rgba(120,60,100,0.14)">
+    <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+      <button type="button" onClick="{{t.pick}}" style="flex: 1 1 0; height: 36px; border-radius: 12px; border: 0; background: {{t.bg}}; color: {{t.color}}; font-size: 12px; font-weight: 900; cursor: pointer">{{t.label}}</button>
+    </sc-for>
+  </div>
+
+  <div style="flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 0 12px">
+    <div style="width: 120px; height: 120px; border-radius: 40px; background: {{tile}}; display: flex; align-items: center; justify-content: center">
+      <svg aria-hidden="true" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="{{iconColor}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{icon}}"></path></svg>
+    </div>
+    <span style="font-size: 11px; font-weight: 900; background: #ffffff; border: 2px solid #f1e4ea; color: #74647a; padding: 5px 12px; border-radius: 999px">{{code}}</span>
+    <h2 style="margin: 0; font-size: 24px; font-weight: 900; line-height: 1.15">{{title}}</h2>
+    <p style="margin: 0; font-size: 14px; font-weight: 700; color: #66566b; line-height: 1.5; max-width: 300px">{{body}}</p>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <a href="{{ctaHref}}" style="height: 56px; border-radius: 999px; background: linear-gradient(180deg, #cf3b7b, #bf3571); color: #ffffff; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">{{cta}}</a>
+    <a href="Main.dc.html" style="height: 44px; border-radius: 999px; color: #74647a; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center">{{secondary}}</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 0 };
+  }
+  renderVals() {
+    const defs = [
+      { label: 'Sesi berakhir', code: 'HTTP 401', title: 'Sesi desamu sudah berakhir', body: 'Masuk lagi dengan Google untuk melanjutkan. Catatan yang belum terkirim tetap tersimpan di HP.', tile: '#ffd3e4', iconColor: '#c2457d', icon: 'M4 21a8 8 0 0 1 16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10z', cta: 'Masuk lagi', ctaHref: 'Login.dc.html', secondary: 'Jelajahi desa dari cache' },
+      { label: 'Server', code: 'HTTP 500', title: 'Balai Desa sedang tutup', body: 'tepira.id tidak merespons. Coba lagi sebentar lagi. Kalau terus begini, kabari lewat tepira.id.', tile: '#fff3d1', iconColor: '#a87a12', icon: 'M3 21h18M5 21V9l7-6 7 6v12M9 21v-6h6v6M12 3v2', cta: 'Coba lagi', ctaHref: 'Main.dc.html', secondary: 'Lihat data terakhir' },
+      { label: 'Migrasi', code: 'DB belum siap', title: 'Desa belum bisa dibuka', body: 'Kolom yang dipakai desa belum dimigrasi di server tepira. Ini masalah di sisi backend, bukan di HP-mu.', tile: '#e6e9f0', iconColor: '#5a4a5e', icon: 'M4 7c0-2 4-3 8-3s8 1 8 3v10c0 2-4 3-8 3s-8-1-8-3zM4 12c0 2 4 3 8 3s8-1 8-3', cta: 'Buka tepira.id', ctaHref: 'https://tepira.asepsunarya.com', secondary: 'Kembali' }
+    ];
+    const sel = defs[this.state.tab];
+    const tabs = defs.map((d, i) => {
+      const on = i === this.state.tab;
+      return { label: d.label, pick: () => this.setState({ tab: i }), bg: on ? '#ffd3e4' : 'transparent', color: on ? '#c2457d' : '#74647a' };
+    });
+    return { tabs, ...sel };
+  }
+}
+</script>
+</body>
+</html>

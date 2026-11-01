@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Tambah dompet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button,input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 56px 16px 0 16px">
+    <a href="Dompet.dc.html" aria-label="Kembali ke peti harta" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #5a4a5e">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <span style="font-size: 15px; font-weight: 900">Tambah dompet</span>
+    <div style="width: 44px; height: 44px"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px; padding: 14px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <div style="background: rgba(255,250,247,0.88); border: 2px solid #ffffff; border-radius: 22px; box-shadow: 0 10px 30px rgba(120,60,100,0.18); padding: 16px; display: flex; align-items: center; gap: 14px">
+      <div style="width: 56px; height: 56px; border-radius: 18px; background: {{previewTile}}; border: 2px solid #f1e4ea; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: #5a4a5e">
+        <sc-if value="{{hasBrand}}" hint-placeholder-val="{{true}}"><img src="{{brandSrc}}" alt="" style="width: 46px; height: 28px; object-fit: contain"></sc-if>
+        <sc-if value="{{noBrand}}" hint-placeholder-val="{{false}}">{{previewInitial}}</sc-if>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0">
+        <span style="font-size: 11px; font-weight: 800; color: #74647a; text-transform: uppercase; letter-spacing: 0.03em">Pratinjau peti</span>
+        <span style="font-size: 16px; font-weight: 900">{{previewName}}</span>
+        <span style="font-size: 12px; font-weight: 800; color: {{previewColor}}">{{previewKind}}</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">Pilih merek</span>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{brands}}" as="b" hint-placeholder-count="12">
+          <button type="button" onClick="{{b.pick}}" aria-label="{{b.name}}" style="height: 44px; border-radius: 12px; border: 2px solid {{b.border}}; background: #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0">
+            <img src="{{b.src}}" alt="" style="width: 60px; height: 24px; object-fit: contain">
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <label for="nama" style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">Nama dompet</label>
+      <input id="nama" type="text" value="{{brandName}}" placeholder="BCA, GoPay, Dompet tunai…" style="height: 46px; box-sizing: border-box; border: 2px solid #f1e4ea; border-radius: 12px; background: #fff8fb; padding: 0 12px; font-size: 14px; font-weight: 700; color: #5a4a5e; outline: none">
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">Jenis</span>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+        <sc-for list="{{types}}" as="t" hint-placeholder-count="5">
+          <button type="button" onClick="{{t.pick}}" style="height: 52px; border-radius: 14px; border: 2px solid {{t.border}}; background: {{t.bg}}; color: #5a4a5e; display: flex; align-items: center; gap: 10px; padding: 0 12px; font-size: 13px; font-weight: 900; cursor: pointer; text-align: left">
+            <span style="width: 30px; height: 30px; border-radius: 10px; background: {{t.tile}}; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; flex: 0 0 auto">{{t.initial}}</span>
+            {{t.label}}
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <label for="saldo" style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">{{balanceLabel}}</label>
+      <div style="display: flex; align-items: center; gap: 4px; height: 46px; box-sizing: border-box; border: 2px solid #f1e4ea; border-radius: 12px; background: #fff8fb; padding: 0 10px">
+        <span style="font-size: 14px; font-weight: 900; color: #74647a">Rp</span>
+        <input id="saldo" type="text" inputmode="numeric" placeholder="0" style="flex: 1 1 0; min-width: 0; height: 40px; border: 0; background: transparent; font-size: 16px; font-weight: 900; color: #5a4a5e; outline: none">
+      </div>
+    </div>
+
+    <div style="background: #fff8dd; border-radius: 12px; padding: 8px 10px; font-size: 12px; font-weight: 800; line-height: 1.45; color: #5a4a5e">{{hint}}</div>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px">
+    <a href="Dompet.dc.html" style="height: 56px; border-radius: 999px; background: linear-gradient(180deg, #cf3b7b, #bf3571); color: #ffffff; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">Simpan dompet</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { type: 1, brand: 0 };
+  }
+  renderVals() {
+    const brandDefs = [
+      { name: 'GoPay', bg: '#ffffff', type: 1, src: '/_blob/80ae5963e87248dc3453f6f7dcdef70a' },
+      { name: 'OVO', bg: '#ffffff', type: 1, src: '/_blob/b1123303f930137dc8b9775bb1b53e2c' },
+      { name: 'DANA', bg: '#ffffff', type: 1, src: '/_blob/a678fdfcc32ea842b0b3ec37c0636a52' },
+      { name: 'ShopeePay', bg: '#ffffff', type: 1, src: '/_blob/e3bc733388b4860c0ab4a87aa43dbfcd' },
+      { name: 'LinkAja', bg: '#ffffff', type: 1, src: '/_blob/bf597c11b732f48248f18cd5ca9b4d32' },
+      { name: 'BCA', bg: '#ffffff', type: 2, src: '/_blob/9ad0f3450c048e25bcd9da18ac2a8d7f' },
+      { name: 'Mandiri', bg: '#ffffff', type: 2, src: '/_blob/9c4361febb82e312cf42f7be7dc174cc' },
+      { name: 'BNI', bg: '#ffffff', type: 2, src: '/_blob/86c89a819decccb739857c5d24808ae1' },
+      { name: 'BRI', bg: '#ffffff', type: 2, src: '/_blob/9dff5cfe8810ec205ee7d41029f1465c' },
+      { name: 'Jenius', bg: '#ffffff', type: 2, src: '/_blob/5c6f20c34963a3e92da7bf03545c0863' },
+      { name: 'Jago', bg: '#ffffff', type: 2, src: '/_blob/a040ed64064ef73093d6f4f3557701c2' },
+      { name: 'SeaBank', bg: '#ffffff', type: 2, src: '/_blob/b83632a6d3d1aa2e92e2b19ec58dbae7' }
+    ];
+    const bsel = this.state.brand;
+    const brands = brandDefs.map((b, i) => ({
+      ...b,
+      pick: () => this.setState({ brand: i, type: b.type }),
+      border: i === bsel ? '#ff7eb3' : '#ffffff'
+    }));
+    const brand = bsel >= 0 ? brandDefs[bsel] : null;
+    const defs = [
+      { label: 'Tunai', initial: 'Rp', tile: '#dcf5ec', debt: false },
+      { label: 'E-wallet', initial: 'EW', tile: '#dcf5ec', debt: false },
+      { label: 'Rekening bank', initial: 'B', tile: '#cfe9f7', debt: false },
+      { label: 'Kartu kredit', initial: 'KK', tile: '#ffdede', debt: true },
+      { label: 'Paylater', initial: 'PL', tile: '#ffdede', debt: true }
+    ];
+    const sel = defs[this.state.type];
+    const types = defs.map((d, i) => {
+      const on = i === this.state.type;
+      return { ...d, pick: () => this.setState({ type: i, brand: -1 }), bg: on ? '#fff5f9' : '#ffffff', border: on ? '#ff7eb3' : '#f1e4ea' };
+    });
+    return {
+      types,
+      brands,
+      hasBrand: !!brand && !sel.debt,
+      noBrand: !brand || sel.debt,
+      brandSrc: brand ? brand.src : '',
+      brandName: brand ? brand.name : '',
+      previewTile: brand && !sel.debt ? '#ffffff' : sel.tile,
+      previewInitial: sel.initial,
+      previewName: brand ? brand.name : '[NAMA DOMPET]',
+      previewKind: sel.debt ? 'Dompet utang · peti merah' : sel.label + ' · peti emas',
+      previewColor: sel.debt ? '#c23b3b' : '#1f8a63',
+      balanceLabel: sel.debt ? 'Terutang saat ini' : 'Saldo awal',
+      hint: sel.debt ? 'Jajan dari dompet ini menambah utang, bukan memotong saldo. Petinya membesar saat tagihan naik.' : 'Saldo awal hanya dipakai sebagai titik mulai. Setoran dan jajan berikutnya mengubahnya otomatis.'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Kotak pos desa</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 56px 16px 0 16px">
+    <a href="Main.dc.html" aria-label="Kembali ke desa" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #5a4a5e">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <span style="font-size: 15px; font-weight: 900">Kotak pos</span>
+    <a href="TagihanRutin.dc.html" aria-label="Tambah tagihan rutin" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #c2457d">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+    </a>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <div style="background: rgba(255,250,247,0.88); border: 2px solid #ffffff; border-radius: 18px; box-shadow: 0 10px 30px rgba(120,60,100,0.12); padding: 10px 14px; display: flex; align-items: center; gap: 12px">
+      <svg aria-hidden="true" width="40" height="40" viewBox="0 0 40 40"><rect x="17" y="22" width="6" height="16" fill="#8b6b4a"></rect><rect x="6" y="8" width="28" height="16" rx="8" fill="#e86d6d"></rect><rect x="12" y="13" width="16" height="6" rx="1" fill="#fffaf7"></rect><rect x="30" y="2" width="3" height="10" fill="#f3c35b"></rect><path d="M33 2 L40 5 L33 8 Z" fill="#f3c35b"></path></svg>
+      <div style="display: flex; flex-direction: column; flex: 1 1 0">
+        <span style="font-size: 14px; font-weight: 900">Pak Pos sudah tiba</span>
+        <span style="font-size: 11px; font-weight: 800; color: #74647a">3 tagihan jatuh tempo · 1 surat baru</span>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 0 4px">
+      <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Tagihan & setoran rutin</span>
+      <span style="font-size: 11px; font-weight: 800; background: #ffffff; padding: 1px 8px; border-radius: 999px; color: #74647a">3</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <sc-for list="{{bills}}" as="b" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 8px; background: #ffffff; border: 2px solid {{b.border}}; border-radius: 16px; padding: 10px 12px">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <div style="display: flex; flex-direction: column; flex: 1 1 0; min-width: 0">
+              <span style="font-size: 14px; font-weight: 800">{{b.name}}</span>
+              <span style="font-size: 11px; font-weight: 800; color: #74647a">{{b.meta}}</span>
+            </div>
+            <span style="font-size: 14px; font-weight: 900; color: {{b.color}}">{{b.amount}}</span>
+          </div>
+          <sc-if value="{{b.auto}}" hint-placeholder-val="{{true}}">
+            <span style="font-size: 11px; font-weight: 900; background: #dcf5ec; color: #1f8a63; padding: 4px 10px; border-radius: 999px; align-self: flex-start">Otomatis tercatat · tidak menyalakan lampu</span>
+          </sc-if>
+          <sc-if value="{{b.manual}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; gap: 6px">
+              <a href="TambahSetoran.dc.html" style="height: 36px; padding: 0 14px; border-radius: 999px; background: #ffd3e4; color: #c2457d; font-size: 12px; font-weight: 900; display: flex; align-items: center">Catat sekarang</a>
+              <button type="button" style="height: 36px; padding: 0 14px; border-radius: 999px; border: 2px solid #f1e4ea; background: #ffffff; color: #74647a; font-size: 12px; font-weight: 900; cursor: pointer">Lewati</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 0 4px">
+      <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">Surat dari Cyrene</span>
+      <span style="font-size: 11px; font-weight: 800; color: #74647a">Senin, 08:00</span>
+    </div>
+
+    <article style="background: #fffaf7; border: 2px solid #ffffff; border-radius: 18px; box-shadow: 0 10px 30px rgba(120,60,100,0.14); padding: 14px; display: flex; flex-direction: column; gap: 8px; position: relative">
+      <div style="position: absolute; right: 12px; top: 12px; width: 34px; height: 26px; border: 2px dashed #ffbdd8; border-radius: 4px; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="#ff7eb3"><path d="M12 21s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.4-7 10-7 10z"></path></svg>
+      </div>
+      <span style="font-size: 11px; font-weight: 800; color: #74647a">Minggu ke-44 · 2026</span>
+      <span style="font-size: 14px; font-weight: 900">Halo, [NAMA]</span>
+      <p style="margin: 0; font-size: 13px; font-weight: 700; line-height: 1.5; color: #66566b">Cyrene melihat skor bulan ini 76/100 (SEHAT). Rasio tabungan 28%, disiplin budget 82%, runway sekitar 4 bulan. Nongkrong hampir habis jatah, tapi Dana darurat naik Rp535.000 minggu ini. Dindingnya makin tinggi!</p>
+      <span style="font-size: 13px; font-weight: 900; color: #c2457d">— Cyrene</span>
+    </article>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px">
+    <a href="Laporan.dc.html" style="height: 56px; border-radius: 999px; background: rgba(255,255,255,0.86); border: 2px solid #f1e4ea; color: #5a4a5e; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center">Lihat laporan lengkap</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      bills: [
+        { name: 'Spotify', meta: 'Langganan · tiap bulan · jatuh tempo hari ini', amount: '-Rp54.900', color: '#c23b3b', border: '#cdeee3', auto: true, manual: false },
+        { name: 'Kos', meta: 'Listrik / Air / Kos · tiap bulan · tanggal 5', amount: '-Rp1.500.000', color: '#c23b3b', border: '#ffd0d0', auto: false, manual: true },
+        { name: 'Nabung mingguan Dana darurat', meta: 'Setoran rutin · tiap Senin', amount: '+Rp100.000', color: '#1f8a63', border: '#ffd0d0', auto: false, manual: true }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

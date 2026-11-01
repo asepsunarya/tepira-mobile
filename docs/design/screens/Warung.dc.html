@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Warung jajan</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button,input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 56px 16px 0 16px">
+    <a href="Main.dc.html" aria-label="Kembali ke desa" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #5a4a5e">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <a href="PetaJajan.dc.html" style="height: 44px; padding: 0 14px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 900; color: #5a4a5e">
+      Warung · November
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c2457d" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z"></path><circle cx="12" cy="11" r="2"></circle></svg>
+    </a>
+    <a href="TambahSetoran.dc.html" aria-label="Catat jajan" style="width: 44px; height: 44px; border-radius: 16px; background: #ffe4d2; border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #b4502a">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+    </a>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <div style="display: flex; align-items: center; gap: 8px; background: #fff8fb; border: 2px solid #f1e4ea; border-radius: 14px; padding: 0 12px; height: 44px">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#74647a" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+      <label for="cari" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Cari tempat atau catatan</label>
+      <input id="cari" type="text" placeholder="Cari tempat atau catatan" style="flex: 1 1 0; min-width: 0; height: 40px; border: 0; background: transparent; font-size: 14px; font-weight: 700; color: #5a4a5e; outline: none">
+    </div>
+
+    <div style="display: flex; gap: 6px; flex-wrap: wrap">
+      <sc-for list="{{chips}}" as="c" hint-placeholder-count="5">
+        <button type="button" onClick="{{c.pick}}" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 2px solid {{c.border}}; background: {{c.bg}}; color: {{c.color}}; font-size: 12px; font-weight: 900; cursor: pointer">{{c.label}}</button>
+      </sc-for>
+    </div>
+
+    <div style="background: rgba(255,250,247,0.88); border: 2px solid #ffffff; border-radius: 18px; box-shadow: 0 10px 30px rgba(120,60,100,0.14); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div style="display: flex; flex-direction: column">
+          <span style="font-size: 11px; font-weight: 800; color: #74647a; text-transform: uppercase; letter-spacing: 0.03em">Tempat langganan</span>
+          <span style="font-size: 15px; font-weight: 900">Kopi Toko Djawa</span>
+        </div>
+        <span style="font-size: 11px; font-weight: 900; background: #fff3d1; color: #a87a12; padding: 4px 10px; border-radius: 999px">Hampir batas</span>
+      </div>
+      <div style="height: 8px; border-radius: 999px; background: #f3e8ee; overflow: hidden">
+        <div style="width: 82%; height: 8px; border-radius: 999px; background: #f3c35b"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; color: #66566b">
+        <span>Rp247.000 dari batas Rp300.000</span>
+        <span>6 kali</span>
+      </div>
+      <button type="button" style="align-self: flex-start; height: 32px; padding: 0 12px; border-radius: 999px; border: 0; background: #ffd3e4; color: #c2457d; font-size: 12px; font-weight: 900; cursor: pointer">Ubah batas jajan</button>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 0 4px">
+      <span style="font-size: 12px; font-weight: 900; color: #74647a; text-transform: uppercase; letter-spacing: 0.04em">{{listTitle}}</span>
+      <span style="font-size: 12px; font-weight: 900; color: #c23b3b">{{listTotal}}</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+        <div style="display: flex; gap: 10px; align-items: center; font-size: 13px; background: #ffffff; border-radius: 12px; padding: 8px 10px; border: 2px solid #ffe0d6">
+          <span style="flex: 0 0 44px; font-size: 11px; font-weight: 800; color: #74647a">{{r.when}}</span>
+          <div style="display: flex; flex-direction: column; flex: 1 1 0; min-width: 0">
+            <span style="font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.note}}</span>
+            <span style="font-size: 11px; font-weight: 800; color: #74647a">{{r.meta}}</span>
+          </div>
+          <span style="font-weight: 900; color: #c23b3b">{{r.amount}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px">
+    <button type="button" style="width: 100%; height: 56px; border-radius: 999px; border: 2px solid #cdeee3; background: #dcf5ec; color: #1f8a63; font-weight: 900; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg>
+      Tandai hari ini nol jajan
+    </button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { cat: 'Semua' };
+  }
+  renderVals() {
+    const cats = ['Semua', 'Makan harian', 'Transport', 'Nongkrong', 'Langganan'];
+    const chips = cats.map((c) => {
+      const on = c === this.state.cat;
+      return {
+        label: c,
+        pick: () => this.setState({ cat: c }),
+        bg: on ? '#ffe4d2' : '#ffffff',
+        border: on ? '#f0a06a' : '#f1e4ea',
+        color: on ? '#b4502a' : '#5a4a5e'
+      };
+    });
+    const all = [
+      { when: 'Hari ini', note: 'Bakso', meta: 'Makan harian · GoPay · dekat kantor', amount: '-Rp15.000', cat: 'Makan harian' },
+      { when: 'Kemarin', note: 'Kopi susu', meta: 'Nongkrong · Tunai · Kopi Toko Djawa', amount: '-Rp28.000', cat: 'Nongkrong' },
+      { when: 'Kemarin', note: 'Parkir', meta: 'Transport · Tunai', amount: '-Rp2.000', cat: 'Transport' },
+      { when: '31 Okt', note: 'Spotify', meta: 'Langganan · Kartu kredit · otomatis', amount: '-Rp54.900', cat: 'Langganan' },
+      { when: '30 Okt', note: 'Nasi padang', meta: 'Makan harian · BCA · Sederhana', amount: '-Rp32.000', cat: 'Makan harian' }
+    ];
+    const sel = this.state.cat;
+    const rows = all.filter((r) => sel === 'Semua' || r.cat === sel);
+    const sum = rows.reduce((t, r) => t + Number(r.amount.replace(/[^0-9]/g, '')), 0);
+    return {
+      chips,
+      rows,
+      listTitle: sel === 'Semua' ? 'Jajan terbaru' : 'Jajan · ' + sel,
+      listTotal: '-Rp' + String(sum).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+    };
+  }
+}
+</script>
+</body>
+</html>

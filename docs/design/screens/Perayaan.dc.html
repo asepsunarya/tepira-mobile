@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Warga baru pindah</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; position: relative; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="position: absolute; inset: 0; opacity: 0.55">
+    <svg aria-hidden="true" width="390" height="844" viewBox="0 0 390 844">
+      <ellipse cx="195" cy="470" rx="190" ry="60" fill="#7fcfe6"></ellipse>
+      <ellipse cx="195" cy="455" rx="150" ry="46" fill="#f3c35b"></ellipse>
+      <ellipse cx="195" cy="445" rx="132" ry="38" fill="#6cc8ad"></ellipse>
+      <rect x="150" y="396" width="60" height="44" fill="#fffaf7"></rect>
+      <path d="M144 398 L180 362 L216 398 Z" fill="#ff7eb3"></path>
+      <rect x="270" y="410" width="5" height="30" fill="#5a4a5e"></rect>
+      <path d="M272 356 L296 410 L248 410 Z" fill="#37957c"></path>
+    </svg>
+  </div>
+  <div style="position: absolute; inset: 0; background: rgba(90,74,94,0.3)"></div>
+
+  <div style="position: absolute; left: 24px; right: 24px; top: 150px; background: #fffaf7; border: 2px solid #ffffff; border-radius: 26px; box-shadow: 0 18px 40px -20px rgba(120,60,100,0.5); padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center">
+    <div style="display: flex; gap: 4px; width: 100%">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+        <button type="button" onClick="{{t.pick}}" style="flex: 1 1 0; height: 36px; border-radius: 999px; border: 2px solid {{t.border}}; background: {{t.bg}}; color: {{t.color}}; font-size: 12px; font-weight: 900; cursor: pointer">{{t.label}}</button>
+      </sc-for>
+    </div>
+
+    <svg aria-hidden="true" width="120" height="120" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="56" fill="{{ringFill}}"></circle>
+      <rect x="18" y="20" width="8" height="12" rx="2" fill="#ff7eb3" transform="rotate(20 22 26)"></rect>
+      <rect x="94" y="26" width="8" height="12" rx="2" fill="#6cc8ad" transform="rotate(-30 98 32)"></rect>
+      <rect x="30" y="92" width="6" height="10" rx="2" fill="#f3c35b" transform="rotate(50 33 97)"></rect>
+      <rect x="92" y="88" width="6" height="10" rx="2" fill="#5b9ae0" transform="rotate(-15 95 93)"></rect>
+      <sc-if value="{{isVillager}}" hint-placeholder-val="{{true}}">
+        <circle cx="60" cy="48" r="16" fill="#f3d4c0"></circle>
+        <path d="M44 48 Q60 24 76 48 Z" fill="#5a4a5e"></path>
+        <rect x="42" y="66" width="36" height="34" rx="10" fill="#ff7eb3"></rect>
+        <circle cx="54" cy="48" r="2" fill="#5a4a5e"></circle>
+        <circle cx="66" cy="48" r="2" fill="#5a4a5e"></circle>
+        <path d="M54 56 Q60 61 66 56" stroke="#5a4a5e" stroke-width="2" fill="none" stroke-linecap="round"></path>
+      </sc-if>
+      <sc-if value="{{isBuilding}}" hint-placeholder-val="{{false}}">
+        <rect x="30" y="70" width="60" height="10" rx="2" fill="#8b6b4a"></rect>
+        <rect x="34" y="60" width="6" height="12" fill="#8b6b4a"></rect>
+        <rect x="80" y="60" width="6" height="12" fill="#8b6b4a"></rect>
+        <path d="M40 96 Q60 86 80 96 L80 104 Q60 94 40 104 Z" fill="#f0a06a"></path>
+        <path d="M44 92 L52 70 L60 92 Z" fill="#fffaf7"></path>
+        <rect x="58" y="64" width="3" height="30" fill="#5a4a5e"></rect>
+      </sc-if>
+    </svg>
+
+    <span style="font-size: 11px; font-weight: 900; background: #ffd3e4; color: #c2457d; padding: 5px 12px; border-radius: 999px">{{badge}}</span>
+    <h2 style="margin: 0; font-size: 24px; font-weight: 900; line-height: 1.15">{{title}}</h2>
+    <p style="margin: 0; font-size: 13px; font-weight: 700; color: #66566b; line-height: 1.5">{{body}}</p>
+
+    <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 4px">
+      <a href="Main.dc.html" style="height: 52px; border-radius: 999px; background: linear-gradient(180deg, #cf3b7b, #bf3571); color: #ffffff; font-weight: 900; font-size: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">{{cta}}</a>
+      <a href="Perkembangan.dc.html" style="height: 44px; border-radius: 999px; color: #74647a; font-weight: 900; font-size: 13px; display: flex; align-items: center; justify-content: center">Lihat perkembangan desa</a>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 16px; right: 16px; bottom: 36px; background: rgba(255,250,247,0.92); border: 2px solid #ffffff; border-radius: 16px; padding: 10px 12px; font-size: 11px; font-weight: 800; color: #66566b; line-height: 1.45">Dirayakan sekali per akun, termasuk yang bertambah sejak kunjungan terakhir. Sudah dirayakan di laptop tidak muncul lagi di HP.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { kind: 'warga' };
+  }
+  renderVals() {
+    const k = this.state.kind;
+    const tabs = [
+      { id: 'warga', label: 'Warga baru' },
+      { id: 'bangunan', label: 'Bangunan terbuka' }
+    ].map((t) => {
+      const on = t.id === k;
+      return { label: t.label, pick: () => this.setState({ kind: t.id }), bg: on ? '#ffd3e4' : '#ffffff', border: on ? '#ff7eb3' : '#f1e4ea', color: on ? '#c2457d' : '#5a4a5e' };
+    });
+    const villager = k === 'warga';
+    return {
+      tabs,
+      isVillager: villager,
+      isBuilding: !villager,
+      ringFill: villager ? '#dcf5ec' : '#fff3d1',
+      badge: villager ? '7 hari beruntun' : 'Level 4 tercapai',
+      title: villager ? 'Neng pindah ke desa!' : 'Dermaga dibuka!',
+      body: villager ? 'Tujuh hari berturut-turut tercatat. Neng menetap di desa walau streak-mu nanti putus. Warga ke-4 dari 8.' : 'Perahu nelayan mulai singgah di pantai barat daya. Bangunan berikutnya: Pasar di Lv 8.',
+      cta: villager ? 'Sapa Neng di desa' : 'Lihat dermaga'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Tagihan rutin baru</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Nunito',system-ui,sans-serif;background:#cfe9f7;color:#5a4a5e}
+a{color:#c2457d;text-decoration:none}a:hover{color:#a8336a}
+button,input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: linear-gradient(180deg, #cfe9f7 0%, #e3f2fb 45%, #fbf1f5 100%); color: #5a4a5e; display: flex; flex-direction: column; overflow: hidden; font-family: 'Nunito', system-ui, sans-serif; font-weight: 700">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 56px 16px 0 16px">
+    <a href="KotakPos.dc.html" aria-label="Kembali ke kotak pos" style="width: 44px; height: 44px; border-radius: 16px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; box-shadow: 0 6px 16px rgba(120,60,100,0.14); display: flex; align-items: center; justify-content: center; color: #5a4a5e">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+    </a>
+    <div style="display: flex; padding: 4px; gap: 2px; background: rgba(255,250,247,0.9); border: 2px solid #ffffff; border-radius: 16px; box-shadow: 0 6px 16px rgba(120,60,100,0.14)">
+      <sc-for list="{{kinds}}" as="k" hint-placeholder-count="2">
+        <button type="button" onClick="{{k.pick}}" style="height: 36px; padding: 0 14px; border-radius: 12px; border: 0; background: {{k.bg}}; color: {{k.color}}; font-size: 13px; font-weight: 900; cursor: pointer">{{k.label}}</button>
+      </sc-for>
+    </div>
+    <div style="width: 44px; height: 44px"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 0 16px; flex: 1 1 0; min-height: 0; overflow: hidden">
+
+    <p style="margin: 0; font-size: 12px; font-weight: 700; color: #66566b; background: #ffffff; border-radius: 12px; padding: 8px 10px; border: 2px solid #f6ebf0; line-height: 1.45">Pak Pos mengantar ke kotak pos saat jatuh tempo. Yang otomatis langsung tercatat, sisanya kamu tekan Catat.</p>
+
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <label for="nama" style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">{{nameLabel}}</label>
+      <input id="nama" type="text" placeholder="{{namePh}}" style="height: 46px; box-sizing: border-box; border: 2px solid #f1e4ea; border-radius: 12px; background: #fff8fb; padding: 0 12px; font-size: 14px; font-weight: 700; color: #5a4a5e; outline: none">
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <label for="nominal" style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">Nominal</label>
+        <div style="display: flex; align-items: center; gap: 4px; height: 46px; box-sizing: border-box; border: 2px solid #f1e4ea; border-radius: 12px; background: #fff8fb; padding: 0 10px">
+          <span style="font-size: 14px; font-weight: 900; color: #74647a">Rp</span>
+          <input id="nominal" type="text" inputmode="numeric" placeholder="{{amountPh}}" style="flex: 1 1 0; min-width: 0; height: 40px; border: 0; background: transparent; font-size: 16px; font-weight: 900; color: #5a4a5e; outline: none">
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <label for="target" style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">{{targetLabel}}</label>
+        <input id="target" type="text" value="{{targetValue}}" style="height: 46px; box-sizing: border-box; border: 2px solid #f1e4ea; border-radius: 12px; background: #fff8fb; padding: 0 12px; font-size: 14px; font-weight: 700; color: #5a4a5e; outline: none">
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">Jadwal</span>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap">
+        <sc-for list="{{freqs}}" as="f" hint-placeholder-count="6">
+          <button type="button" onClick="{{f.pick}}" style="height: 36px; padding: 0 12px; border-radius: 999px; border: 2px solid {{f.border}}; background: {{f.bg}}; color: {{f.color}}; font-size: 12px; font-weight: 900; cursor: pointer">{{f.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <label for="mulai" style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">Mulai</label>
+        <input id="mulai" type="date" value="2026-11-05" style="height: 46px; box-sizing: border-box; border: 2px solid #f1e4ea; border-radius: 12px; background: #fff8fb; padding: 0 10px; font-size: 14px; font-weight: 700; color: #5a4a5e; outline: none">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <label for="kali" style="font-size: 12px; font-weight: 800; color: #74647a; padding-left: 4px">Berapa kali (opsional)</label>
+        <input id="kali" type="text" inputmode="numeric" placeholder="mis. 12 untuk cicilan" style="height: 46px; box-sizing: border-box; border: 2px solid #f1e4ea; border-radius: 12px; background: #fff8fb; padding: 0 12px; font-size: 14px; font-weight: 700; color: #5a4a5e; outline: none">
+      </div>
+    </div>
+
+    <label style="display: flex; align-items: center; gap: 12px; background: #ffffff; border: 2px solid #f6ebf0; border-radius: 14px; padding: 10px 12px; cursor: pointer">
+      <input type="checkbox" checked="{{auto}}" onChange="{{toggleAuto}}" aria-label="Catat otomatis saat jatuh tempo" style="width: 22px; height: 22px; margin: 0; accent-color: #ff7eb3">
+      <div style="display: flex; flex-direction: column; flex: 1 1 0">
+        <span style="font-size: 14px; font-weight: 800">Catat otomatis saat jatuh tempo</span>
+        <span style="font-size: 11px; font-weight: 800; color: #74647a">{{autoHint}}</span>
+      </div>
+    </label>
+  </div>
+
+  <div style="padding: 12px 16px 36px 16px">
+    <a href="KotakPos.dc.html" style="height: 56px; border-radius: 999px; background: linear-gradient(180deg, #cf3b7b, #bf3571); color: #ffffff; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 14px 26px -12px rgba(191,53,113,0.7)">{{cta}}</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { kind: 'expense', freq: 2, auto: false };
+  }
+  renderVals() {
+    const s = this.state;
+    const saving = s.kind === 'saving';
+    const kinds = [
+      { id: 'expense', label: 'Pengeluaran' },
+      { id: 'saving', label: 'Setoran' }
+    ].map((k) => {
+      const on = k.id === s.kind;
+      return { label: k.label, pick: () => this.setState({ kind: k.id }), bg: on ? (k.id === 'saving' ? '#dcf5ec' : '#ffe4d2') : 'transparent', color: on ? (k.id === 'saving' ? '#1f8a63' : '#b4502a') : '#74647a' };
+    });
+    const freqs = ['Tiap minggu', 'Tiap 2 minggu', 'Tiap bulan', 'Tiap 3 bulan', 'Tiap 6 bulan', 'Tiap tahun'].map((l, i) => {
+      const on = i === s.freq;
+      return { label: l, pick: () => this.setState({ freq: i }), bg: on ? '#ffd3e4' : '#ffffff', border: on ? '#ff7eb3' : '#f1e4ea', color: on ? '#c2457d' : '#5a4a5e' };
+    });
+    return {
+      kinds,
+      freqs,
+      nameLabel: saving ? 'Nama setoran' : 'Nama tagihan',
+      namePh: saving ? 'Nabung rutin' : 'Spotify, Kos, Cicilan HP…',
+      amountPh: saving ? '100.000' : '54.900',
+      targetLabel: saving ? 'Ke kavling' : 'Kategori',
+      targetValue: saving ? 'Dana darurat' : 'Langganan',
+      auto: s.auto,
+      toggleAuto: () => this.setState({ auto: !s.auto }),
+      autoHint: s.auto ? 'Langsung tercatat, tidak menyalakan lampu streak.' : 'Diantar ke kotak pos, kamu tekan Catat sendiri.',
+      cta: saving ? 'Simpan setoran rutin' : 'Simpan tagihan rutin'
+    };
+  }
+}
+</script>
+</body>
+</html>
