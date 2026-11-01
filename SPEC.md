@@ -203,6 +203,12 @@ Tidak di bawah `/api/mobile`: memakai endpoint yang sudah ada `POST /api/contrib
 (multipart form `goalId`, `amount`, `note`) dengan cookie sesi yang sama. Setelah sukses,
 klien memanggil ulang 3.3.
 
+Endpoint lama ini **tidak** memakai amplop `{ok, error, message}`. Responsnya
+`{ "success": true }` (200) atau `{ "success": false, "message": "<teks>" }` dengan status
+400 (nominal ≤ 0), 401 (tanpa sesi), 404 (goal tidak ditemukan/bukan milik user), atau 500.
+Tidak ada field `error`; klien bercabang hanya berdasarkan status HTTP, dan 2xx berarti
+setoran tersimpan (body sukses tidak membawa data goal).
+
 ### 3.6 Keluar
 
 Tidak ada endpoint; klien menghapus token dari secure storage. Token tetap berlaku sampai
@@ -235,9 +241,14 @@ Tidak ada endpoint; klien menghapus token dari secure storage. Token tetap berla
 - [ ] `Goal` model: `id, title, description, target, saved, percent, remaining, deadline,
   daysLeft, perMonthNeeded, createdAt, lastContribution, contributionCount`. Semua uang `int`;
   `percent` `double` (server mengirim `num` 0–100, boleh satu desimal, mis. `41.3`);
-  `createdAt` `DateTime` UTC.
-- [ ] `buildStage(saved/target)`: `lahan` 0, `fondasi` >0, `dinding` ≥0.3, `atap` ≥0.7,
-  `selesai` ≥1 (sama dengan `lib/game.ts` village). Unit test lima ambang.
+  `createdAt` `DateTime` UTC. Server **membulatkan** `percent` ke satu desimal
+  (`Math.round(saved/target*1000)/10`, maks 100), jadi `percent` tidak dipakai untuk tampilan
+  atau ambang tahap: klien menghitung persen tampilan sendiri dari `saved`/`target`
+  (lihat §12 Q4).
+- [ ] `buildStage(saved, target)`: `lahan` 0, `fondasi` >0, `dinding` ≥30%, `atap` ≥70%,
+  `selesai` ≥100%. Ambang diambil dari artboard (catatan "Tahap bangunan dari progres" di
+  `docs/design/canvas.json`), dihitung dari `saved`/`target` dengan bilangan bulat supaya batas
+  30% dan 70% tepat. Unit test lima ambang.
 - [ ] `GoalsRepository`: `list()`, `detail(id)`, `create(...)`, `contribute(goalId, amount, note)`.
   Screen tidak pernah memanggil dio langsung.
 - [ ] Layar Desa (`/`): HUD sederhana (nama, jumlah goal aktif), daftar kavling dengan tahap,
@@ -332,7 +343,8 @@ test/                     mirror lib/
 - Commit `google-services.json`, `GoogleService-Info.plist`, keystore, `.env*`.
 - Menyimpan token di SharedPreferences atau log.
 - Memakai `/api/cyrene/*` dari aplikasi (token pemilik tunggal, bukan per pengguna).
-- Menghitung `percent` dengan cara berbeda dari server; angka dari server adalah kebenaran.
+- Memakai `percent` dari server untuk ambang tahap bangunan; nilainya sudah dibulatkan
+  (mis. 29,96% terkirim sebagai `30`). Tahap dan persen tampilan dihitung dari `saved`/`target`.
 
 ## 10. Dependensi yang diusulkan (butuh persetujuan)
 
@@ -361,3 +373,6 @@ memilih bundel kalau kamu ingin offline-first nanti.
 - Q1. Kontrak §3 disetujui: token mobile = JWT Auth.js yang sama dengan cookie web.
 - Q2. Tiga dependensi §10 disetujui.
 - Q3. Desa v1 memakai daftar kavling; panel pulau masuk spec "desa-visual" berikutnya.
+- Q4. Server membulatkan `percent` ke satu desimal. Klien menghitung persen tampilan
+  sendiri dari `saved`/`target` (`GoalProgress`), dan tahap bangunan juga dari `saved`/`target`
+  dengan ambang artboard (30%/70%/100%), bukan dari `percent` server.
