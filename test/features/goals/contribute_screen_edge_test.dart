@@ -610,11 +610,7 @@ void main() {
   });
 
   group('gateway errors (coordinator decision: treat as network error)', () {
-    group('BUG',
-        skip: 'BUG: contribute_screen.dart:104 catches '
-            'ServerException(statusCode: 502/503/504) as a definite failure '
-            '(inline error, no reload, no "lagi"), but the deposit may have '
-            'been recorded', () {
+    group('BUG', () {
       for (final status in [502, 503, 504]) {
         testWidgets(
           '$status: no auto retry, goal reloaded, "Koneksi terputus" card, '

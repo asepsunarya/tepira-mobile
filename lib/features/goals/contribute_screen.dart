@@ -93,16 +93,17 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       await ref
           .read(goalsRepositoryProvider)
           .contribute(goal.id, amount, note.isEmpty ? null : note);
-    } on NetworkException {
-      if (!mounted) return;
-      _reload(goal.id);
-      setState(() {
-        _submitting = false;
-        _uncertainGoalId = goal.id;
-      });
-      return;
     } on AppException catch (error) {
       if (!mounted) return;
+      if (error is NetworkException || isGatewayError(error)) {
+        // Outcome unknown: the deposit may have been recorded.
+        _reload(goal.id);
+        setState(() {
+          _submitting = false;
+          _uncertainGoalId = goal.id;
+        });
+        return;
+      }
       setState(() {
         _submitting = false;
         _error = error.message;
