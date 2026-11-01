@@ -108,11 +108,8 @@ void main() {
       expect(_cookie(adapter), 'authjs.session-token=jwe');
     });
 
-    // BUG (reported, not fixed here): the interceptor compares only the host,
-    // not scheme/port, so the session token goes out over plain HTTP, or to
-    // another port on the same host. dart:io's own redirect handling uses
-    // full same-origin (scheme+host+port) for Cookie; the interceptor should
-    // too. Remove `skip` once lib/data/api_client.dart compares origins.
+    // The cookie is scoped to the full API origin (scheme + host + port),
+    // matching dart:io's same-origin rule for Cookie on redirects.
     test(
       'is not sent over plain http to the API host',
       () async {
@@ -123,7 +120,6 @@ void main() {
 
         expect(adapter.requests.single.headers.containsKey('Cookie'), isFalse);
       },
-      skip: 'BUG: SessionCookieInterceptor ignores scheme (token over http)',
     );
 
     test(
@@ -136,8 +132,33 @@ void main() {
 
         expect(adapter.requests.single.headers.containsKey('Cookie'), isFalse);
       },
-      skip: 'BUG: SessionCookieInterceptor ignores port',
     );
+
+    test('is merged with a caller-set Cookie header', () async {
+      final adapter = FakeHttpAdapter();
+      final dio = _dio(adapter, store: FakeSessionStore(token: 'jwe'));
+
+      await dio.get<Object?>(
+        '/mobile/goals',
+        options: Options(headers: {'Cookie': 'locale=id'}),
+      );
+
+      expect(_cookie(adapter), 'locale=id; authjs.session-token=jwe');
+    });
+
+    test('is not duplicated when the caller already set it', () async {
+      final adapter = FakeHttpAdapter();
+      final dio = _dio(adapter, store: FakeSessionStore(token: 'jwe'));
+
+      await dio.get<Object?>(
+        '/mobile/goals',
+        options: Options(
+          headers: {'Cookie': 'authjs.session-token=jwe; locale=id'},
+        ),
+      );
+
+      expect(_cookie(adapter), 'authjs.session-token=jwe; locale=id');
+    });
   });
 
   group('session cookie lifecycle', () {
@@ -293,11 +314,10 @@ void main() {
       );
     });
 
-    // GAP (reported): dio's IO adapter only maps SocketException to
-    // connectionError while *opening* the connection. A reset mid-response or
-    // a TLS HandshakeException reaches the interceptor as
-    // DioExceptionType.unknown, which mapDioException leaves unmapped, so
-    // callers get a raw DioException instead of NetworkException.
+    // dio's IO adapter only maps SocketException to connectionError while
+    // *opening* the connection. A reset mid-response or a TLS
+    // HandshakeException reaches the interceptor as DioExceptionType.unknown;
+    // mapDioException must still map it to NetworkException.
     for (final error in [
       const SocketException('Connection reset by peer'),
       const HandshakeException('Handshake error in client'),
@@ -313,7 +333,6 @@ void main() {
             _failsWith<NetworkException>(),
           );
         },
-        skip: 'GAP: DioExceptionType.unknown with an IO error is unmapped',
       );
     }
   });

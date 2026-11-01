@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/errors.dart';
 import 'session_store.dart';
+import 'transport_error_stub.dart'
+    if (dart.library.io) 'transport_error_io.dart';
 
 const String kApiBaseUrl = String.fromEnvironment(
   'TEPIRA_API_BASE_URL',
@@ -37,34 +39,62 @@ Dio createApiDio({
   dio.interceptors.addAll([
     SessionCookieInterceptor(
       sessionStore: sessionStore,
-      apiHost: Uri.parse(baseUrl).host,
+      apiBaseUrl: Uri.parse(baseUrl),
     ),
     ErrorMappingInterceptor(),
   ]);
   return dio;
 }
 
-/// Adds `Cookie: authjs.session-token=<token>` when a session exists, and
-/// only for requests to the API host so the token never leaks elsewhere.
+/// Adds `authjs.session-token=<token>` to the `Cookie` header when a session
+/// exists, and only for requests to the API origin (scheme, host and port) so
+/// the token never leaks elsewhere or over plain HTTP. Caller-set cookies are
+/// kept.
 class SessionCookieInterceptor extends Interceptor {
-  SessionCookieInterceptor({required this.sessionStore, required this.apiHost});
+  SessionCookieInterceptor({
+    required this.sessionStore,
+    required this.apiBaseUrl,
+  });
 
   final SessionStore sessionStore;
-  final String apiHost;
+  final Uri apiBaseUrl;
+
+  bool _isApiOrigin(Uri uri) =>
+      uri.scheme.toLowerCase() == apiBaseUrl.scheme.toLowerCase() &&
+      uri.host.toLowerCase() == apiBaseUrl.host.toLowerCase() &&
+      uri.port == apiBaseUrl.port;
 
   @override
   Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    if (options.uri.host == apiHost) {
+    if (_isApiOrigin(options.uri)) {
       final token = await sessionStore.readToken();
       if (token != null && token.isNotEmpty) {
-        options.headers['Cookie'] = '$kSessionCookieName=$token';
+        options.headers['Cookie'] = _withSessionCookie(
+          options.headers['Cookie'],
+          '$kSessionCookieName=$token',
+        );
       }
     }
     handler.next(options);
   }
+}
+
+String _withSessionCookie(Object? existing, String sessionCookie) {
+  final current =
+      existing is Iterable ? existing.join('; ') : (existing?.toString() ?? '');
+  final pairs = current
+      .split(';')
+      .map((pair) => pair.trim())
+      .where((pair) => pair.isNotEmpty)
+      .toList();
+  final hasSession = pairs.any(
+    (pair) => pair.split('=').first.trim() == kSessionCookieName,
+  );
+  if (!hasSession) pairs.add(sessionCookie);
+  return pairs.join('; ');
 }
 
 /// Maps transport and HTTP failures to [AppException] subclasses.
@@ -116,9 +146,13 @@ AppException? mapDioException(DioException error) {
       return const NetworkException();
     case DioExceptionType.badResponse:
       break;
+    case DioExceptionType.unknown:
+      // dio only maps IO failures to connectionError while opening the
+      // connection; a reset, TLS handshake failure or closed connection
+      // mid-transfer arrives here as `unknown`.
+      return isTransportIoError(error.error) ? const NetworkException() : null;
     case DioExceptionType.badCertificate:
     case DioExceptionType.cancel:
-    case DioExceptionType.unknown:
       return null;
   }
 
