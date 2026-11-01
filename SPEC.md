@@ -233,7 +233,9 @@ Tidak ada endpoint; klien menghapus token dari secure storage. Token tetap berla
 
 ### `goals`
 - [ ] `Goal` model: `id, title, description, target, saved, percent, remaining, deadline,
-  daysLeft, perMonthNeeded, lastContribution, contributionCount`. Semua uang `int`.
+  daysLeft, perMonthNeeded, createdAt, lastContribution, contributionCount`. Semua uang `int`;
+  `percent` `double` (server mengirim `num` 0–100, boleh satu desimal, mis. `41.3`);
+  `createdAt` `DateTime` UTC.
 - [ ] `buildStage(saved/target)`: `lahan` 0, `fondasi` >0, `dinding` ≥0.3, `atap` ≥0.7,
   `selesai` ≥1 (sama dengan `lib/game.ts` village). Unit test lima ambang.
 - [ ] `GoalsRepository`: `list()`, `detail(id)`, `create(...)`, `contribute(goalId, amount, note)`.
