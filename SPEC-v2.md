@@ -297,7 +297,7 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
   - `401` `unauthorized`; `415` `unsupported_media_type` "Format permintaan harus JSON."
   - `400` `bad_request` dengan salah satu pesan: "Nama dompet harus diisi, maksimal 60 karakter.",
     "Jenis dompet tidak dikenal.", "Saldo harus berupa angka bulat.", "Jumlah terutang tidak
-    boleh negatif.", "Dompet tidak bisa sekaligus utang dan dana dicadangkan.", "Deskripsi
+    boleh negatif.", "Jenis utang harus ya atau tidak." (`isDebt` bukan boolean), "Dompet tidak bisa sekaligus utang dan dana dicadangkan.", "Deskripsi
     maksimal 200 karakter.", "Isi permintaan harus berupa objek JSON."
   - `500` `server_error`
 
@@ -332,8 +332,12 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
 - Perpindahan antara jenis utang dan aset (`isDebt` berubah, termasuk lewat `type`) ditolak
   (§11 asumsi 4).
 - Respons 200 `{ "ok": true, "wallet": { … }, "totals": { … } }`.
+- Body yang tidak menghasilkan perubahan efektif, misalnya hanya `isDebt` yang sama dengan nilai
+  tersimpan, diperlakukan sama dengan `{}`: `400` `bad_request` "Tidak ada perubahan.", tanpa
+  penulisan ke basis data dan tanpa revalidasi web. (Prisma mengembalikan `count` 0 untuk
+  `updateMany` dengan data kosong; tanpa aturan ini respons menjadi 404 untuk dompet milik user.)
 - Error: semua error 3.2, ditambah `400` `bad_request` "Tidak ada perubahan." (body tanpa field
-  yang dikenal), `400` `bad_request` "Jenis utang tidak bisa diubah setelah dompet dibuat.",
+  yang dikenal, atau tanpa perubahan efektif), `400` `bad_request` "Jenis utang tidak bisa diubah setelah dompet dibuat.",
   `404` `not_found` (tidak ada, bukan milik user, atau id tidak valid).
 - **Hapus dompet tidak ada di v2** (§13, §14 Q5).
 
@@ -629,6 +633,10 @@ Alasan tiap bagian:
   Perilaku yang diketahui: mengubah jajan yang dompetnya bukan milik user (data tidak konsisten)
   membuat gerak balik di dompet lama gagal cek `count === 1`, sehingga transaksi dibatalkan dan
   respons 500. Tidak ada saldo yang berubah.
+
+  Hapus dompet di web yang berjalan bersamaan (dompet dulu, lalu jajan lewat `SetNull`) bisa
+  deadlock dengan helper jajan (urutan kunci jajan dulu, lalu dompet); Postgres membatalkan salah
+  satu sisi (`40P01`), permintaan itu mendapat 500 (bisa dicoba ulang), dan saldo tetap konsisten.
 - Respons 200 `{ "ok": true, "expense": { … }, "wallets": [ …1 atau 2 dompet terdampak… ],
   "today": { … } }`. Revalidasi web (§3).
 - Error: semua error 3.5, ditambah `400` `bad_request` "Tidak ada perubahan.", `404`
@@ -652,6 +660,12 @@ Alasan tiap bagian:
 - Respons 200 `{ "ok": true, "deleted": { "id": 501, "amount": 25000 }, "wallet": { … } | null,
   "today": { … } }` (`wallet` `null` untuk baris yatim). Revalidasi web (§3).
 - Error: `401`; `404` `not_found`; `500`.
+
+  Perilaku yang diketahui: pengembalian saldo memakai `wallet.updateMany` yang dibatasi ke dompet
+  milik user dengan cek `count === 1` (sama dengan gerak lain di §3.7). Menghapus jajan yang
+  dompetnya bukan milik user (data tidak konsisten) membuat cek itu gagal, sehingga transaksi
+  dibatalkan dan respons 500. Jajan tidak terhapus dan tidak ada saldo yang berubah. Ini juga
+  berlaku untuk hapus di web karena helper-nya sama.
 
 ### 3.9 Kategori
 
