@@ -4,8 +4,9 @@ import '../../../core/theme.dart';
 import '../../../core/widgets/village_card.dart';
 
 /// Loading placeholder of the Desa screen (artboard SkeletonDesa): a HUD
-/// card and three plot rows of soft bars that pulse unless the platform
-/// asks for reduced motion.
+/// card, the caption "Si penabung sedang berjalan ke desa…" and three plot
+/// rows of soft bars. The bars pulse unless the platform asks for reduced
+/// motion; the caption stays still, as in the artboard.
 class DesaSkeleton extends StatefulWidget {
   const DesaSkeleton({super.key});
 
@@ -46,13 +47,13 @@ class _DesaSkeletonState extends State<DesaSkeleton>
       label: 'Memuat desa',
       container: true,
       child: ExcludeSemantics(
-        child: FadeTransition(
-          opacity: _pulse,
-          child: ListView(
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            children: [
-              const VillageCard(
+        child: ListView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          children: [
+            FadeTransition(
+              opacity: _pulse,
+              child: const VillageCard(
                 child: Row(
                   children: [
                     _Bar(width: 36, height: 36),
@@ -70,18 +71,77 @@ class _DesaSkeletonState extends State<DesaSkeleton>
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: _Bar(width: 100, height: 12),
+            ),
+            const SizedBox(height: 12),
+            const Center(child: _Caption()),
+            const SizedBox(height: 12),
+            FadeTransition(
+              opacity: _pulse,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: _Bar(width: 100, height: 12),
+                  ),
+                  for (var i = 0; i < 3; i++) ...[
+                    const SizedBox(height: 8),
+                    const _RowSkeleton(),
+                  ],
+                ],
               ),
-              for (var i = 0; i < 3; i++) ...[
-                const SizedBox(height: 8),
-                const _RowSkeleton(),
-              ],
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// The "walking to the village" pill from the artboard's island panel,
+/// shown on its own since the island itself is out of scope.
+class _Caption extends StatelessWidget {
+  const _Caption();
+
+  static const String text = 'Si penabung sedang berjalan ke desa…';
+
+  @override
+  Widget build(BuildContext context) {
+    final c = VillageColors.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: c.kartu.withValues(alpha: 0.92),
+        border: Border.all(color: c.putih, width: 2),
+        borderRadius: BorderRadius.circular(VillageRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox.square(
+            dimension: 14,
+            child: CircularProgressIndicator(
+              value: 0.75,
+              strokeWidth: 3,
+              strokeCap: StrokeCap.round,
+              color: c.pink,
+              backgroundColor: Colors.transparent,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              style: villageText(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: c.redup,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
