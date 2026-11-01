@@ -14,7 +14,9 @@ import 'package:tepira_mobile/data/auth/auth_repository.dart';
 import 'package:tepira_mobile/data/goals/goals_repository.dart';
 import 'package:tepira_mobile/features/auth/auth_providers.dart';
 import 'package:tepira_mobile/features/auth/login_screen.dart';
+import 'package:tepira_mobile/features/goals/goal_detail_screen.dart';
 import 'package:tepira_mobile/features/goals/goals_screen.dart';
+import 'package:tepira_mobile/features/goals/model/goal.dart';
 import 'package:tepira_mobile/features/settings/settings_screen.dart';
 
 import 'helpers/fake_auth_repository.dart';
@@ -106,9 +108,14 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(repository),
           goalsRepositoryProvider.overrideWithValue(
-            FakeGoalsRepository([
-              [testGoal()],
-            ]),
+            FakeGoalsRepository(
+              [
+                [testGoal()],
+              ],
+              detailResults: [
+                GoalDetail(goal: testGoal(id: 7), contributions: const []),
+              ],
+            ),
           ),
         ],
       );
@@ -155,7 +162,6 @@ void main() {
 
     for (final (path, title) in [
       ('/goal/new', 'Bangun kavling'),
-      ('/goal/7', 'Kavling'),
       ('/record', 'Catat'),
     ]) {
       testWidgets('$path has a placeholder page until its task lands',
@@ -170,6 +176,31 @@ void main() {
         expect(find.text('Segera hadir'), findsOneWidget);
       });
     }
+
+    testWidgets('/goal/:id opens the Kavling screen of that goal',
+        (tester) async {
+      final container =
+          await pumpApp(tester, FakeAuthRepository(restoredUser: testUser));
+
+      container.read(routerProvider).go('/goal/7');
+      await tester.pumpAndSettle();
+
+      final screen =
+          tester.widget<GoalDetailScreen>(find.byType(GoalDetailScreen));
+      expect(screen.goalId, 7);
+      expect(find.text('Dana darurat'), findsOneWidget);
+    });
+
+    testWidgets('/goal/:id with a non-numeric id shows a missing goal',
+        (tester) async {
+      final container =
+          await pumpApp(tester, FakeAuthRepository(restoredUser: testUser));
+
+      container.read(routerProvider).go('/goal/abc');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kavling tidak ditemukan'), findsOneWidget);
+    });
 
     testWidgets('signing in returns to the page asked for while signed out',
         (tester) async {
