@@ -62,5 +62,80 @@ void main() {
       expect(brandForWalletName('Abcade'), isNull);
       expect(brandForWalletName(''), isNull);
     });
+
+    test('"dana" and "jago" as everyday words are not brands', () {
+      for (final name in [
+        'Dana darurat',
+        'Dana pendidikan',
+        'Dana liburan',
+        'dana-darurat',
+        'Jago masak',
+        'Tabungan jago',
+      ]) {
+        expect(brandForWalletName(name), isNull, reason: name);
+      }
+    });
+
+    test('"dana" and "jago" match alone or with a bank/e-wallet cue', () {
+      for (final (name, brand) in [
+        ('DANA', 'DANA'),
+        ('dana', 'DANA'),
+        (' Dana. ', 'DANA'),
+        ('DANA e-wallet', 'DANA'),
+        ('Dana ewallet', 'DANA'),
+        ('Jago', 'Jago'),
+        ('Bank Jago', 'Jago'),
+        ('Jago Syariah', 'Jago'),
+      ]) {
+        expect(brandForWalletName(name)?.name, brand, reason: name);
+      }
+    });
+
+    test('a common word next to a clear brand keeps that brand', () {
+      expect(brandForWalletName('Dana darurat BCA')?.name, 'BCA');
+      expect(brandForWalletName('Mandiri Syariah')?.name, 'Mandiri');
+      expect(brandForWalletName('BRI Syariah')?.name, 'BRI');
+    });
+
+    test('punctuation separates words', () {
+      for (final (name, brand) in [
+        ('Kartu kredit BCA.', 'BCA'),
+        ('(BCA)', 'BCA'),
+        ('GoPay, harian', 'GoPay'),
+        ('BCA-Kredit', 'BCA'),
+        ('Tabungan (Mandiri)', 'Mandiri'),
+        ('Mandiri e-money', 'Mandiri e-money'),
+        ('e-money kantor', 'Mandiri e-money'),
+        ('E-Money', 'Mandiri e-money'),
+      ]) {
+        expect(brandForWalletName(name)?.name, brand, reason: name);
+      }
+    });
+
+    test('two brands in one name: the longer spelling wins', () {
+      // "mandiri" (7) is longer than "bca" (3), whatever the order.
+      expect(brandForWalletName('BCA/Mandiri')?.name, 'Mandiri');
+      expect(brandForWalletName('Mandiri/BCA')?.name, 'Mandiri');
+      // Same length: the first brand in list order (extras, then picker).
+      expect(brandForWalletName('BNI/BRI')?.name, 'BNI');
+    });
+
+    test('punctuation never creates a match inside a word', () {
+      for (final name in [
+        'BCAX',
+        'Danamon',
+        'Ovoid',
+        'Bluebird',
+        'Flipper',
+        'Jagoan',
+        'Gopayment',
+        'Abca.',
+        '(Danamon)',
+        'Bluebird/Ovoid',
+        'x.bca2',
+      ]) {
+        expect(brandForWalletName(name), isNull, reason: name);
+      }
+    });
   });
 }

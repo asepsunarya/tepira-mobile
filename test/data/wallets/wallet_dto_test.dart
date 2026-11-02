@@ -20,7 +20,7 @@ void main() {
 
       expect(list.asOf, DateTime.utc(2026, 11, 1, 7));
       expect(list.period, WibMonth(2026, 11));
-      expect(list.wallets.map((w) => w.id), [3, 7, 9]);
+      expect(list.wallets.map((w) => w.id), [3, 7, 9, 11]);
       expect(
         list.wallets.first,
         const Wallet(
@@ -33,18 +33,27 @@ void main() {
           isReserved: false,
           description: null,
           sortOrder: 0,
-          spentThisMonth: 385000,
+          spentThisMonth: 25000,
         ),
       );
     });
 
     test('a debt wallet keeps a negative displayBalance', () {
-      final debt = walletListFromJson(_fixture()).wallets.last;
+      final debt = walletListFromJson(_fixture()).wallets[2];
 
       expect(debt.isDebt, isTrue);
       expect(debt.balance, 1200000);
       expect(debt.displayBalance, -1200000);
       expect(debt.kind, WalletKind.debt);
+    });
+
+    test('a cash wallet is a plain asset', () {
+      final cash = walletListFromJson(_fixture()).wallets.last;
+
+      expect(cash.name, 'Tunai');
+      expect(cash.type, 'cash');
+      expect(cash.displayBalance, 20000);
+      expect(cash.kind, WalletKind.normal);
     });
 
     test('a reserved wallet keeps its description', () {
@@ -58,11 +67,11 @@ void main() {
       expect(
         walletListFromJson(_fixture()).totals,
         const WalletTotals(
-          assets: 11250000,
+          assets: 11270000,
           debts: 1200000,
           reserved: 3000000,
-          netWorth: 10050000,
-          free: 7050000,
+          netWorth: 10070000,
+          free: 7070000,
         ),
       );
     });
@@ -113,7 +122,7 @@ void main() {
     });
 
     expect(write.wallet.id, 3);
-    expect(write.totals.free, 7050000);
+    expect(write.totals.free, 7070000);
   });
 
   test('walletWriteFromJson without totals throws', () {

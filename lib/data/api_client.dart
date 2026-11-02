@@ -318,17 +318,26 @@ ServerException _serverException(
   );
 }
 
+/// Reads the first `Retry-After` value. `headers.value()` throws when a
+/// proxy repeats the header, which would escape the error mapping as a raw
+/// exception, so the list is read directly.
 Duration? _retryAfterOf(Response<dynamic>? response) =>
-    parseRetryAfter(response?.headers.value('retry-after'));
+    parseRetryAfter(response?.headers['retry-after']?.firstOrNull);
 
 final _deltaSeconds = RegExp(r'^\d{1,6}$');
 
+/// Longest wait honoured from a `Retry-After` header.
+const Duration kMaxRetryAfter = Duration(seconds: 300);
+
 /// The wait in a `Retry-After` header. The tepira API always sends whole
-/// seconds (`Retry-After: 1`); anything else (missing, an HTTP date, a
-/// negative or absurdly large number) gives null, and callers fall back to
-/// their own default.
+/// seconds (`Retry-After: 1`); waits above [kMaxRetryAfter] are capped to it.
+/// Anything else (missing, an HTTP date, a negative number, more than six
+/// digits) gives null, and callers fall back to their own default.
 Duration? parseRetryAfter(String? header) {
   final value = header?.trim();
   if (value == null || !_deltaSeconds.hasMatch(value)) return null;
-  return Duration(seconds: int.parse(value));
+  final seconds = int.parse(value);
+  return seconds > kMaxRetryAfter.inSeconds
+      ? kMaxRetryAfter
+      : Duration(seconds: seconds);
 }

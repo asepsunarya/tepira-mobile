@@ -14,7 +14,7 @@ class Brand {
   /// SVG under `assets/brands/`.
   final String asset;
 
-  /// Other spellings that mean this brand (lowercase, single-spaced).
+  /// Other spellings that mean this brand; normalized like wallet names.
   final List<String> aliases;
 }
 
@@ -51,23 +51,54 @@ const List<Brand> _extraBrands = [
   Brand('Flip', 'assets/brands/flip.svg'),
 ];
 
-/// Every matcher, longest spelling first, built once.
+/// Every matcher, longest spelling first, built once. Spellings are
+/// normalized like wallet names, so the alias "e-money" is stored as
+/// "e money" and still matches "Mandiri e-money".
 final List<(String, Brand)> _matchers = [
   for (final brand in [..._extraBrands, ...kPickerBrands])
-    for (final spelling in [_normalize(brand.name), ...brand.aliases])
+    for (final spelling in {
+      _normalize(brand.name),
+      for (final alias in brand.aliases) _normalize(alias),
+    })
       (spelling, brand),
 ]..sort((a, b) => b.$1.length.compareTo(a.$1.length));
 
+/// Brand spellings that are also everyday Indonesian words ("dana" = fund,
+/// "jago" = skilled), so "Dana darurat" or "Jago masak" is not a brand.
+/// They match only when they are the whole name or the name carries one of
+/// [_ambiguousCues] ("DANA e-wallet", "Jago Syariah").
+const Set<String> _ambiguousSpellings = {'dana', 'jago'};
+
+/// Words that mark a name as a bank or e-wallet account.
+const Set<String> _ambiguousCues = {'bank', 'syariah', 'wallet', 'ewallet'};
+
 /// The brand a wallet named [walletName] belongs to, or null. Matches a
-/// brand name (or alias) as whole words, ignoring case and extra spaces, so
-/// "Kartu kredit BCA" and "bca utama" both get the BCA logo.
+/// brand name (or alias) as whole words, ignoring case, punctuation and extra
+/// spaces, so "Kartu kredit BCA.", "(BCA)" and "bca utama" all get the BCA
+/// logo. When a name holds several brands ("BCA/Mandiri"), the longest
+/// spelling wins, then the first in list order.
 Brand? brandForWalletName(String walletName) {
-  final name = ' ${_normalize(walletName)} ';
+  final normalized = _normalize(walletName);
+  if (normalized.isEmpty) return null;
+  final name = ' $normalized ';
+  final words = normalized.split(' ');
+  final hasCue = words.any(_ambiguousCues.contains);
   for (final (spelling, brand) in _matchers) {
-    if (name.contains(' $spelling ')) return brand;
+    if (!name.contains(' $spelling ')) continue;
+    if (_ambiguousSpellings.contains(spelling) &&
+        normalized != spelling &&
+        !hasCue) {
+      continue;
+    }
+    return brand;
   }
   return null;
 }
 
-String _normalize(String value) =>
-    value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+/// Lowercase words joined by single spaces; every run of characters that is
+/// not a letter or digit (spaces, ".", ",", "(", ")", "/", "-", ...) is a
+/// separator.
+String _normalize(String value) => value
+    .toLowerCase()
+    .replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), ' ')
+    .trim();
