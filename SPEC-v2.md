@@ -104,8 +104,9 @@ Dibaca dari `asepsunarya/tepira` `main` commit `aa9a99d` (2026-11-01). Endpoint 
 - **Saldo dompet aset bisa negatif (overdraft).** Data produksi sudah berisi dompet non-utang
   bersaldo < 0 (jajan melebihi saldo; web tidak menolaknya). Ini sah, bukan data rusak
   (keputusan koordinator 2026-11-01, K14). `summarizeWallets` menjumlahkan saldo aset apa adanya,
-  jadi `assets`, `reserved`, `netWorth`, dan `free` bisa turun di bawah nol. Aturan ≥ 0 hanya untuk
-  dompet utang (§3.2, §3.3, §11 asumsi 11).
+  jadi `assets`, `reserved`, `netWorth`, dan `free` bisa turun di bawah nol. Saldo negatif hanya
+  ditolak untuk dompet utang, dan hanya di `POST` serta di `PATCH` yang mengirim `balance` (§3.2,
+  §3.3, K14); saldo utang yang sudah tersimpan negatif tidak ditolak (§11 asumsi 11).
 - **Validasi dompet web** (`app/wallets/actions.ts:9 parseWalletForm`): nama wajib (di-trim),
   `type` di luar daftar jadi `other`, `credit`/`paylater` ⇒ `isDebt`, utang + dicadangkan ditolak
   ("Dompet tidak bisa sekaligus hutang dan dana dicadangkan."). Urutan daftar:
@@ -391,13 +392,17 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
   | `isReserved` | tetap | 400 "Dana dicadangkan harus ya atau tidak." | `true` pada dompet utang → 400 |
   | `description` | tetap | dikosongkan | `""` → dikosongkan; ≤200 karakter |
 
-- **Asumsi: saldo dompet utang tersimpan ≥ 0** (§11 asumsi 11). `applyExpenseToWalletBalance`
-  (`lib/wallet-expenses.ts:20-23`) menambah saldo mentah utang (`increment`), sedangkan
-  `summarizeWallets` (`lib/wallet-totals.ts:30,38-39`) memakai `|balance|`. Dompet utang yang
-  tersimpan negatif bergerak ke arah yang salah: jajan membuat utang tampak berkurang. Pada
-  basis `wallet` §3.4, penambahan kembali `E_today'`/`E_next'` untuk dompet seperti itu juga
-  terhitung dua kali. Ini bug backend yang sudah ada (bukan dari v2); v2 tidak memperbaikinya.
-  Tiket B3 memeriksa data nyata dulu dan melaporkan hasilnya sebelum implementasi.
+- **Dompet utang dengan saldo tersimpan negatif** (§11 asumsi 11, K14). Saldo utang biasanya
+  ≥ 0, tetapi backend tidak menjaminnya (K14). `applyExpenseToWalletBalance`
+  (`lib/wallet-expenses.ts:20-23` di `aa9a99d`, baris 29-33 di `f74d790`) menambah saldo mentah
+  utang (`increment`), sedangkan
+  `walletDisplayBalance` dan `summarizeWallets` (`lib/wallet-totals.ts:30,39`) memakai `|balance|`.
+  Untuk dompet utang yang tersimpan negatif, jajan menggerakkan saldo ke arah yang salah: `balance`
+  naik menuju 0, jadi `|balance|` dan utang yang tampil berkurang. Pada basis `wallet` §3.4,
+  penambahan kembali `E_today'`/`E_next'` untuk dompet seperti itu juga terhitung dua kali. Ini
+  perilaku backend lama (bukan dari v2); v2 tidak memperbaikinya, dan klien tidak menganggap saldo
+  seperti itu sebagai data rusak. Tiket B3 memeriksa data nyata dulu dan melaporkan hasilnya
+  sebelum implementasi.
 - Mengubah `balance` = koreksi saldo manual (sama dengan web), tidak membuat baris jajan.
   `balance` **hanya** ditulis bila ada di body. Kalau server menulis ulang saldo yang dibaca
   sebelumnya, increment atomik dari jajan yang berjalan bersamaan akan tertimpa.
@@ -818,7 +823,11 @@ klien gagal bila daftar berubah.
   dan jajan lama; pemilik tetap bisa (B4-3).
 - [ ] **Origin 403 (B4-3, B4-4):** setiap route `/api/mobile/*` yang mengubah data (6 route
   `guardWrite` + `POST /api/mobile/session` lewat `guardOrigin`) menjawab `Origin` yang tidak sama
-  persis dengan origin `AUTH_URL`, atau `Sec-Fetch-Site` `cross-site`/`same-site`, dengan 403
+  persis dengan origin `AUTH_URL` (atau `NEXTAUTH_URL` hanya bila `AUTH_URL` kosong atau berisi spasi
+  saja; bila nilai yang dipakai kosong atau bukan URL, `Origin` apa pun ditolak, jadi `AUTH_URL` yang
+  terisi tetapi bukan URL membuat semua `Origin` ditolak walaupun `NEXTAUTH_URL` valid;
+  `lib/mobile/http.ts` `appOrigin`/`isForeignOrigin`),
+  atau `Sec-Fetch-Site` `cross-site`/`same-site`, dengan 403
   `forbidden_origin` sebelum sesi dibaca, sebelum body dibaca, dan tanpa query DB. Permintaan tanpa
   `Origin` dan tanpa `Sec-Fetch-Site` (app native) lolos. Route GET tidak memeriksa Origin.
 - [ ] **Pemindai penjaga:** test statis `test/harness/route-scan.mjs` +
@@ -1154,9 +1163,11 @@ Tidak ada dependensi baru. `flutter_secure_storage` (sudah ada) dipakai juga unt
    web memakai `Salary.totalExpenseAllocation`. Diasumsikan keduanya sama untuk data yang diisi
    lewat web; bila tidak, angka mobile mengikuti Cyrene.
 10. "Ditabung bulan ini" = setoran saja, tanpa `salary.savingsAllocation` (beda dengan laporan web).
-11. Saldo dompet utang tersimpan ≥ 0. Web mengizinkan nilai negatif, dan untuk dompet seperti itu
-    jajan menggerakkan saldo ke arah yang salah (bug backend yang sudah ada, §3.3). B3 memeriksa
-    data nyata sebelum implementasi. Aturan ≥ 0 ini **hanya** untuk dompet utang.
+11. Saldo dompet utang biasanya ≥ 0, tetapi backend tidak menjaminnya (K14): form web, serta hapus
+    atau ubah jajan, bisa menyimpan nilai negatif. Untuk dompet utang yang tersimpan negatif, jajan
+    menggerakkan saldo ke arah yang salah (perilaku backend lama, §3.3). Klien tidak menganggap
+    saldo seperti itu sebagai data rusak; yang ditampilkan `displayBalance` (`-|balance|`). B3
+    memeriksa data nyata sebelum implementasi.
 12. Saldo dompet aset (non-utang) boleh negatif; overdraft ada di data produksi (K14). Semua
     hitungan total dan aman dipakai hari ini menerima saldo aset negatif tanpa membatasinya.
 
@@ -1187,9 +1198,21 @@ Tidak ada dependensi baru. `flutter_secure_storage` (sudah ada) dipakai juga unt
 - K14. **Overdraft dompet aset** (keputusan koordinator 2026-11-01): dompet non-utang boleh
   bersaldo negatif, termasuk karena jajan dari mobile. Uang bebas dan aman dipakai hari ini
   menjumlahkan saldo aset negatif apa adanya (tidak ada pembatasan per dompet); hanya angka aman
-  akhir (`allowance`) yang dibatasi minimal 0 (§3.4). Dompet utang tetap ≥ 0. Diimplementasikan
-  di `tepira` `main`: `POST`/`PATCH /api/mobile/expenses` tidak memeriksa saldo; contoh overdraft
-  ada di `docs/api-contract-v2.md` §5 dan §6.
+  akhir (`allowance`) yang dibatasi minimal 0 (§3.4). Diimplementasikan di `tepira` `main`:
+  `POST`/`PATCH /api/mobile/expenses` tidak memeriksa saldo; contoh overdraft ada di
+  `docs/api-contract-v2.md` §5 dan §6.
+  **Saldo dompet utang tidak dijamin ≥ 0 oleh backend.** Satu-satunya pemeriksaan ada di
+  `lib/mobile/wallets.ts` (`tepira` `main` `f74d790`): `POST /api/mobile/wallets` menolak `balance`
+  negatif untuk dompet utang (baris 104), dan `PATCH /api/mobile/wallets/{id}` hanya bila `balance`
+  dikirim (baris 164), jadi dompet utang yang tersimpan negatif tetap bisa diganti nama. Tidak ada
+  pemeriksaan lain: kolom `Wallet.balance` tanpa `CHECK` (`prisma/schema.prisma`), form web
+  (`app/wallets/actions.ts` `parseWalletForm`) menerima saldo negatif, dan hapus atau ubah jajan
+  mengembalikan jumlahnya ke dompet utang tanpa batas bawah (`lib/wallet-expenses.ts`
+  `deleteExpenseAndRestoreWallet`, `lib/wallet-moves.ts` `planExpenseUpdate`), misalnya setelah
+  saldo utang dikoreksi manual ke 0. Klien menampilkan `displayBalance`, yang untuk utang selalu
+  ≤ 0 (`-|balance|`, `lib/wallet-totals.ts:30` `walletDisplayBalance`); tanda mentah `balance` tidak
+  ditampilkan. Klien tidak menganggap saldo utang tersimpan negatif sebagai data rusak (§11
+  asumsi 11).
 - K15. **Rentang baca jajan untuk `today`** (keputusan koordinator 2026-11-01): route membaca
   jajan dengan `date ≥` awal bulan WIB, **tanpa batas atas**, supaya jajan bertanggal di depan
   (yang sudah memotong saldo) masuk `E_next'`; hanya baris di `[m0, m1)` yang dioper ke
@@ -1201,6 +1224,13 @@ Tidak ada dependensi baru. `flutter_secure_storage` (sudah ada) dipakai juga unt
   diubah: tanpa akun Google tertaut, sign-in ditolak `account_not_linked` (sama dengan web); bila
   ada lebih dari satu, server mencatat jumlahnya saja di log (tanpa email). Produksi saat ini tidak
   punya baris seperti itu.
+- K17. **Urutan 404 dan 400 pada PATCH** (diterima apa adanya): `PATCH /api/mobile/wallets/{id}`
+  mencari dompet dulu lalu memvalidasi body, jadi dompet yang tidak ada atau milik user lain
+  dengan body tidak valid menjawab `404 not_found`. `PATCH /api/mobile/expenses/{id}` memvalidasi
+  body dulu (`parseExpensePatch`, sebelum transaksi), jadi kasus yang sama menjawab `400`. Kedua
+  urutan tidak diseragamkan; app menangani `404` dan `400` di kedua route tanpa bergantung pada
+  urutannya (`docs/api-contract-v2.md` §4 dan §8, daftar **Errors**; untuk jajan:
+  `app/api/mobile/expenses/[id]/route.ts:56-57` menjawab `400` sebelum `404` di baris 65-66).
 
 **Produk (disetujui 2026-11-01, §14):**
 
