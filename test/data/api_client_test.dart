@@ -369,6 +369,58 @@ void main() {
       );
     });
 
+    group('a repeated Retry-After header', () {
+      FakeHttpAdapter doubled(int status) => FakeHttpAdapter(
+            status: status,
+            headers: {
+              'retry-after': ['2', '9'],
+            },
+            body: {'ok': false, 'error': 'x', 'message': 'Coba lagi.'},
+          );
+
+      test('on 429 -> RateLimitedException with the first value', () {
+        expect(
+          _dio(doubled(429)).post<Object?>('/mobile/expenses'),
+          _failsWith<RateLimitedException>(
+            (e) => e.retryAfter == const Duration(seconds: 2),
+          ),
+        );
+      });
+
+      test('on 500 -> ServerException with the first value', () {
+        expect(
+          _dio(doubled(500)).post<Object?>('/mobile/expenses'),
+          _failsWith<ServerException>(
+            (e) =>
+                e.statusCode == 500 &&
+                e.retryAfter == const Duration(seconds: 2),
+          ),
+        );
+      });
+    });
+
+    group('never retries on its own', () {
+      for (final status in [429, 500]) {
+        test('$status with Retry-After: 1 sends exactly one request', () async {
+          final adapter = FakeHttpAdapter(
+            status: status,
+            headers: {
+              'retry-after': ['1'],
+            },
+            body: {'ok': false, 'error': 'x'},
+          );
+
+          await expectLater(
+            _dio(adapter).post<Object?>('/mobile/expenses', data: {'a': 1}),
+            throwsA(isA<DioException>()),
+          );
+          await Future<void>.delayed(const Duration(milliseconds: 1100));
+
+          expect(adapter.requests, hasLength(1));
+        });
+      }
+    });
+
     test('{ok:false} with an unmapped 4xx status -> ServerException', () {
       final dio = _dio(
         FakeHttpAdapter(
@@ -425,7 +477,7 @@ void main() {
       expect(parseRetryAfter('0'), Duration.zero);
     });
 
-    test('is null for missing, negative, fractional, dated or huge values', () {
+    test('is null for missing, negative, fractional or dated values', () {
       for (final value in [
         null,
         '',
@@ -433,10 +485,17 @@ void main() {
         '1.5',
         'soon',
         'Wed, 21 Oct 2026 07:28:00 GMT',
-        '9999999',
       ]) {
         expect(parseRetryAfter(value), isNull, reason: '$value');
       }
+    });
+
+    test('caps long waits at 300 seconds', () {
+      expect(parseRetryAfter('300'), const Duration(seconds: 300));
+      expect(parseRetryAfter('301'), kMaxRetryAfter);
+      expect(parseRetryAfter('86400'), const Duration(seconds: 300));
+      expect(parseRetryAfter('999999'), const Duration(seconds: 300));
+      expect(parseRetryAfter('9999999'), kMaxRetryAfter);
     });
   });
 }

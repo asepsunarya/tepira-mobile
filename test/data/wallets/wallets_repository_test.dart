@@ -56,7 +56,7 @@ const _bca = Wallet(
   isReserved: false,
   description: null,
   sortOrder: 0,
-  spentThisMonth: 385000,
+  spentThisMonth: 25000,
 );
 
 void main() {
@@ -72,8 +72,8 @@ void main() {
         s.request.headers['Cookie'],
         '__Secure-authjs.session-token=jwe-token',
       );
-      expect(list.wallets, hasLength(3));
-      expect(list.totals.free, 7050000);
+      expect(list.wallets, hasLength(4));
+      expect(list.totals.free, 7070000);
     });
 
     test('a body that breaks the contract -> ServerException', () async {
@@ -133,7 +133,7 @@ void main() {
         'description': null,
       });
       expect(write.wallet, _bca);
-      expect(write.totals.assets, 11250000);
+      expect(write.totals.assets, 11270000);
     });
 
     test('400 keeps the server validation message', () async {

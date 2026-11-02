@@ -16,7 +16,7 @@
       "isReserved": false,
       "description": null,
       "sortOrder": 0,
-      "spentThisMonth": 385000
+      "spentThisMonth": 25000
     },
     {
       "id": 7,
@@ -40,14 +40,26 @@
       "isReserved": false,
       "description": null,
       "sortOrder": 2,
-      "spentThisMonth": 150000
+      "spentThisMonth": 10000
+    },
+    {
+      "id": 11,
+      "name": "Tunai",
+      "type": "cash",
+      "balance": 20000,
+      "displayBalance": 20000,
+      "isDebt": false,
+      "isReserved": false,
+      "description": null,
+      "sortOrder": 3,
+      "spentThisMonth": 0
     }
   ],
   "totals": {
-    "assets": 11250000,
+    "assets": 11270000,
     "debts": 1200000,
     "reserved": 3000000,
-    "netWorth": 10050000,
-    "free": 7050000
+    "netWorth": 10070000,
+    "free": 7070000
   }
 }

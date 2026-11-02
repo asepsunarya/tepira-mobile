@@ -318,17 +318,33 @@ ServerException _serverException(
   );
 }
 
+/// Reads the first `Retry-After` value. `headers.value()` throws when a
+/// proxy repeats the header, which would escape the error mapping as a raw
+/// exception, so the list is read directly.
 Duration? _retryAfterOf(Response<dynamic>? response) =>
-    parseRetryAfter(response?.headers.value('retry-after'));
+    parseRetryAfter(response?.headers['retry-after']?.firstOrNull);
 
-final _deltaSeconds = RegExp(r'^\d{1,6}$');
+final _deltaSeconds = RegExp(r'^\d+$');
+
+/// Longest wait honoured from a `Retry-After` header.
+const Duration kMaxRetryAfter = Duration(seconds: 300);
 
 /// The wait in a `Retry-After` header. The tepira API always sends whole
-/// seconds (`Retry-After: 1`); anything else (missing, an HTTP date, a
-/// negative or absurdly large number) gives null, and callers fall back to
-/// their own default.
+/// seconds (`Retry-After: 1`); waits above [kMaxRetryAfter] are capped to it,
+/// however many digits they have. Anything else (missing, an HTTP date, a
+/// signed or fractional number) gives null, and callers fall back to their
+/// own default.
 Duration? parseRetryAfter(String? header) {
   final value = header?.trim();
   if (value == null || !_deltaSeconds.hasMatch(value)) return null;
-  return Duration(seconds: int.parse(value));
+  // Leading zeros carry no value; any remaining number longer than the cap's
+  // digits is above the cap, which also keeps int.parse from overflowing.
+  final digits = value.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+  if (digits.length > '${kMaxRetryAfter.inSeconds}'.length) {
+    return kMaxRetryAfter;
+  }
+  final seconds = int.parse(digits);
+  return seconds > kMaxRetryAfter.inSeconds
+      ? kMaxRetryAfter
+      : Duration(seconds: seconds);
 }
