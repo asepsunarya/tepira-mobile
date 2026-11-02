@@ -1,0 +1,47 @@
+[
+  {
+    "key": "makan_harian",
+    "label": "Makan harian",
+    "group": "Kebutuhan wajib"
+  },
+  {
+    "key": "transport",
+    "label": "Transport",
+    "group": "Kebutuhan wajib"
+  },
+  {
+    "key": "pulsa_internet",
+    "label": "Pulsa & Internet",
+    "group": "Kebutuhan wajib"
+  },
+  {
+    "key": "listrik_kos",
+    "label": "Listrik / Air / Kos",
+    "group": "Kebutuhan wajib"
+  },
+  {
+    "key": "langganan",
+    "label": "Langganan (Spotify, Netflix, dll)",
+    "group": "Kewajiban & rutin"
+  },
+  {
+    "key": "kesehatan",
+    "label": "Kesehatan / Obat",
+    "group": "Kewajiban & rutin"
+  },
+  {
+    "key": "sosial",
+    "label": "Sosial (sedekah / bantu keluarga)",
+    "group": "Kewajiban & rutin"
+  },
+  {
+    "key": "nongkrong",
+    "label": "Nongkrong / jajan",
+    "group": "Hiburan & fleksibel"
+  },
+  {
+    "key": "belanja_kecil",
+    "label": "Belanja kecil",
+    "group": "Hiburan & fleksibel"
+  }
+]

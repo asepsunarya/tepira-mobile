@@ -29,18 +29,62 @@ class ForbiddenException extends AppException {
   final String? code;
 }
 
+/// HTTP 400: the server rejected the request body. [message] is the server's
+/// validation message, shown as is. [code] tells failures apart, e.g.
+/// `bad_request` (validation) or `wallet_not_found` (the chosen wallet is
+/// gone or not the user's).
+class BadRequestException extends AppException {
+  const BadRequestException({this.code = 'bad_request', String? message})
+      : super(message ?? 'Permintaan tidak valid. Periksa lagi isiannya.');
+
+  final String code;
+}
+
+/// HTTP 413: the request body is larger than the API accepts.
+class PayloadTooLargeException extends AppException {
+  const PayloadTooLargeException([
+    super.message = 'Isi permintaan terlalu besar.',
+  ]);
+}
+
+/// HTTP 415: the request was not sent as JSON.
+class UnsupportedMediaTypeException extends AppException {
+  const UnsupportedMediaTypeException([
+    super.message = 'Format permintaan harus JSON.',
+  ]);
+}
+
+/// HTTP 429: too many requests. [retryAfter] is the server's `Retry-After`
+/// wait, or null when the header is missing or unreadable. Nothing was
+/// written, so the same request can be sent again after the wait.
+class RateLimitedException extends AppException {
+  const RateLimitedException({String? message, this.retryAfter})
+      : super(message ?? 'Terlalu banyak permintaan. Coba lagi sebentar lagi.');
+
+  final Duration? retryAfter;
+}
+
 /// HTTP 404: the resource does not exist or does not belong to the user.
 class NotFoundException extends AppException {
   const NotFoundException([super.message = 'Data tidak ditemukan.']);
 }
 
 /// HTTP 5xx, or any response whose body is `{ "ok": false }`.
+///
+/// [retryAfter] is set when the server sent `Retry-After` (a database
+/// deadlock or serialization abort): nothing was written and the same
+/// request can be sent again after the wait.
 class ServerException extends AppException {
-  const ServerException({String? message, this.code, this.statusCode})
-      : super(message ?? 'Server sedang bermasalah. Coba lagi nanti.');
+  const ServerException({
+    String? message,
+    this.code,
+    this.statusCode,
+    this.retryAfter,
+  }) : super(message ?? 'Server sedang bermasalah. Coba lagi nanti.');
 
   final String? code;
   final int? statusCode;
+  final Duration? retryAfter;
 }
 
 /// True for HTTP 502/503/504: the gateway lost the upstream, so the request

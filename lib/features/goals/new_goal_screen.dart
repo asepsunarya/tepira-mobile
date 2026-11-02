@@ -420,9 +420,8 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
 }
 
 /// The inline message for a definite create failure. A 400 carries the
-/// server's validation message, which [AppException.message] already holds,
-/// whether it arrives as [ServerException] (`{ok: false}` body) or
-/// [ApiException]. Network and gateway failures never get here; they show
+/// server's validation message, which [BadRequestException.message] already
+/// holds. Network and gateway failures never get here; they show
 /// [_UncertainCreate] instead.
 String _messageFor(AppException error) => error.message;
 

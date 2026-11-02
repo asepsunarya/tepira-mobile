@@ -305,9 +305,8 @@ void main() {
       expect((jsonDecode(s.wire) as Map)['deadline'], '2027-01-05');
     });
 
-    test(
-        '400 bad_request maps to ServerException (T4) and keeps code, '
-        'status and message', () async {
+    test('400 bad_request maps to BadRequestException with code and message',
+        () async {
       final s = _Setup(
         _WireAdapter(
           status: 400,
@@ -320,9 +319,8 @@ void main() {
       await expectLater(
         s.repository.create(title: 'x', target: 0),
         throwsA(
-          isA<ServerException>()
+          isA<BadRequestException>()
               .having((e) => e.code, 'code', 'bad_request')
-              .having((e) => e.statusCode, 'statusCode', 400)
               .having(
                 (e) => e.message,
                 'message',
@@ -333,7 +331,8 @@ void main() {
       expect(s.unauthorizedEvents, 0);
     });
 
-    test('415 unsupported_media_type maps to ServerException', () async {
+    test('415 unsupported_media_type maps to UnsupportedMediaTypeException',
+        () async {
       final s = _Setup(
         _WireAdapter(
           status: 415,
@@ -346,8 +345,11 @@ void main() {
       await expectLater(
         s.repository.create(title: 'x', target: 1),
         throwsA(
-          isA<ServerException>()
-              .having((e) => e.code, 'code', 'unsupported_media_type'),
+          isA<UnsupportedMediaTypeException>().having(
+            (e) => e.message,
+            'message',
+            'Format permintaan harus JSON.',
+          ),
         ),
       );
     });
@@ -438,13 +440,11 @@ void main() {
       );
     });
 
-    test('413 (proxy limit) throws ApiException with its status', () async {
+    test('413 (proxy limit) throws PayloadTooLargeException', () async {
       final s = _Setup(_WireAdapter(status: 413, body: {}));
       await expectLater(
         s.repository.contribute(12, 20000),
-        throwsA(
-          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 413),
-        ),
+        throwsA(isA<PayloadTooLargeException>()),
       );
     });
 

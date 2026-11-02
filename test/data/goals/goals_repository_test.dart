@@ -261,8 +261,6 @@ void main() {
       expect((s.request.data as Map)['deadline'], '2027-01-05');
     });
 
-    // The client maps every `{ok: false}` 4xx without its own class to
-    // ServerException, keeping code and status for the form to branch on.
     test('400 bad_request keeps the server validation message', () async {
       const message = 'Judul harus diisi, maksimal 60 karakter.';
       final s = _Setup(
@@ -272,10 +270,9 @@ void main() {
       await expectLater(
         s.repository.create(title: '', target: 1),
         throwsA(
-          isA<ServerException>()
+          isA<BadRequestException>()
               .having((e) => e.message, 'message', message)
-              .having((e) => e.code, 'code', 'bad_request')
-              .having((e) => e.statusCode, 'statusCode', 400),
+              .having((e) => e.code, 'code', 'bad_request'),
         ),
       );
     });
@@ -338,13 +335,11 @@ void main() {
       await expectLater(
         s.repository.contribute(12, 0),
         throwsA(
-          isA<ApiException>()
-              .having(
-                (e) => e.message,
-                'message',
-                'Nominal harus lebih dari 0.',
-              )
-              .having((e) => e.statusCode, 'statusCode', 400),
+          isA<BadRequestException>().having(
+            (e) => e.message,
+            'message',
+            'Nominal harus lebih dari 0.',
+          ),
         ),
       );
     });
