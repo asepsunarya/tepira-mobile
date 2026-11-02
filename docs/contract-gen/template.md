@@ -51,6 +51,9 @@ Wallet balances are stored **after** the expenses above already moved them.
 - **Request bodies.** `Content-Type: application/json` (`; charset=…` allowed),
   at most 64 KB (65.536 bytes), must be a JSON object; unknown keys are ignored.
   Body that does not parse as JSON → `400` "Isi permintaan harus berupa objek JSON.".
+  **Exception:** `POST /api/mobile/session` (§1) answers a body that does not
+  parse with its own `400 bad_request` "Permintaan tidak valid: idToken wajib
+  diisi.", the same as a missing `idToken`.
 - **Path ids** (`{id}`) that are not a positive int32 (`abc`, `0`, `2147483648`)
   → `404 not_found`, same as a row that does not exist or belongs to another user.
 - **Categories** in responses are always the label (legacy keys such as
