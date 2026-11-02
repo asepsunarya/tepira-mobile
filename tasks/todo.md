@@ -10,9 +10,9 @@ Rincian tiap tugas ada di `tasks/plan.md`. Satu commit per tugas.
 - [x] T4 `core-network`: `SessionStore`, cookie interceptor, pemetaan error + unit test
 
 ## Fase 1. Backend di repo `tepira` (branch `feature/mobile-api`)
-- [ ] T1 `POST /api/mobile/session` + unit test
-- [ ] T2 `GET/POST /api/mobile/goals`, `GET /api/mobile/goals/[id]` + fixtures ke repo mobile
-- [ ] Checkpoint 1: fixtures ada; env `TEPIRA_MOBILE_GOOGLE_CLIENT_IDS` dicatat di README tepira
+- [x] T1 `POST /api/mobile/session` + unit test (`tepira` `0012c7f`)
+- [x] T2 `GET/POST /api/mobile/goals`, `GET /api/mobile/goals/[id]` + fixtures ke repo mobile (`tepira` `0012c7f`)
+- [x] Checkpoint 1: fixtures ada; env `TEPIRA_MOBILE_GOOGLE_CLIENT_IDS` dicatat di README tepira
 
 ## Fase 3. Auth
 - [x] T5 Login Google → sesi → redirect; overlay sesi berakhir; test provider
@@ -29,3 +29,7 @@ Rincian tiap tugas ada di `tasks/plan.md`. Satu commit per tugas.
 - [ ] `/review` lima sumbu
 - [ ] `/ship` checklist
 - [ ] Uji manual emulator (OpenClaw) dengan backend lokal
+
+## v2
+Dompet, catat jajan, dan "Aman dipakai hari ini": lihat `tasks/todo-v2.md` (rincian di
+`tasks/plan-v2.md`, spec `SPEC-v2.md`).

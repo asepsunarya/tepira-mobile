@@ -120,11 +120,7 @@ AppException _signInError(Object? error) {
         message: kNotAllowedMessage,
         code: 'not_allowed',
       ),
-    // The contract's error body has `ok: false`, which the error mapper
-    // turns into a ServerException even for 4xx.
-    ApiException(statusCode: 429) ||
-    ServerException(statusCode: 429) =>
-      const ApiException(
+    RateLimitedException() => const ApiException(
         kTooManyAttemptsMessage,
         statusCode: 429,
       ),

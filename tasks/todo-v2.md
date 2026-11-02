@@ -16,9 +16,9 @@ Satu commit per tugas. Tidak ada migrasi DB di v2.
 - [ ] Checkpoint B: PR `tepira` dibuka hanya setelah diminta; tanpa migrasi, tanpa env baru; test, `lint`, `build` hijau
 
 ## Fase 5. Fondasi mobile v2 (paralel dengan Fase B)
-- [ ] T12 Housekeeping
-- [ ] T13 `core-network`: `BadRequestException`, `wib.dart`, `categories.dart`
-- [ ] T14 `wallets` data: DTO, model, repository + unit test
+- [x] T12 Housekeeping
+- [x] T13 `core-network`: `BadRequestException`, `wib.dart`, `categories.dart`
+- [x] T14 `wallets` data: DTO, model, repository + unit test
 
 ## Fase 6. Dompet
 - [ ] T15 Layar Dompet (termasuk kelompok Dana dicadangkan, Uang bebas di kepala) + widget test

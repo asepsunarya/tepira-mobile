@@ -272,8 +272,30 @@ AppException? mapDioException(DioException error) {
     );
   }
   if (status == 404) return const NotFoundException();
+  if (status == 400) {
+    return BadRequestException(
+      code: code is String ? code : 'bad_request',
+      message: message is String ? message : null,
+    );
+  }
+  if (status == 413) {
+    return message is String
+        ? PayloadTooLargeException(message)
+        : const PayloadTooLargeException();
+  }
+  if (status == 415) {
+    return message is String
+        ? UnsupportedMediaTypeException(message)
+        : const UnsupportedMediaTypeException();
+  }
+  if (status == 429) {
+    return RateLimitedException(
+      message: message is String ? message : null,
+      retryAfter: _retryAfterOf(error.response),
+    );
+  }
   if ((status != null && status >= 500) || fields['ok'] == false) {
-    return _serverException(fields, status);
+    return _serverException(fields, status, _retryAfterOf(error.response));
   }
   return ApiException(
     message is String ? message : 'Permintaan gagal. Coba lagi.',
@@ -281,12 +303,32 @@ AppException? mapDioException(DioException error) {
   );
 }
 
-ServerException _serverException(Map<Object?, Object?> body, int? status) {
+ServerException _serverException(
+  Map<Object?, Object?> body,
+  int? status, [
+  Duration? retryAfter,
+]) {
   final message = body['message'];
   final code = body['error'];
   return ServerException(
     message: message is String ? message : null,
     code: code is String ? code : null,
     statusCode: status,
+    retryAfter: retryAfter,
   );
+}
+
+Duration? _retryAfterOf(Response<dynamic>? response) =>
+    parseRetryAfter(response?.headers.value('retry-after'));
+
+final _deltaSeconds = RegExp(r'^\d{1,6}$');
+
+/// The wait in a `Retry-After` header. The tepira API always sends whole
+/// seconds (`Retry-After: 1`); anything else (missing, an HTTP date, a
+/// negative or absurdly large number) gives null, and callers fall back to
+/// their own default.
+Duration? parseRetryAfter(String? header) {
+  final value = header?.trim();
+  if (value == null || !_deltaSeconds.hasMatch(value)) return null;
+  return Duration(seconds: int.parse(value));
 }

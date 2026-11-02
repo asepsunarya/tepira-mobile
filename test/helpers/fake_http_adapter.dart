@@ -6,14 +6,22 @@ import 'package:dio/dio.dart';
 /// dio adapter that records requests and answers with a canned response, or
 /// fails with a transport error of [failWith] type.
 class FakeHttpAdapter implements HttpClientAdapter {
-  FakeHttpAdapter({this.status = 200, this.body = const {'ok': true}});
+  FakeHttpAdapter({
+    this.status = 200,
+    this.body = const {'ok': true},
+    this.headers = const {},
+  });
 
   FakeHttpAdapter.failing(DioExceptionType this.failWith)
       : status = 0,
-        body = null;
+        body = null,
+        headers = const {};
 
   final int status;
   final Object? body;
+
+  /// Extra response headers, e.g. `{'retry-after': ['1']}`.
+  final Map<String, List<String>> headers;
   DioExceptionType? failWith;
   final List<RequestOptions> requests = [];
 
@@ -33,6 +41,7 @@ class FakeHttpAdapter implements HttpClientAdapter {
       status,
       headers: {
         Headers.contentTypeHeader: [Headers.jsonContentType],
+        ...headers,
       },
     );
   }

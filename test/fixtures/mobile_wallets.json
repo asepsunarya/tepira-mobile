@@ -1,0 +1,53 @@
+{
+  "ok": true,
+  "asOf": "2026-11-01T07:00:00.000Z",
+  "period": {
+    "year": 2026,
+    "month": 11
+  },
+  "wallets": [
+    {
+      "id": 3,
+      "name": "BCA",
+      "type": "bank",
+      "balance": 8250000,
+      "displayBalance": 8250000,
+      "isDebt": false,
+      "isReserved": false,
+      "description": null,
+      "sortOrder": 0,
+      "spentThisMonth": 385000
+    },
+    {
+      "id": 7,
+      "name": "Tabungan Kurban",
+      "type": "bank",
+      "balance": 3000000,
+      "displayBalance": 3000000,
+      "isDebt": false,
+      "isReserved": true,
+      "description": "Kurban 2027",
+      "sortOrder": 1,
+      "spentThisMonth": 0
+    },
+    {
+      "id": 9,
+      "name": "Kartu Kredit",
+      "type": "credit",
+      "balance": 1200000,
+      "displayBalance": -1200000,
+      "isDebt": true,
+      "isReserved": false,
+      "description": null,
+      "sortOrder": 2,
+      "spentThisMonth": 150000
+    }
+  ],
+  "totals": {
+    "assets": 11250000,
+    "debts": 1200000,
+    "reserved": 3000000,
+    "netWorth": 10050000,
+    "free": 7050000
+  }
+}
