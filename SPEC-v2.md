@@ -159,8 +159,14 @@ Dibaca dari `asepsunarya/tepira` `main` commit `aa9a99d` (2026-11-01). Endpoint 
 
   Karena itu tidak ada logika web yang bisa diikuti persis. Rumus §3.4 dibuat konsisten dengan
   logika anggaran yang **ada**, yaitu batas dan status `computeMonthSummary` (§12 K1).
-- Baris lama `userId = null` terlihat oleh semua user (`lib/auth.ts:48 userOwnedWhere`); semua
-  query baru wajib memakainya. Allowlist dicek ulang setiap JWT dibaca (`auth.config.ts`), jadi
+- Baris lama `userId = null` dulu terlihat oleh semua user. Sejak B4-3 baris itu **hanya milik
+  pemilik**: user yang emailnya sama dengan `TEPIRA_DEFAULT_USER_EMAIL` (dinormalisasi seperti
+  allowlist: trim + huruf kecil). Hanya pemilik yang mendapat `{ OR: [{ userId }, { userId: null }] }`;
+  user lain, dan semua user bila variabel itu kosong, mendapat `{ userId }` saja. Aturan ini ada
+  di `userOwnedWhere` (`lib/auth.ts`, dibangun dengan `makeUserOwnedWhere` di
+  `lib/auth-policy.ts`), berlaku untuk baca dan tulis, dan sekarang **async**: setiap pemanggil
+  wajib `await` (menyebar Promise tanpa `await` menghapus filter; test `smoke` memeriksa semua
+  pemanggil). Tanpa migrasi: baris lama tetap `userId = null`. Semua query baru wajib memakainya. Allowlist dicek ulang setiap JWT dibaca (`auth.config.ts`), jadi
   token mobile mati saat email keluar dari allowlist.
 - Helper respons v1 tersedia di `lib/mobile/http.ts` (`json`, `apiError`, `unauthorized`,
   `notFound`, `serverError`, `sessionUserId`, `logFailure`).
@@ -201,9 +207,30 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
 - **Id path** (`{id}`) bukan int32 positif → `404 not_found` (sama dengan v1 §3.3).
 - **Kategori di respons selalu `label`** (key lama dipetakan dengan `categoryLabelOf`); semua
   varian tanpa kategori → `null`. Kategori di request harus `label` (§12 K5).
-- Kode error baru: `wallet_not_found` 400 (dompet di body tidak ada atau bukan milik user).
+- Kode error baru: `wallet_not_found` 400 (dompet di body tidak ada atau bukan milik user),
+  `forbidden_origin` 403, `payload_too_large` 413, `rate_limited` 429 (lihat "Penjaga tulis").
   Kode lain sama dengan v1: `bad_request` 400, `unauthorized` 401, `not_found` 404,
   `unsupported_media_type` 415, `server_error` 500.
+- **Penjaga tulis (B4-3).** Setiap tulis ber-cookie (`POST /api/mobile/expenses`,
+  `POST /api/mobile/wallets`, `PATCH /api/mobile/wallets/{id}`, `POST /api/mobile/goals`) melewati
+  `guardCookieWrite` (`lib/mobile/http.ts`) **sebelum body dibaca**, dengan urutan:
+  1. **Origin.** Tanpa header `Origin` (app native) → lolos. `Origin` ada dan tidak sama persis
+     dengan origin `AUTH_URL` (atau `NEXTAUTH_URL`; bila keduanya kosong, `Origin` apa pun ditolak)
+     → `403` `{ ok:false, error:"forbidden_origin", message:"Permintaan dari situs lain tidak
+     diizinkan." }`. `Sec-Fetch-Site: cross-site` atau `same-site` → `403` yang sama, juga tanpa
+     `Origin`. Route form web lama yang ber-cookie (`POST /api/budget`, `/api/bonus`,
+     `/api/balance`, `/api/contribution`, `/api/expense`) memakai cek yang sama
+     (`isForeignOrigin`). Route Bearer Cyrene dan `x-api-key` tidak memakainya.
+  2. **Sesi.** Tidak ada → `401` `unauthorized`.
+  3. **Batas per user:** 30 tulis per menit per user, satu ember untuk semua route tulis di atas
+     (`TokenBucket` seperti Cyrene; per instans, best effort). Lewat batas → `429`
+     `{ ok:false, error:"rate_limited", message:"Terlalu banyak permintaan. Coba lagi sebentar
+     lagi." }` dengan header `Retry-After` (detik). Respons 400 ikut dihitung; 401, 403, dan
+     baca (GET) tidak.
+  4. Body lewat `readJsonBody`: `415` bila bukan `application/json`, `413` `payload_too_large`
+     "Isi permintaan terlalu besar." bila > 64 KB (65.536 byte). Berlaku juga untuk
+     `POST /api/mobile/goals` dan `POST /api/mobile/session` (tanpa sesi; di sana 413/415 datang
+     setelah 404 nonaktif dan 429 per IP). Selain 413/415, kontrak kedua route itu tidak berubah.
 - Setiap endpoint tulis jajan mengembalikan dompet yang terdampak dan `today` (bentuk 3.4) supaya
   klien memperbarui Desa dan Dompet tanpa memuat ulang semuanya. `today` dihitung **setelah**
   transaksi commit, dengan query terpisah.
@@ -543,6 +570,12 @@ Alasan tiap bagian:
   Ini aman dari tekan ganda karena permintaan kedua menunggu kunci advisory. Setelah kunci
   dilepas, `findFirst` di langkah 3 adalah statement baru (READ COMMITTED), jadi baris dari
   permintaan pertama yang sudah commit terlihat dan permintaan kedua menjadi dedupe.
+
+  **Penulis ketiga (diterima, di luar scope v2):** route OpenClaw ber-`x-api-key`
+  `POST /api/expenses` (`createExpenseWithWallet`) juga membuat jajan dan menggerakkan saldo, tetapi
+  **tanpa** kunci advisory dan **tanpa** dedupe. Jajan identik dari OpenClaw dan dari mobile/Cyrene
+  bisa menjadi dua baris. Gerak saldonya tetap atomik (`increment`/`decrement`), jadi saldo tetap
+  konsisten dengan baris yang ada; yang tidak dijamin hanya dedupe lintas kanal dengan OpenClaw.
 - Respons **201** (baris baru) atau **200** (dedupe) (fixture `mobile_expense_created.json`):
 
 ```json
@@ -578,17 +611,20 @@ Alasan tiap bagian:
   mengurangi `safeToday` basis `wallet` (§3.4 contoh H).
 - Setelah commit, route memanggil revalidasi web (§3), hanya bila baris baru dibuat.
 - Error:
-  - `401` `unauthorized`; `415` `unsupported_media_type`
+  - `403` `forbidden_origin` (Origin/`Sec-Fetch-Site` situs lain), `401` `unauthorized`,
+    `429` `rate_limited` + `Retry-After` (lebih dari 30 tulis per menit per user), dalam urutan
+    itu dan sebelum body dibaca (§3 "Penjaga tulis"); `415` `unsupported_media_type`
   - `413` `payload_too_large` "Isi permintaan terlalu besar." bila body > 64 KB (65.536 byte).
     Batas ini ada di `readJsonBody` (`lib/mobile/http.ts`), jadi berlaku juga untuk
-    `POST /api/mobile/wallets` dan `PATCH /api/mobile/wallets/{id}`; body sah semua route ini jauh
-    di bawah 1 KB.
+    `POST /api/mobile/wallets`, `PATCH /api/mobile/wallets/{id}`, `POST /api/mobile/goals`, dan
+    `POST /api/mobile/session`; body sah semua route ini jauh di bawah 1 KB.
   - `400` `bad_request` dengan salah satu pesan: "Nominal harus berupa angka bulat antara 1 dan
     100.000.000.", "Dompet wajib dipilih.", "Kategori tidak dikenal.", "Catatan maksimal 120
     karakter.", "Sumber dana harus gaji atau bonus.", "Tanggal harus berformat YYYY-MM-DD,
     paling lama 7 hari ke belakang atau besok.", "Isi permintaan harus berupa objek JSON."
-  - `400` `wallet_not_found` "Dompet tidak ditemukan. Pilih dompet lain." (dompet milik user lain
-    atau tidak ada; dijawab di dalam transaksi sebelum dedupe, tanpa tulis)
+  - `400` `wallet_not_found` "Dompet tidak ditemukan. Pilih dompet lain." (dompet milik user lain,
+    dompet lama `userId = null` bagi user yang bukan pemilik, atau tidak ada; dijawab di dalam
+    transaksi sebelum dedupe, tanpa tulis)
   - `500` `server_error`. Bila Postgres membatalkan transaksi karena deadlock (`40P01`) atau
     gagal serialisasi (`40001`; Prisma `P2034`, atau `P2010` dengan `meta.code`), respons tetap
     `500` `server_error` dengan header `Retry-After: 1`: tidak ada yang tertulis dan permintaan
@@ -723,7 +759,14 @@ klien gagal bila daftar berubah.
   hanya memakai TypeScript yang bisa dihapus tipenya, seperti `lib/mobile/goals.ts`; helper dari
   `lib/cyrene/core.ts` dioper sebagai parameter. Route tipis di
   `app/api/mobile/{wallets,today,expenses}/**/route.ts`.
-- [ ] Semua query memakai `userOwnedWhere(userId)`. Semua gerak saldo jajan lewat
+- [ ] Baris lama `userId = null` hanya terlihat dan bisa ditulis oleh pemilik
+  (`TEPIRA_DEFAULT_USER_EMAIL`); test: user lain tidak melihat, tidak bisa membebani (400
+  `wallet_not_found`, sama dengan dompet asing), tidak bisa PATCH (404), ubah, atau hapus dompet
+  dan jajan lama; pemilik tetap bisa (B4-3).
+- [ ] Tulis ber-cookie: Origin asing / `Sec-Fetch-Site` cross-site atau same-site → 403
+  `forbidden_origin` sebelum body dibaca; lebih dari 30 tulis per menit per user → 429
+  `rate_limited` + `Retry-After`; goals dan session lewat `readJsonBody` (413/415) (B4-3).
+- [ ] Semua query memakai `await userOwnedWhere(userId)`. Semua gerak saldo jajan lewat
   `lib/wallet-expenses.ts` (`createExpenseInTx`, `updateExpenseWithWallet`,
   `deleteExpenseAndRestoreWallet`); tidak ada update `Wallet.balance` manual di route.
 - [ ] **Buat jajan:** kunci advisory, cari dompet, dedupe, dan sisip dalam satu transaksi (§3.5).
@@ -926,7 +969,8 @@ Sama dengan SPEC v1 §7. Tambahan:
   `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./test/harness/register.mjs --test
   test/mobile-api/wallets.test.mjs test/mobile-api/today.test.mjs test/mobile-api/expenses.test.mjs`.
   - Harness diport dari `handoff/fixtures-gen/` (`hooks.mjs` memetakan `@/` ke root repo).
-    Stub: `@/lib/auth` (user tetap + `userOwnedWhere` asli), `next/cache` (mencatat panggilan
+    Stub: `@/lib/auth` (user tetap + `userOwnedWhere` dari `makeUserOwnedWhere` asli, dengan
+    email pemilik dan email user yang diatur test), `next/cache` (mencatat panggilan
     `revalidatePath`), dan `@/lib/prisma` (Prisma palsu in-memory: `$transaction(fn)` menjalankan
     `fn` dengan klien yang sama, `$queryRaw` mencatat teks SQL, dan setiap panggilan model dicatat
     berurutan).
