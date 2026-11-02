@@ -110,9 +110,13 @@ void main() {
       }
     });
 
-    test('seven or more digits give null rather than the cap (documented)', () {
-      expect(parseRetryAfter('1000000'), isNull);
-      expect(parseRetryAfter('99999999999999999999'), isNull);
+    test('seven or more digits give the cap', () {
+      expect(parseRetryAfter('1000000'), kMaxRetryAfter);
+      expect(parseRetryAfter('99999999999999999999'), kMaxRetryAfter);
+      expect(
+        parseRetryAfter('0000000000000000000005'),
+        const Duration(seconds: 5),
+      );
     });
   });
 

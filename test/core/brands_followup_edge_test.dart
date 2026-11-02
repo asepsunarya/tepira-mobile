@@ -132,8 +132,8 @@ void main() {
     });
 
     test('equal-length spellings fall back to list order, not name order', () {
-      // BCA, BNI, BRI, BTN are all three letters; ties keep list order,
-      // which relies on List.sort leaving equal lengths in place.
+      // BCA, BNI, BRI, BTN are all three letters; ties are broken by list
+      // order explicitly, not by List.sort stability.
       expect(_brand('BNI/BCA'), 'BCA');
       expect(_brand('BRI BNI'), 'BNI');
       // Name-only brands are listed before picker brands.
@@ -143,17 +143,13 @@ void main() {
     test(
       'a cue meant for another brand does not turn "dana" into DANA',
       () {
-        // "bank" belongs to BCA/BNI here, but the cue check is global and
-        // "dana" (4 letters) outranks "bca"/"bni" (3), so DANA wins.
+        // The cue must sit right next to "dana"/"jago"; here it belongs to
+        // the other brand, so the 3-letter brand wins over "dana" (4).
         expect(_brand('Dana darurat di bank BCA'), 'BCA');
         expect(_brand('Dana pensiun BNI Syariah'), 'BNI');
         expect(_brand('Dana kaget OVO wallet'), 'OVO');
         expect(_brand('Jago masak, bank BRI'), 'BRI');
       },
-      skip: 'BUG lib/core/brands.dart:85-93: the bank/syariah/wallet cue is '
-          'checked against the whole name, not the word next to "dana"/'
-          '"jago", and "dana" (4) outranks 3-letter brands; '
-          '"Dana darurat di bank BCA" gets the DANA logo.',
     );
   });
 }

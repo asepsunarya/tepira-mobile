@@ -51,26 +51,45 @@ const List<Brand> _extraBrands = [
   Brand('Flip', 'assets/brands/flip.svg'),
 ];
 
-/// Every matcher, longest spelling first, built once. Spellings are
-/// normalized like wallet names, so the alias "e-money" is stored as
-/// "e money" and still matches "Mandiri e-money".
-final List<(String, Brand)> _matchers = [
-  for (final brand in [..._extraBrands, ...kPickerBrands])
-    for (final spelling in {
-      _normalize(brand.name),
-      for (final alias in brand.aliases) _normalize(alias),
-    })
-      (spelling, brand),
-]..sort((a, b) => b.$1.length.compareTo(a.$1.length));
+/// Every matcher, longest spelling first, built once. Spellings of equal
+/// length keep their list order (name-only brands, then picker brands); the
+/// list index is the explicit tie-break, so the order does not depend on
+/// [List.sort] being stable. Spellings are normalized like wallet names, so
+/// the alias "e-money" is stored as "e money" and still matches
+/// "Mandiri e-money".
+final List<(String, Brand)> _matchers = () {
+  final indexed = [
+    for (final brand in [..._extraBrands, ...kPickerBrands])
+      for (final spelling in {
+        _normalize(brand.name),
+        for (final alias in brand.aliases) _normalize(alias),
+      })
+        (spelling, brand),
+  ].indexed.toList()
+    ..sort((a, b) {
+      final byLength = b.$2.$1.length.compareTo(a.$2.$1.length);
+      return byLength != 0 ? byLength : a.$1.compareTo(b.$1);
+    });
+  return [for (final (_, matcher) in indexed) matcher];
+}();
 
 /// Brand spellings that are also everyday Indonesian words ("dana" = fund,
 /// "jago" = skilled), so "Dana darurat" or "Jago masak" is not a brand.
-/// They match only when they are the whole name or the name carries one of
-/// [_ambiguousCues] ("DANA e-wallet", "Jago Syariah").
+/// They match only when they are the whole name or one of [_ambiguousCues]
+/// sits right before or after them ("DANA e-wallet", "Bank Jago",
+/// "Jago Syariah"). A cue elsewhere in the name belongs to another word, so
+/// "Dana darurat di bank BCA" is BCA, not DANA.
 const Set<String> _ambiguousSpellings = {'dana', 'jago'};
 
-/// Words that mark a name as a bank or e-wallet account.
-const Set<String> _ambiguousCues = {'bank', 'syariah', 'wallet', 'ewallet'};
+/// Words that mark a name as a bank or e-wallet account, as normalized word
+/// sequences ("e-wallet" normalizes to "e wallet").
+const List<List<String>> _ambiguousCues = [
+  ['bank'],
+  ['syariah'],
+  ['wallet'],
+  ['ewallet'],
+  ['e', 'wallet'],
+];
 
 /// The brand a wallet named [walletName] belongs to, or null. Matches a
 /// brand name (or alias) as whole words, ignoring case, punctuation and extra
@@ -82,17 +101,36 @@ Brand? brandForWalletName(String walletName) {
   if (normalized.isEmpty) return null;
   final name = ' $normalized ';
   final words = normalized.split(' ');
-  final hasCue = words.any(_ambiguousCues.contains);
   for (final (spelling, brand) in _matchers) {
     if (!name.contains(' $spelling ')) continue;
     if (_ambiguousSpellings.contains(spelling) &&
         normalized != spelling &&
-        !hasCue) {
+        !_hasAdjacentCue(words, spelling)) {
       continue;
     }
     return brand;
   }
   return null;
+}
+
+/// Whether some occurrence of the one-word [spelling] in [words] has one of
+/// [_ambiguousCues] directly before or after it.
+bool _hasAdjacentCue(List<String> words, String spelling) {
+  bool cueAt(int start, List<String> cue) {
+    if (start < 0 || start + cue.length > words.length) return false;
+    for (var k = 0; k < cue.length; k++) {
+      if (words[start + k] != cue[k]) return false;
+    }
+    return true;
+  }
+
+  for (var i = 0; i < words.length; i++) {
+    if (words[i] != spelling) continue;
+    for (final cue in _ambiguousCues) {
+      if (cueAt(i + 1, cue) || cueAt(i - cue.length, cue)) return true;
+    }
+  }
+  return false;
 }
 
 /// Lowercase words joined by single spaces; every run of characters that is

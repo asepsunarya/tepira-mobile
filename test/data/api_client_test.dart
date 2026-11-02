@@ -477,7 +477,7 @@ void main() {
       expect(parseRetryAfter('0'), Duration.zero);
     });
 
-    test('is null for missing, negative, fractional, dated or huge values', () {
+    test('is null for missing, negative, fractional or dated values', () {
       for (final value in [
         null,
         '',
@@ -485,7 +485,6 @@ void main() {
         '1.5',
         'soon',
         'Wed, 21 Oct 2026 07:28:00 GMT',
-        '9999999',
       ]) {
         expect(parseRetryAfter(value), isNull, reason: '$value');
       }
@@ -496,6 +495,7 @@ void main() {
       expect(parseRetryAfter('301'), kMaxRetryAfter);
       expect(parseRetryAfter('86400'), const Duration(seconds: 300));
       expect(parseRetryAfter('999999'), const Duration(seconds: 300));
+      expect(parseRetryAfter('9999999'), kMaxRetryAfter);
     });
   });
 }
