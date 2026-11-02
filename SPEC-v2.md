@@ -185,9 +185,11 @@ baris di hapus jajan dan di undo Cyrene; §3.8, §9 "Ask first").
 
 ## 3. Kontrak `backend-mobile-api-v2` (dikerjakan di repo `tepira`)
 
-Status kontrak: **usulan**. Seperti v1, setelah handler selesai `api-contract.md` dibangkitkan
-ulang dari handler asli dengan jam tetap `2026-11-01T07:00:00.000Z` dan data fiktif
-(`handoff/fixtures-gen/`), lalu SPEC ini disesuaikan dengan backend, bukan sebaliknya.
+Status kontrak: **diimplementasikan** di `tepira` `main` (`f74d790`, PR #33, #35, #36). Kontrak
+hasil bangkit dari handler asli (jam tetap `2026-11-01T07:00:00.000Z`, data fiktif) ada di
+[`docs/api-contract-v2.md`](docs/api-contract-v2.md), dengan generator di `docs/contract-gen/`.
+Bila bagian ini berbeda dengan file itu, **file kontrak yang benar** dan SPEC ini yang
+disesuaikan, bukan backend.
 Fixture baru: `test/fixtures/mobile_wallets.json` (3.1), `mobile_today_budget.json` dan
 `mobile_today_wallet.json` (3.4), `mobile_expense_created.json` (3.5),
 `mobile_expenses.json` (3.6).
@@ -220,8 +222,9 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
   - `guardOrigin` (hanya langkah 1): `POST /api/mobile/session`, yang tidak memerlukan sesi tetapi
     membuat user dan menerbitkan token. Urutan error di route ini: `404` `not_found` (endpoint
     nonaktif, `TEPIRA_MOBILE_GOOGLE_CLIENT_IDS` kosong) → `403` `forbidden_origin` → `429`
-    `rate_limited` per IP (10 percobaan per menit, pesan "Terlalu banyak percobaan masuk. Coba lagi
-    sebentar lagi.", dengan `Retry-After`) → `413`/`415` (`readJsonBody`). Cek Origin dilakukan
+    `rate_limited` per IP (10 percobaan per menit, sukses atau gagal, pesan "Terlalu banyak
+    percobaan masuk. Coba lagi sebentar lagi.", dengan `Retry-After`; IP diambil dari `X-Real-IP`
+    yang diisi nginx, `X-Forwarded-For` diabaikan) → `413`/`415` (`readJsonBody`). Cek Origin dilakukan
     sebelum batas per IP, sehingga halaman situs lain tidak dapat menghabiskan jatah percobaan IP.
 
   Urutan `guardWrite`:
@@ -242,8 +245,10 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
   3. **Batas per user:** 30 tulis per menit per user, satu ember untuk semua route `guardWrite`
      di atas (`TokenBucket` seperti Cyrene; per instans, best effort). Lewat batas → `429`
      `{ ok:false, error:"rate_limited", message:"Terlalu banyak permintaan. Coba lagi sebentar
-     lagi." }` dengan header `Retry-After` (detik). Respons 400 ikut dihitung; 401, 403, dan
-     baca (GET) tidak. Karena penjaga berjalan sebelum cek id, `PATCH`/`DELETE` dengan id path
+     lagi." }` dengan header `Retry-After` (detik). Setiap permintaan yang lolos cek Origin dan
+     sesi memakai satu jatah, termasuk yang lalu dijawab 400, 404, 413, atau 415; 401 dan 403 tidak.
+     Route GET tidak memakai ember tulis ini (lihat "Batas baca"). Karena penjaga berjalan
+     sebelum cek id, `PATCH`/`DELETE` dengan id path
      tidak sah (jawaban `404`) juga memakai satu dari 30 jatah tulis per menit.
   4. Body lewat `readJsonBody`: `415` bila bukan `application/json`, `413` `payload_too_large`
      "Isi permintaan terlalu besar." bila > 64 KB (65.536 byte). Berlaku juga untuk
@@ -251,6 +256,20 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
      setelah 404 nonaktif, 403 `forbidden_origin`, dan 429 per IP). Selain penjaga dan 413/415,
      kontrak kedua route itu tidak berubah. Pada `PATCH`/`DELETE` yang memakai id path, cek id
      (`404`) berada di antara penjaga dan langkah ini.
+
+  **Pemindai penjaga (B4-4, B4-5).** Test statis di repo `tepira`
+  (`test/harness/route-scan.mjs`, dipakai `test/mobile-api/b4-4-guards.test.mjs`) membaca setiap
+  `route.{ts,tsx,js,jsx,mjs}` di bawah `app/api/mobile/` dan gagal bila handler `POST`, `PUT`,
+  `PATCH`, atau `DELETE` yang diekspor tidak memanggil `guardWrite` atau `guardOrigin` sebelum
+  panggilan lain (yang boleh lebih dulu hanya `parseClientIds` dan `notFound`, untuk cek endpoint
+  session nonaktif), atau diekspor dalam bentuk yang tidak bisa dibaca pemindai (`export * from`,
+  `export { POST } from`, pembungkus seperti `withAuth(…)`, ekspor destrukturisasi). Route tulis
+  baru di `/api/mobile/*` otomatis ikut diperiksa.
+- **Batas baca (B4-5).** `GET /api/mobile/expenses` memakai `guardRead`: tanpa sesi → `401`; lebih
+  dari 60 baca per menit per user (ember terpisah dari ember tulis; per instans, best effort) →
+  `429` `rate_limited` "Terlalu banyak permintaan. Coba lagi sebentar lagi." dengan `Retry-After`.
+  Batas dicek sebelum query param diparse, jadi jawaban `400` ikut dihitung. GET lain
+  (`wallets`, `today`, `goals`) tanpa batas dan tanpa cek Origin.
 - Setiap endpoint tulis jajan mengembalikan dompet yang terdampak dan `today` (bentuk 3.4) supaya
   klien memperbarui Desa dan Dompet tanpa memuat ulang semuanya. `today` dihitung **setelah**
   transaksi commit, dengan query terpisah.
@@ -449,7 +468,7 @@ Logika murni di `lib/mobile/today.ts` `computeSafeToday(...)`, tanpa import. Not
 - `spent.today = E_today`, `spent.month = E_month`. Keduanya menghitung semua jajan, sama dengan web
   dan Cyrene.
 - **Rentang baca jajan di route.** Route membaca jajan dengan `date ≥ m0`, **tanpa batas atas**
-  (keputusan koordinator 2026-11-01). Alasannya: form web (`app/expenses/actions.ts`) menyimpan
+  (keputusan koordinator 2026-11-01, §12 K15). Alasannya: form web (`app/expenses/actions.ts`) menyimpan
   tanggal apa pun, jadi bisa ada jajan bertanggal jauh di depan (mis. 25 Des yang dicatat 16 Nov).
   Saldo dompet sudah dipotong oleh jajan itu, jadi basis `wallet` harus menambahkannya kembali
   lewat `E_next'` (`date ≥ t1`, tanpa batas akhir). Rentang lama `[m0, max(m1, t2))` membuat
@@ -636,8 +655,10 @@ Alasan tiap bagian:
     itu dan sebelum body dibaca (§3 "Penjaga tulis"); `415` `unsupported_media_type`
   - `413` `payload_too_large` "Isi permintaan terlalu besar." bila body > 64 KB (65.536 byte).
     Batas ini ada di `readJsonBody` (`lib/mobile/http.ts`), jadi berlaku juga untuk
-    `POST /api/mobile/wallets`, `PATCH /api/mobile/wallets/{id}`, `POST /api/mobile/goals`, dan
-    `POST /api/mobile/session`; body sah semua route ini jauh di bawah 1 KB.
+    `POST /api/mobile/wallets`, `PATCH /api/mobile/wallets/{id}`,
+    `PATCH /api/mobile/expenses/{id}`, `POST /api/mobile/goals`, dan `POST /api/mobile/session`;
+    body sah semua route ini jauh di bawah 1 KB. `DELETE /api/mobile/expenses/{id}` dan route GET
+    tidak membaca body, jadi tanpa 413/415.
   - `400` `bad_request` dengan salah satu pesan: "Nominal harus berupa angka bulat antara 1 dan
     100.000.000.", "Dompet wajib dipilih.", "Kategori tidak dikenal.", "Catatan maksimal 120
     karakter.", "Sumber dana harus gaji atau bonus.", "Tanggal harus berformat YYYY-MM-DD,
@@ -646,7 +667,8 @@ Alasan tiap bagian:
     dompet lama `userId = null` bagi user yang bukan pemilik, atau tidak ada; dijawab di dalam
     transaksi sebelum dedupe, tanpa tulis)
   - `500` `server_error`. Bila Postgres membatalkan transaksi karena deadlock (`40P01`) atau
-    gagal serialisasi (`40001`; Prisma `P2034`, atau `P2010` dengan `meta.code`), respons tetap
+    gagal serialisasi (`40001`; Prisma `P2034`, `P2010` dengan `meta.code`, SQLSTATE langsung, atau
+    field `PostgresError { code }` di awal pesan mesin Prisma; teks bebas tidak pernah dicari), respons tetap
     `500` `server_error` dengan header `Retry-After: 1`: tidak ada yang tertulis dan permintaan
     yang sama boleh dikirim ulang (dedupe 120 detik menjaga kirim ulang setelah commit).
 
@@ -682,9 +704,12 @@ Alasan tiap bagian:
 ```
 
 - `total` dan `count` menghitung semua jajan bulan itu, bukan hanya 500 yang dikirim.
-- Tanpa penjaga Origin dan tanpa batas tulis (route GET).
-- Error: `401` `unauthorized`; `400` `bad_request` "Bulan atau tahun tidak valid." (sesudah cek
-  sesi); `500` `server_error` (tanpa `Retry-After`).
+- Tanpa penjaga Origin dan tanpa batas tulis (route GET), tetapi dengan batas baca `guardRead`
+  (60 per menit per user, §3 "Batas baca").
+- Error, dalam urutan: `401` `unauthorized`; `429` `rate_limited` + `Retry-After` (lebih dari 60
+  baca per menit per user); `400` `bad_request` "Bulan atau tahun tidak valid." (hanya satu dari
+  `year`/`month`, di luar rentang, bukan angka, atau parameter berulang); `500` `server_error`
+  (tanpa `Retry-After`).
 
 ### 3.7 `PATCH /api/mobile/expenses/{id}`
 
@@ -791,9 +816,42 @@ klien gagal bila daftar berubah.
   (`TEPIRA_DEFAULT_USER_EMAIL`); test: user lain tidak melihat, tidak bisa membebani (400
   `wallet_not_found`, sama dengan dompet asing), tidak bisa PATCH (404), ubah, atau hapus dompet
   dan jajan lama; pemilik tetap bisa (B4-3).
-- [ ] Tulis ber-cookie: Origin asing / `Sec-Fetch-Site` cross-site atau same-site → 403
-  `forbidden_origin` sebelum body dibaca; lebih dari 30 tulis per menit per user → 429
-  `rate_limited` + `Retry-After`; goals dan session lewat `readJsonBody` (413/415) (B4-3).
+- [ ] **Origin 403 (B4-3, B4-4):** setiap route `/api/mobile/*` yang mengubah data (6 route
+  `guardWrite` + `POST /api/mobile/session` lewat `guardOrigin`) menjawab `Origin` yang tidak sama
+  persis dengan origin `AUTH_URL`, atau `Sec-Fetch-Site` `cross-site`/`same-site`, dengan 403
+  `forbidden_origin` sebelum sesi dibaca, sebelum body dibaca, dan tanpa query DB. Permintaan tanpa
+  `Origin` dan tanpa `Sec-Fetch-Site` (app native) lolos. Route GET tidak memeriksa Origin.
+- [ ] **Pemindai penjaga:** test statis `test/harness/route-scan.mjs` +
+  `test/mobile-api/b4-4-guards.test.mjs` (§3 "Pemindai penjaga") hijau: setiap handler
+  `POST`/`PUT`/`PATCH`/`DELETE` di `app/api/mobile/**/route.*` memanggil `guardWrite` atau
+  `guardOrigin` sebelum panggilan lain (kecuali `parseClientIds`/`notFound`), bentuk ekspor yang
+  tidak bisa dibaca dilaporkan sebagai masalah, dan test mutasi membuktikan route yang penjaganya
+  dihapus atau dipindah ke belakang `readJsonBody` tertangkap.
+- [ ] **Batas per user:** lebih dari 30 tulis per menit per user (satu ember untuk keenam route
+  `guardWrite`) → 429 `rate_limited` + `Retry-After`, tanpa query DB; lebih dari 60 baca per menit
+  per user di `GET /api/mobile/expenses` (`guardRead`) → 429 + `Retry-After`, sebelum query param
+  diparse. 401 tidak memakai jatah. Test memakai jam tetap dan mengosongkan ember tiap test
+  (`test/harness/reset-limits.mjs`).
+- [ ] Semua route yang membaca body lewat `readJsonBody`: 415 bila bukan `application/json`, 413
+  `payload_too_large` bila > 64 KB (termasuk `PATCH /api/mobile/expenses/{id}`, goals, dan
+  session).
+- [ ] **Session (`POST /api/mobile/session`):** urutan 404 (env `TEPIRA_MOBILE_GOOGLE_CLIENT_IDS`
+  kosong) → 403 `forbidden_origin` → 429 per IP (10 per menit, kunci `X-Real-IP`,
+  `X-Forwarded-For` diabaikan) → 415/413 → 400/401/403. Email Google dinormalisasi (trim + huruf
+  kecil) untuk pencarian dan untuk `User` baru; pencarian tidak peka huruf besar dengan cek ulang
+  persis (`_`/`%` bukan wildcard); user lama dengan email sama (beda huruf besar saja) tanpa akun
+  Google tertaut → 403 `account_not_linked`, tidak pernah membuat akun kedua (§12 K16). Dua
+  sign-in pertama yang balapan (`P2002`) diulang sekali. Token = JWE sesi Auth.js 30 hari.
+- [ ] **Ubah jajan (`PATCH /api/mobile/expenses/{id}`, §3.7):** urutan error 403 → 401 → 429 →
+  404 id path → 415/413 → 400 body → 404 baris → 400 (`bad_request`, `wallet_not_found`) →
+  500; respons 200 `{ ok, expense, wallets, today }` dengan `wallets` = 1 atau 2 dompet terdampak
+  urut id; baris yatim tanpa `walletId` → 400 "Dompet wajib dipilih."; nilai yang sama dengan
+  yang tersimpan → 200 tanpa gerak saldo dan tanpa revalidasi.
+- [ ] **Hapus jajan (`DELETE /api/mobile/expenses/{id}`, §3.8):** urutan 403 → 401 → 429 → 404 →
+  500; respons 200 `{ ok, deleted: { id, amount }, wallet | null, today }`; hapus kedua → 404 dan
+  saldo hanya kembali sekali.
+- [ ] **500 yang bisa diulang:** deadlock/serialisasi pada tulis jajan → 500 `server_error` +
+  `Retry-After: 1`, ditentukan dari kode error saja (§3.5); 500 lain tanpa `Retry-After`.
 - [ ] Semua query memakai `await userOwnedWhere(userId)`. Semua gerak saldo jajan lewat
   `lib/wallet-expenses.ts` (`createExpenseInTx`, `updateExpenseWithWallet`,
   `deleteExpenseAndRestoreWallet`); tidak ada update `Wallet.balance` manual di route.
@@ -815,7 +873,8 @@ klien gagal bila daftar berubah.
 - [ ] Revalidasi web (§3) dipanggil setelah tulis yang berhasil, tidak dipanggil untuk dedupe dan
   error (dicek lewat stub `next/cache`).
 - [ ] Tidak ada token, header, atau body di log (pola `logFailure`).
-- [ ] `api-contract.md` dan fixture dibangkitkan ulang dari handler asli; SPEC §3 disesuaikan.
+- [ ] `docs/api-contract-v2.md` dibangkitkan ulang dari handler asli (`docs/contract-gen/`); SPEC
+  §3 disesuaikan. Fixture klien di `test/fixtures/` (§3) diambil dari output generator yang sama.
 - [ ] Tidak ada migrasi Prisma. Migrasi apa pun **butuh persetujuan pemilik**.
 - [ ] Uji balapan manual di Postgres lokal sekali pakai lulus (§8) dan hasilnya ditempel di
   deskripsi PR.
@@ -824,6 +883,11 @@ klien gagal bila daftar berubah.
 - [ ] `400` dengan amplop `{ok:false}` → `BadRequestException(code, message)` (subclass
   `AppException`); pesan server tampil apa adanya. `wallet_not_found` bisa dibedakan dari
   `bad_request`.
+- [ ] `429` `rate_limited` → exception dengan pesan server dan `Retry-After` (detik) terbaca; klien
+  tidak mengulang otomatis. `500` dengan `Retry-After` boleh diulang sekali untuk tulis jajan
+  (dedupe 120 detik menjaga POST).
+- [ ] Klien **tidak** mengirim header `Origin` (dio di Android/iOS tidak mengirimnya); `403`
+  `forbidden_origin` diperlakukan sebagai error umum dengan pesan server.
 - [ ] `lib/core/wib.dart`: `wibDate(DateTime utc)`, `wibDayKey`, awal/akhir bulan WIB dengan offset
   tetap +7 jam, **tidak** memakai zona waktu perangkat. Unit test termasuk pergantian hari
   dan bulan.
@@ -1123,7 +1187,20 @@ Tidak ada dependensi baru. `flutter_secure_storage` (sudah ada) dipakai juga unt
 - K14. **Overdraft dompet aset** (keputusan koordinator 2026-11-01): dompet non-utang boleh
   bersaldo negatif, termasuk karena jajan dari mobile. Uang bebas dan aman dipakai hari ini
   menjumlahkan saldo aset negatif apa adanya (tidak ada pembatasan per dompet); hanya angka aman
-  akhir (`allowance`) yang dibatasi minimal 0 (§3.4). Dompet utang tetap ≥ 0.
+  akhir (`allowance`) yang dibatasi minimal 0 (§3.4). Dompet utang tetap ≥ 0. Diimplementasikan
+  di `tepira` `main`: `POST`/`PATCH /api/mobile/expenses` tidak memeriksa saldo; contoh overdraft
+  ada di `docs/api-contract-v2.md` §5 dan §6.
+- K15. **Rentang baca jajan untuk `today`** (keputusan koordinator 2026-11-01): route membaca
+  jajan dengan `date ≥` awal bulan WIB, **tanpa batas atas**, supaya jajan bertanggal di depan
+  (yang sudah memotong saldo) masuk `E_next'`; hanya baris di `[m0, m1)` yang dioper ke
+  `computeMonthSummary` (§3.4 "Rentang baca jajan di route").
+- K16. **Normalisasi huruf besar email saat sign-in mobile** (B4-5): email Google di-trim dan
+  dikecilkan untuk pencarian dan untuk `User` baru, sama dengan allowlist dan
+  `TEPIRA_DEFAULT_USER_EMAIL`. Pencarian memakai `equals` tidak peka huruf besar lalu dicek ulang
+  persis di JS. User lama dengan email yang hanya beda huruf besar tidak digabung dan tidak
+  diubah: tanpa akun Google tertaut, sign-in ditolak `account_not_linked` (sama dengan web); bila
+  ada lebih dari satu, server mencatat jumlahnya saja di log (tanpa email). Produksi saat ini tidak
+  punya baris seperti itu.
 
 **Produk (disetujui 2026-11-01, §14):**
 
