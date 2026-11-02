@@ -221,6 +221,10 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
      `Origin`. Route form web lama yang ber-cookie (`POST /api/budget`, `/api/bonus`,
      `/api/balance`, `/api/contribution`, `/api/expense`) memakai cek yang sama
      (`isForeignOrigin`). Route Bearer Cyrene dan `x-api-key` tidak memakainya.
+     **Env deploy:** `AUTH_URL` harus sama persis dengan origin yang dilayani (kalau tidak, semua
+     tulis dari browser `403`); `TEPIRA_DEFAULT_USER_EMAIL` harus sama dengan `User.email` owner
+     (dinormalisasi) dan `TEPIRA_CYRENE_USER_ID` harus id owner, kalau tidak baris lama
+     `userId = null` tidak terlihat.
   2. **Sesi.** Tidak ada → `401` `unauthorized`.
   3. **Batas per user:** 30 tulis per menit per user, satu ember untuk semua route tulis di atas
      (`TokenBucket` seperti Cyrene; per instans, best effort). Lewat batas → `429`
