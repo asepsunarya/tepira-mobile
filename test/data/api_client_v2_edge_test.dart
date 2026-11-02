@@ -156,7 +156,7 @@ void main() {
       '1.5',
       '-2',
       'soon',
-      'Wed, 21 Oct 2026 07:28:00 GMT'
+      'Wed, 21 Oct 2026 07:28:00 GMT',
     ]) {
       test('429 with "$value" -> retryAfter null, still RateLimited', () {
         expect(
