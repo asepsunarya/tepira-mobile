@@ -211,14 +211,27 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
   `forbidden_origin` 403, `payload_too_large` 413, `rate_limited` 429 (lihat "Penjaga tulis").
   Kode lain sama dengan v1: `bad_request` 400, `unauthorized` 401, `not_found` 404,
   `unsupported_media_type` 415, `server_error` 500.
-- **Penjaga tulis (B4-3).** Setiap tulis ber-cookie (`POST /api/mobile/expenses`,
-  `POST /api/mobile/wallets`, `PATCH /api/mobile/wallets/{id}`, `POST /api/mobile/goals`) melewati
-  `guardCookieWrite` (`lib/mobile/http.ts`) **sebelum body dibaca**, dengan urutan:
-  1. **Origin.** Tanpa header `Origin` (app native) → lolos. `Origin` ada dan tidak sama persis
-     dengan origin `AUTH_URL` (atau `NEXTAUTH_URL`; bila keduanya kosong, `Origin` apa pun ditolak)
-     → `403` `{ ok:false, error:"forbidden_origin", message:"Permintaan dari situs lain tidak
-     diizinkan." }`. `Sec-Fetch-Site: cross-site` atau `same-site` → `403` yang sama, juga tanpa
-     `Origin`. Route form web lama yang ber-cookie (`POST /api/budget`, `/api/bonus`,
+- **Penjaga tulis (B4-3, B4-4).** Setiap route `/api/mobile/*` yang mengubah data melewati
+  penjaga di `lib/mobile/http.ts` **sebelum apa pun yang lain** (sebelum cek id path dan sebelum
+  body dibaca). Route GET tidak memakainya.
+  - `guardWrite` (Origin → `401` → `429`): `POST /api/mobile/wallets`,
+    `PATCH /api/mobile/wallets/{id}`, `POST /api/mobile/goals`, `POST /api/mobile/expenses`,
+    `PATCH /api/mobile/expenses/{id}`, `DELETE /api/mobile/expenses/{id}`.
+  - `guardOrigin` (hanya langkah 1): `POST /api/mobile/session`, yang tidak memerlukan sesi tetapi
+    membuat user dan menerbitkan token. Urutan error di route ini: `404` `not_found` (endpoint
+    nonaktif, `TEPIRA_MOBILE_GOOGLE_CLIENT_IDS` kosong) → `403` `forbidden_origin` → `429`
+    `rate_limited` per IP (10 percobaan per menit, pesan "Terlalu banyak percobaan masuk. Coba lagi
+    sebentar lagi.", dengan `Retry-After`) → `413`/`415` (`readJsonBody`). Cek Origin dilakukan
+    sebelum batas per IP, sehingga halaman situs lain tidak dapat menghabiskan jatah percobaan IP.
+
+  Urutan `guardWrite`:
+  1. **Origin** (`isForeignOrigin`). `Sec-Fetch-Site: cross-site` atau `same-site` → ditolak,
+     dengan atau tanpa `Origin` (subdomain saudara berbagi situs cookie). Tanpa header `Origin`
+     (app native, yang juga tidak mengirim `Sec-Fetch-Site`) → lolos. `Origin` ada dan tidak sama
+     persis dengan origin dari `AUTH_URL` (atau `NEXTAUTH_URL` bila `AUTH_URL` kosong; bila keduanya
+     kosong atau bukan URL, `Origin` apa pun ditolak) → ditolak. Penolakan → `403`
+     `{ ok:false, error:"forbidden_origin", message:"Permintaan dari situs lain tidak
+     diizinkan." }`. Route form web lama yang ber-cookie (`POST /api/budget`, `/api/bonus`,
      `/api/balance`, `/api/contribution`, `/api/expense`) memakai cek yang sama
      (`isForeignOrigin`). Route Bearer Cyrene dan `x-api-key` tidak memakainya.
      **Env deploy:** `AUTH_URL` harus sama persis dengan origin yang dilayani (kalau tidak, semua
@@ -226,15 +239,18 @@ cookie sesi Auth.js lewat `sessionUserId()`). Tambahan v2:
      (dinormalisasi) dan `TEPIRA_CYRENE_USER_ID` harus id owner, kalau tidak baris lama
      `userId = null` tidak terlihat.
   2. **Sesi.** Tidak ada → `401` `unauthorized`.
-  3. **Batas per user:** 30 tulis per menit per user, satu ember untuk semua route tulis di atas
-     (`TokenBucket` seperti Cyrene; per instans, best effort). Lewat batas → `429`
+  3. **Batas per user:** 30 tulis per menit per user, satu ember untuk semua route `guardWrite`
+     di atas (`TokenBucket` seperti Cyrene; per instans, best effort). Lewat batas → `429`
      `{ ok:false, error:"rate_limited", message:"Terlalu banyak permintaan. Coba lagi sebentar
      lagi." }` dengan header `Retry-After` (detik). Respons 400 ikut dihitung; 401, 403, dan
-     baca (GET) tidak.
+     baca (GET) tidak. Karena penjaga berjalan sebelum cek id, `PATCH`/`DELETE` dengan id path
+     tidak sah (jawaban `404`) juga memakai satu dari 30 jatah tulis per menit.
   4. Body lewat `readJsonBody`: `415` bila bukan `application/json`, `413` `payload_too_large`
      "Isi permintaan terlalu besar." bila > 64 KB (65.536 byte). Berlaku juga untuk
      `POST /api/mobile/goals` dan `POST /api/mobile/session` (tanpa sesi; di sana 413/415 datang
-     setelah 404 nonaktif dan 429 per IP). Selain 413/415, kontrak kedua route itu tidak berubah.
+     setelah 404 nonaktif, 403 `forbidden_origin`, dan 429 per IP). Selain penjaga dan 413/415,
+     kontrak kedua route itu tidak berubah. Pada `PATCH`/`DELETE` yang memakai id path, cek id
+     (`404`) berada di antara penjaga dan langkah ini.
 - Setiap endpoint tulis jajan mengembalikan dompet yang terdampak dan `today` (bentuk 3.4) supaya
   klien memperbarui Desa dan Dompet tanpa memuat ulang semuanya. `today` dihitung **setelah**
   transaksi commit, dengan query terpisah.
@@ -666,7 +682,9 @@ Alasan tiap bagian:
 ```
 
 - `total` dan `count` menghitung semua jajan bulan itu, bukan hanya 500 yang dikirim.
-- Error: `400` `bad_request` "Bulan atau tahun tidak valid."; `401`; `500`.
+- Tanpa penjaga Origin dan tanpa batas tulis (route GET).
+- Error: `401` `unauthorized`; `400` `bad_request` "Bulan atau tahun tidak valid." (sesudah cek
+  sesi); `500` `server_error` (tanpa `Retry-After`).
 
 ### 3.7 `PATCH /api/mobile/expenses/{id}`
 
@@ -716,7 +734,10 @@ Alasan tiap bagian:
 - Respons 200 `{ "ok": true, "expense": { … }, "wallets": [ …1 atau 2 dompet terdampak… ],
   "today": { … } }`. Revalidasi web (§3).
 - Error: semua error 3.5, ditambah `400` `bad_request` "Tidak ada perubahan.", `404`
-  `not_found`.
+  `not_found`. Urutan: `403` `forbidden_origin` → `401` → `429` `rate_limited` (penjaga §3) →
+  `404` id path tidak sah (sudah memakai satu jatah tulis) → `415`/`413` → `400` validasi body →
+  di dalam transaksi `404` (jajan tidak ada atau bukan milik user), `400` (`bad_request` atau
+  `wallet_not_found`) → `500` (`Retry-After: 1` bila deadlock/serialisasi, seperti 3.5).
 
 ### 3.8 `DELETE /api/mobile/expenses/{id}`
 
@@ -735,7 +756,10 @@ Alasan tiap bagian:
 - Tidak ada batas waktu (beda dengan Cyrene yang 15 menit; web juga tanpa batas).
 - Respons 200 `{ "ok": true, "deleted": { "id": 501, "amount": 25000 }, "wallet": { … } | null,
   "today": { … } }` (`wallet` `null` untuk baris yatim). Revalidasi web (§3).
-- Error: `401`; `404` `not_found`; `500`.
+- Error, dalam urutan: `403` `forbidden_origin`, `401` `unauthorized`, `429` `rate_limited` +
+  `Retry-After` (penjaga §3); `404` `not_found` (id path tidak sah, yang sudah memakai satu jatah
+  tulis, atau jajan tidak ada/bukan milik user); `500` `server_error` (dengan `Retry-After: 1` bila
+  deadlock/serialisasi, seperti 3.5). Tanpa body, jadi tanpa `413`/`415`.
 
   Perilaku yang diketahui: pengembalian saldo memakai `wallet.updateMany` yang dibatasi ke dompet
   milik user dengan cek `count === 1` (sama dengan gerak lain di §3.7). Menghapus jajan yang
