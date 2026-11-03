@@ -215,8 +215,6 @@ void main() {
       () {
         _expectAll({'Dana bank\u0085BCA': 'BCA'});
       },
-      skip: 'BUG (minor): _whitespaceOnly uses Dart RegExp \\s, which omits '
-          'U+0085 NEXT LINE (Unicode White_Space); actual: DANA.',
     );
   });
 

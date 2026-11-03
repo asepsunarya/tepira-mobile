@@ -211,7 +211,10 @@ bool _wordsAt(List<String> words, int start, List<String> seq) {
 }
 
 final RegExp _wordPattern = RegExp(r'[\p{L}\p{N}]+', unicode: true);
-final RegExp _whitespaceOnly = RegExp(r'^\s+$');
+
+/// Dart's `\s` plus U+0085 (NEXT LINE), which is Unicode White_Space but
+/// not in `\s`.
+final RegExp _whitespaceOnly = RegExp(r'^[\s\u0085]+$');
 
 /// Indexes of the words of `_normalize(value).split(' ')` that are separated
 /// from the word before them by whitespace only, with no punctuation.
