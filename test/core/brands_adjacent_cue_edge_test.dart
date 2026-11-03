@@ -37,7 +37,8 @@ void main() {
         'dana - e - wallet': 'DANA',
         'dana_bank': 'DANA',
         'Dana bank': 'DANA',
-        'Dana\tbank\nBCA': 'DANA',
+        'Dana\tbank\nBCA': 'BCA',
+        'Dana bank, BCA': 'DANA',
         '(Bank) jago': 'Jago',
         'Bank—Jago': 'Jago',
         'JAGO  SYARIAH!!': 'Jago',
@@ -81,12 +82,12 @@ void main() {
   });
 
   group('pinned current behavior', () {
-    // Decision on PR #19: "Dana bank BCA" stays DANA. "dana" and "bca" are
-    // both whole words and "bank" is adjacent to "dana"; the longer spelling
-    // ("dana", 4 chars) is checked before "bca" (3 chars).
-    test('"Dana bank BCA" is DANA', () {
-      expect(_brand('Dana bank BCA'), 'DANA');
-      expect(_brand('dana, bank bca'), 'DANA');
+    // Decision on PR #20 (replaces the PR #19 pin "Dana bank BCA" is DANA):
+    // a cue directly followed by another brand's spelling belongs to that
+    // brand, so "bank" here is BCA's and does not back "dana".
+    test('"Dana bank BCA" is BCA', () {
+      expect(_brand('Dana bank BCA'), 'BCA');
+      expect(_brand('dana, bank bca'), 'BCA');
     });
 
     test('Bank Jago and bare dana/jago', () {
@@ -134,6 +135,37 @@ void main() {
     });
   });
 
+  group('explicit cue takes priority', () {
+    test('a cue-backed DANA/Jago beats other brands in the name', () {
+      _expectAll({
+        'DANA e-wallet via Flip': 'DANA',
+        'Flip via DANA e-wallet': 'DANA',
+        'Bank Jago via Flip': 'Jago',
+        'Top up Flip ke Bank Jago': 'Jago',
+        'DANA e-wallet / blu by BCA': 'DANA',
+      });
+    });
+
+    test('without a cue the existing order still applies', () {
+      _expectAll({
+        'Top up via Flip': 'Flip',
+        'Flip': 'Flip',
+        'Dana via Flip': 'Flip',
+        'Dana darurat': null,
+        'Dana darurat di bank BCA': 'BCA',
+        'Dana pensiun BNI Syariah': 'BNI',
+      });
+    });
+
+    test('several cue-backed spellings: longest, then list order', () {
+      _expectAll({
+        'dana bank jago': 'Jago',
+        'Jago wallet dana wallet': 'DANA',
+        'Bank Jago, DANA e-wallet, Flip': 'Jago',
+      });
+    });
+  });
+
   group('equal-length tie-break', () {
     test('equal-length spellings resolve by list position, not name order', () {
       _expectAll({
@@ -147,8 +179,6 @@ void main() {
         // dana/jago (4) tie: DANA precedes Jago in the picker list
         'Jago wallet dana wallet': 'DANA',
         'dana wallet jago wallet': 'DANA',
-        // Flip (4, name-only) precedes DANA (4, picker)
-        'DANA e-wallet via Flip': 'Flip',
       });
     });
 
