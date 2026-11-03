@@ -136,22 +136,36 @@ void main() {
 
   group('regression: cue word that belongs to the next brand', () {
     // "Dana bank Mandiri" reads "funds at bank Mandiri": the cue "bank"
-    // belongs to Mandiri, yet it sits right after "dana" and makes DANA
-    // cue-backed, so DANA now outranks Mandiri. Before PR #20 the longest
-    // spelling (Mandiri) won. Short brands ("Dana bank BCA") already
-    // resolved to DANA before PR #20 and are not asserted here.
-    test(
-      'a cue between dana/jago and a clear brand keeps the clear brand',
-      () {
-        _expectAll({
-          'Dana bank Mandiri': 'Mandiri',
-          'Dana Syariah Mandiri': 'Mandiri',
-          'Jago bank Mandiri': 'Mandiri',
-        });
-      },
-      skip: 'Known regression in PR #20: a cue adjacent to dana/jago that '
-          'belongs to the following brand makes DANA/Jago win '
-          '("Dana bank Mandiri" returns DANA, expected Mandiri).',
-    );
+    // belongs to Mandiri, not to "dana". A cue directly followed by another
+    // brand's spelling belongs to that brand, so it never backs dana/jago.
+    test('a cue between dana/jago and a clear brand keeps the clear brand', () {
+      _expectAll({
+        'Dana bank Mandiri': 'Mandiri',
+        'Dana Syariah Mandiri': 'Mandiri',
+        'Jago bank Mandiri': 'Mandiri',
+        'Tabungan dana bank Jenius': 'Jenius',
+        'Dana wallet ShopeePay': 'ShopeePay',
+        'Dana e-wallet ShopeePay': 'ShopeePay',
+        'Dana bank BCA': 'BCA',
+        'Dana bank BRI': 'BRI',
+        'Dana Bank BNI Syariah': 'BNI',
+      });
+    });
+
+    test('a cue of its own still backs dana/jago', () {
+      _expectAll({
+        'DANA e-wallet via Flip': 'DANA',
+        'Bank Jago via Flip': 'Jago',
+        'Dana darurat': null,
+        'Dana via Flip': 'Flip',
+        'Jago via DANA': null,
+        'OVO via DANA e-wallet': 'DANA',
+        'Mandiri e-money dana wallet': 'DANA',
+        'Bank Jago / ShopeePay': 'Jago',
+        'Dana bank Jago': 'Jago',
+        'Dana bank / Mandiri': 'DANA',
+        'dana wallet jago wallet': 'DANA',
+      });
+    });
   });
 }

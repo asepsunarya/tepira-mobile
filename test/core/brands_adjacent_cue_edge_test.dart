@@ -37,7 +37,8 @@ void main() {
         'dana - e - wallet': 'DANA',
         'dana_bank': 'DANA',
         'Dana bank': 'DANA',
-        'Dana\tbank\nBCA': 'DANA',
+        'Dana\tbank\nBCA': 'BCA',
+        'Dana bank, BCA': 'DANA',
         '(Bank) jago': 'Jago',
         'Bank—Jago': 'Jago',
         'JAGO  SYARIAH!!': 'Jago',
@@ -81,12 +82,12 @@ void main() {
   });
 
   group('pinned current behavior', () {
-    // Decision on PR #19: "Dana bank BCA" stays DANA. "dana" and "bca" are
-    // both whole words and "bank" is adjacent to "dana"; the longer spelling
-    // ("dana", 4 chars) is checked before "bca" (3 chars).
-    test('"Dana bank BCA" is DANA', () {
-      expect(_brand('Dana bank BCA'), 'DANA');
-      expect(_brand('dana, bank bca'), 'DANA');
+    // Decision on PR #20 (replaces the PR #19 pin "Dana bank BCA" is DANA):
+    // a cue directly followed by another brand's spelling belongs to that
+    // brand, so "bank" here is BCA's and does not back "dana".
+    test('"Dana bank BCA" is BCA', () {
+      expect(_brand('Dana bank BCA'), 'BCA');
+      expect(_brand('dana, bank bca'), 'BCA');
     });
 
     test('Bank Jago and bare dana/jago', () {

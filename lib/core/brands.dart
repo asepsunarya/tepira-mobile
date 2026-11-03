@@ -78,7 +78,9 @@ final List<(String, Brand)> _matchers = () {
 /// They match only when they are the whole name or one of [_ambiguousCues]
 /// sits right before or after them ("DANA e-wallet", "Bank Jago",
 /// "Jago Syariah"). A cue elsewhere in the name belongs to another word, so
-/// "Dana darurat di bank BCA" is BCA, not DANA.
+/// "Dana darurat di bank BCA" is BCA, not DANA. A cue right after them that is
+/// itself directly followed by another brand's spelling belongs to that
+/// brand, so "Dana bank BCA" and "Dana Syariah Mandiri" are BCA and Mandiri.
 const Set<String> _ambiguousSpellings = {'dana', 'jago'};
 
 /// Words that mark a name as a bank or e-wallet account, as normalized word
@@ -89,6 +91,31 @@ const List<List<String>> _ambiguousCues = [
   ['wallet'],
   ['ewallet'],
   ['e', 'wallet'],
+];
+
+/// Multi-word aliases that pair an ambiguous word with a cue ("bank jago").
+/// Each one is explicit on its own, so it is cue-backed wherever it matches.
+/// Built once from [_matchers]: a spelling qualifies only when one of its
+/// words is in [_ambiguousSpellings] and a whole [_ambiguousCues] sequence
+/// sits right next to that word inside the spelling, so a lone "e" never
+/// counts as a cue.
+final Set<String> _cueAliases = {
+  for (final (spelling, _) in _matchers)
+    if (spelling.contains(' ') &&
+        _ambiguousSpellings.any(
+          (word) => _hasAdjacentCue(spelling.split(' '), word),
+        ))
+      spelling,
+};
+
+/// The words of every spelling in [_matchers] that needs no cue (not in
+/// [_ambiguousSpellings]), built once. A cue directly followed by one of
+/// these belongs to that brand ("bank" in "Dana bank Mandiri"). Ambiguous
+/// spellings are left out, so in "dana wallet jago wallet" both words keep
+/// their own cue and the list-order tie-break decides.
+final List<List<String>> _clearBrandWords = [
+  for (final (spelling, _) in _matchers)
+    if (!_ambiguousSpellings.contains(spelling)) spelling.split(' '),
 ];
 
 /// The brand a wallet named [walletName] belongs to, or null. Matches a
@@ -104,54 +131,104 @@ Brand? brandForWalletName(String walletName) {
   if (normalized.isEmpty) return null;
   final name = ' $normalized ';
   final words = normalized.split(' ');
+  final spaced = _spacedWordStarts(walletName);
   final found = [
     for (final (spelling, brand) in _matchers)
       if (name.contains(' $spelling ') &&
           (!_ambiguousSpellings.contains(spelling) ||
               normalized == spelling ||
-              _hasAdjacentCue(words, spelling)))
+              _hasOwnAdjacentCue(words, spaced, spelling)))
         (spelling, brand),
   ];
   for (final (spelling, brand) in found) {
-    if (_isCueBacked(spelling, words)) return brand;
+    if (_isCueBacked(spelling, words, spaced)) return brand;
   }
   return found.isEmpty ? null : found.first.$2;
 }
 
 /// Whether the matched [spelling] is an ambiguous brand word made explicit by
-/// a cue: "dana"/"jago" with one of [_ambiguousCues] directly next to it in
-/// [words] ("DANA e-wallet"), or a multi-word alias that itself pairs such a
-/// word with a cue ("bank jago"). Only these spellings outrank the
+/// a cue: "dana"/"jago" with one of [_ambiguousCues] of its own directly next
+/// to it in [words] ("DANA e-wallet", see [_hasOwnAdjacentCue]), or one of
+/// [_cueAliases] ("bank jago"). Only these spellings outrank the
 /// longest-first order; a cue next to a clear brand ("BNI Syariah") changes
 /// nothing, because that brand needs no cue to match.
-bool _isCueBacked(String spelling, List<String> words) {
+bool _isCueBacked(String spelling, List<String> words, Set<int> spaced) {
   if (_ambiguousSpellings.contains(spelling)) {
-    return _hasAdjacentCue(words, spelling);
+    return _hasOwnAdjacentCue(words, spaced, spelling);
   }
-  final parts = spelling.split(' ');
-  return parts.length > 1 &&
-      parts.any(_ambiguousSpellings.contains) &&
-      parts.any((part) => _ambiguousCues.any((c) => c.contains(part)));
+  return _cueAliases.contains(spelling);
 }
 
 /// Whether some occurrence of the one-word [spelling] in [words] has one of
-/// [_ambiguousCues] directly before or after it.
-bool _hasAdjacentCue(List<String> words, String spelling) {
-  bool cueAt(int start, List<String> cue) {
-    if (start < 0 || start + cue.length > words.length) return false;
-    for (var k = 0; k < cue.length; k++) {
-      if (words[start + k] != cue[k]) return false;
-    }
-    return true;
-  }
+/// [_ambiguousCues] of its own directly before or after it. A cue after
+/// [spelling] that is followed, with only whitespace between, by a clear
+/// brand's spelling (see [_clearBrandWords]) belongs to that brand instead:
+/// in "Dana bank Mandiri" the "bank" is Mandiri's, so it does not back
+/// "dana". Punctuation ends the cue's reach, so in "DANA e-wallet / Flip" the
+/// cue stays DANA's. [spaced] holds the indexes of words preceded only by
+/// whitespace (see [_spacedWordStarts]).
+bool _hasOwnAdjacentCue(
+  List<String> words,
+  Set<int> spaced,
+  String spelling,
+) =>
+    _hasAdjacentCue(
+      words,
+      spelling,
+      cueTakenAt: (start) =>
+          spaced.contains(start) &&
+          _clearBrandWords.any((brand) => _wordsAt(words, start, brand)),
+    );
 
+/// Whether some occurrence of the one-word [spelling] in [words] has one of
+/// [_ambiguousCues] directly before or after it. A cue after [spelling] does
+/// not count when [cueTakenAt] is true for the index right after the cue.
+bool _hasAdjacentCue(
+  List<String> words,
+  String spelling, {
+  bool Function(int start)? cueTakenAt,
+}) {
   for (var i = 0; i < words.length; i++) {
     if (words[i] != spelling) continue;
     for (final cue in _ambiguousCues) {
-      if (cueAt(i + 1, cue) || cueAt(i - cue.length, cue)) return true;
+      if (_wordsAt(words, i - cue.length, cue)) return true;
+      if (_wordsAt(words, i + 1, cue) &&
+          !(cueTakenAt?.call(i + 1 + cue.length) ?? false)) {
+        return true;
+      }
     }
   }
   return false;
+}
+
+/// Whether [words] holds the word sequence [seq] starting at index [start].
+bool _wordsAt(List<String> words, int start, List<String> seq) {
+  if (start < 0 || start + seq.length > words.length) return false;
+  for (var k = 0; k < seq.length; k++) {
+    if (words[start + k] != seq[k]) return false;
+  }
+  return true;
+}
+
+final RegExp _wordPattern = RegExp(r'[\p{L}\p{N}]+', unicode: true);
+final RegExp _whitespaceOnly = RegExp(r'^\s+$');
+
+/// Indexes of the words of `_normalize(value).split(' ')` that are separated
+/// from the word before them by whitespace only, with no punctuation.
+Set<int> _spacedWordStarts(String value) {
+  final lower = value.toLowerCase();
+  final spaced = <int>{};
+  var index = 0;
+  int? previousEnd;
+  for (final match in _wordPattern.allMatches(lower)) {
+    if (previousEnd != null &&
+        _whitespaceOnly.hasMatch(lower.substring(previousEnd, match.start))) {
+      spaced.add(index);
+    }
+    previousEnd = match.end;
+    index++;
+  }
+  return spaced;
 }
 
 /// Lowercase words joined by single spaces; every run of characters that is
