@@ -94,23 +94,44 @@ const List<List<String>> _ambiguousCues = [
 /// The brand a wallet named [walletName] belongs to, or null. Matches a
 /// brand name (or alias) as whole words, ignoring case, punctuation and extra
 /// spaces, so "Kartu kredit BCA.", "(BCA)" and "bca utama" all get the BCA
-/// logo. When a name holds several brands ("BCA/Mandiri"), the longest
-/// spelling wins, then the first in list order.
+/// logo. When a name holds several brands ("BCA/Mandiri"), a spelling backed
+/// by an explicit bank/e-wallet cue wins first, so "DANA e-wallet via Flip" is
+/// DANA and "Bank Jago via Flip" is Jago (see [_isCueBacked]). Otherwise, and
+/// among cue-backed spellings, the longest spelling wins, then the first in
+/// list order.
 Brand? brandForWalletName(String walletName) {
   final normalized = _normalize(walletName);
   if (normalized.isEmpty) return null;
   final name = ' $normalized ';
   final words = normalized.split(' ');
-  for (final (spelling, brand) in _matchers) {
-    if (!name.contains(' $spelling ')) continue;
-    if (_ambiguousSpellings.contains(spelling) &&
-        normalized != spelling &&
-        !_hasAdjacentCue(words, spelling)) {
-      continue;
-    }
-    return brand;
+  final found = [
+    for (final (spelling, brand) in _matchers)
+      if (name.contains(' $spelling ') &&
+          (!_ambiguousSpellings.contains(spelling) ||
+              normalized == spelling ||
+              _hasAdjacentCue(words, spelling)))
+        (spelling, brand),
+  ];
+  for (final (spelling, brand) in found) {
+    if (_isCueBacked(spelling, words)) return brand;
   }
-  return null;
+  return found.isEmpty ? null : found.first.$2;
+}
+
+/// Whether the matched [spelling] is an ambiguous brand word made explicit by
+/// a cue: "dana"/"jago" with one of [_ambiguousCues] directly next to it in
+/// [words] ("DANA e-wallet"), or a multi-word alias that itself pairs such a
+/// word with a cue ("bank jago"). Only these spellings outrank the
+/// longest-first order; a cue next to a clear brand ("BNI Syariah") changes
+/// nothing, because that brand needs no cue to match.
+bool _isCueBacked(String spelling, List<String> words) {
+  if (_ambiguousSpellings.contains(spelling)) {
+    return _hasAdjacentCue(words, spelling);
+  }
+  final parts = spelling.split(' ');
+  return parts.length > 1 &&
+      parts.any(_ambiguousSpellings.contains) &&
+      parts.any((part) => _ambiguousCues.any((c) => c.contains(part)));
 }
 
 /// Whether some occurrence of the one-word [spelling] in [words] has one of

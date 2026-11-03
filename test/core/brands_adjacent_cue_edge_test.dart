@@ -134,6 +134,37 @@ void main() {
     });
   });
 
+  group('explicit cue takes priority', () {
+    test('a cue-backed DANA/Jago beats other brands in the name', () {
+      _expectAll({
+        'DANA e-wallet via Flip': 'DANA',
+        'Flip via DANA e-wallet': 'DANA',
+        'Bank Jago via Flip': 'Jago',
+        'Top up Flip ke Bank Jago': 'Jago',
+        'DANA e-wallet / blu by BCA': 'DANA',
+      });
+    });
+
+    test('without a cue the existing order still applies', () {
+      _expectAll({
+        'Top up via Flip': 'Flip',
+        'Flip': 'Flip',
+        'Dana via Flip': 'Flip',
+        'Dana darurat': null,
+        'Dana darurat di bank BCA': 'BCA',
+        'Dana pensiun BNI Syariah': 'BNI',
+      });
+    });
+
+    test('several cue-backed spellings: longest, then list order', () {
+      _expectAll({
+        'dana bank jago': 'Jago',
+        'Jago wallet dana wallet': 'DANA',
+        'Bank Jago, DANA e-wallet, Flip': 'Jago',
+      });
+    });
+  });
+
   group('equal-length tie-break', () {
     test('equal-length spellings resolve by list position, not name order', () {
       _expectAll({
@@ -147,8 +178,6 @@ void main() {
         // dana/jago (4) tie: DANA precedes Jago in the picker list
         'Jago wallet dana wallet': 'DANA',
         'dana wallet jago wallet': 'DANA',
-        // Flip (4, name-only) precedes DANA (4, picker)
-        'DANA e-wallet via Flip': 'Flip',
       });
     });
 
