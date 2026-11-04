@@ -23,4 +23,20 @@ void main() {
     expect(uri.path, GoalRoutes.record);
     expect(uri.queryParameters, {ExpenseRoutes.tabParam: 'jajan'});
   });
+
+  test('ExpenseRoutes.edit fills the Jajan form and validates its id', () {
+    final uri = Uri.parse(ExpenseRoutes.edit(499));
+    expect(uri.path, GoalRoutes.record);
+    expect(uri.queryParameters, {ExpenseRoutes.expenseParam: '499'});
+    expect(ExpenseRoutes.edit(499), '/record?expense=499');
+    expect(ExpenseRoutes.parseId('499'), 499);
+    expect(ExpenseRoutes.parseId('0'), isNull);
+    expect(ExpenseRoutes.parseId('+5'), isNull);
+    expect(ExpenseRoutes.parseId('0x1F'), isNull);
+    expect(ExpenseRoutes.parseId('2147483648'), isNull);
+  });
+
+  test('the Riwayat path', () {
+    expect(kHistoryPath, '/history');
+  });
 }

@@ -21,4 +21,10 @@ void main() {
   test('uses the date fields as given, without converting time zones', () {
     expect(formatShortDate(DateTime.utc(2026, 1, 1, 23, 30)), '1 Jan 2026');
   });
+
+  test('formatMonthYear names the month in Indonesian', () {
+    expect(formatMonthYear(2026, 1), 'Januari 2026');
+    expect(formatMonthYear(2026, 11), 'November 2026');
+    expect(formatMonthYear(2027, 12), 'Desember 2027');
+  });
 }

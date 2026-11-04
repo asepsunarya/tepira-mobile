@@ -18,6 +18,7 @@ import '../../data/expenses/last_expense_wallet_store.dart';
 import '../wallets/model/wallet.dart';
 import '../wallets/wallet_providers.dart';
 import 'expense_providers.dart';
+import 'model/expense.dart';
 import 'model/expense_input.dart';
 import 'model/expense_wallet_choice.dart';
 import 'widgets/expense_wallet_picker.dart';
@@ -33,10 +34,19 @@ const int kExpenseMaxDaysBack = 7;
 /// the wallet to pay from, the day, an optional note and, under "Lainnya",
 /// the money source. The fastest path is a chip and Simpan.
 ///
+/// Given an [original] expense, the form starts filled with it and saves a
+/// change instead (`/record?expense=:id`, SPEC-v2 §3.7): only the fields
+/// that differ are sent, and a cleared category or note is sent as null.
+/// An orphan row (its wallet deleted on the web) has no wallet selected, so
+/// one must be picked before saving.
+///
 /// Simpan is disabled while a request runs, so a double tap sends one
 /// request; the server's 120 s dedupe covers a resend after a lost answer.
 class ExpenseForm extends ConsumerStatefulWidget {
-  const ExpenseForm({super.key, this.onSubmittingChanged});
+  const ExpenseForm({super.key, this.original, this.onSubmittingChanged});
+
+  /// The expense being changed, or null to record a new one.
+  final Expense? original;
 
   /// Told when a save starts and ends, so the screen can lock its tabs.
   final ValueChanged<bool>? onSubmittingChanged;
@@ -54,7 +64,11 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
 
   /// The chosen WIB day (UTC midnight, as [wibDate]); null means today.
   DateTime? _day;
-  ExpenseSource _source = ExpenseSource.gaji;
+
+  /// The picked source. Null only when changing an expense whose stored
+  /// source the app does not know: no chip is selected and the stored
+  /// source is kept unless the user picks one.
+  ExpenseSource? _source = ExpenseSource.gaji;
   bool _showMore = false;
   bool _submitting = false;
   String? _error;
@@ -62,6 +76,19 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
   @override
   void initState() {
     super.initState();
+    if (widget.original case final original?) {
+      _setAmount(original.amount);
+      _note.text = original.note ?? '';
+      _category = original.category;
+      _pickedWalletId = original.walletId;
+      _day = wibDate(original.date);
+      _source = ExpenseSource.values
+          .where((source) => source.wire == original.source)
+          .firstOrNull;
+      _showMore = _source != ExpenseSource.gaji;
+      // Simpan follows whether the note differs from the stored one.
+      _note.addListener(_noteChanged);
+    }
     _amount.addListener(_amountChanged);
   }
 
@@ -85,6 +112,8 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
   /// and Simpan follow the amount; a new amount clears the last error.
   void _amountChanged() => setState(() => _error = null);
 
+  void _noteChanged() => setState(() {});
+
   void _setAmount(int amount) {
     final text = amount == 0 ? '' : groupRupiahDigits('$amount');
     _amount.value = TextEditingValue(
@@ -95,6 +124,8 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
 
   DateTime get _today => wibDate(ref.read(clockProvider)());
 
+  /// The picked wallet; when there is none, a new expense gets the default
+  /// wallet, while a change keeps none, so an orphan row needs a pick.
   Wallet? _selected(List<Wallet>? wallets, int? lastWalletId) {
     if (wallets == null) return null;
     final picked = _pickedWalletId;
@@ -103,7 +134,26 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
         if (wallet.id == picked) return wallet;
       }
     }
+    if (widget.original != null) return null;
     return defaultExpenseWallet(wallets, lastWalletId);
+  }
+
+  /// The change [original] would get from the form with [wallet], or null
+  /// when the amount is out of range.
+  ExpensePatch? _patch(Expense original, Wallet wallet) {
+    final amount = _amountValue;
+    if (amount < kMinExpenseAmount || amount > kMaxExpenseAmount) return null;
+    return ExpensePatch.between(
+      original,
+      ExpenseEdit(
+        amount: amount,
+        walletId: wallet.id,
+        category: _category,
+        note: _note.text,
+        source: _source,
+        day: wibDayKey(_day ?? _today),
+      ),
+    );
   }
 
   void _setSubmitting(bool value) {
@@ -118,13 +168,16 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
       setState(() => _error = kExpenseAmountMessage);
       return;
     }
+    if (widget.original case final original?) {
+      return _submitChange(original, wallet);
+    }
     final day = _day;
     final expense = NewExpense(
       amount: amount,
       walletId: wallet.id,
       category: _category,
       note: _note.text,
-      source: _source,
+      source: _source ?? ExpenseSource.gaji,
       day: day == null || day == _today ? null : wibDayKey(day),
     );
     final writer = ref.read(expenseWriterProvider);
@@ -157,6 +210,40 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
     }
   }
 
+  Future<void> _submitChange(Expense original, Wallet wallet) async {
+    final patch = _patch(original, wallet);
+    if (patch == null || patch.isEmpty) return;
+    final writer = ref.read(expenseWriterProvider);
+    setState(() => _error = null);
+    _setSubmitting(true);
+    try {
+      await writer.update(
+        original.id,
+        patch,
+        listedIn: WibMonth.of(original.date),
+      );
+    } on AppException catch (error) {
+      if (!mounted) return;
+      if (error is BadRequestException && error.code == 'wallet_not_found') {
+        _pickedWalletId = null;
+        ref.read(walletsProvider.notifier).refresh();
+      }
+      setState(() => _error = error.message);
+      _setSubmitting(false);
+      return;
+    }
+    if (!mounted) return;
+    widget.onSubmittingChanged?.call(false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Jajan diperbarui')),
+    );
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(kHistoryPath);
+    }
+  }
+
   Future<void> _openWalletPicker(List<Wallet> wallets) async {
     final picked = await showModalBottomSheet<Wallet>(
       context: context,
@@ -173,10 +260,13 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
 
   Future<void> _pickDay() async {
     final today = _today;
+    final first = today.subtract(const Duration(days: kExpenseMaxDaysBack));
+    final day = _day ?? today;
     final picked = await showDatePicker(
       context: context,
-      initialDate: _day ?? today,
-      firstDate: today.subtract(const Duration(days: kExpenseMaxDaysBack)),
+      // A changed expense may be older than the days on offer.
+      initialDate: day.isBefore(first) || day.isAfter(today) ? today : day,
+      firstDate: first,
       lastDate: today,
       helpText: 'Tanggal jajan',
     );
@@ -200,8 +290,14 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
     final selected =
         lastReady ? _selected(list?.wallets, lastWalletId.valueOrNull) : null;
     final amount = _amountValue;
-    final canSubmit =
-        selected != null && amount >= kMinExpenseAmount && !_submitting;
+    final original = widget.original;
+    final unchanged = original != null &&
+        selected != null &&
+        (_patch(original, selected)?.isEmpty ?? false);
+    final canSubmit = selected != null &&
+        amount >= kMinExpenseAmount &&
+        !unchanged &&
+        !_submitting;
 
     return Column(
       children: [
@@ -299,7 +395,7 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
             width: double.infinity,
             child: VillageButton(
               key: const Key('expense-submit'),
-              label: _ctaLabel(selected, amount),
+              label: _ctaLabel(selected, amount, unchanged: unchanged),
               onPressed: canSubmit ? () => _submit(selected) : null,
             ),
           ),
@@ -417,10 +513,12 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
     );
   }
 
-  String _ctaLabel(Wallet? selected, int amount) {
+  String _ctaLabel(Wallet? selected, int amount, {required bool unchanged}) {
     if (_submitting) return 'Menyimpan…';
     if (amount < kMinExpenseAmount) return 'Isi nominal dulu';
     if (selected == null) return 'Pilih dompet dulu';
+    if (unchanged) return 'Belum ada perubahan';
+    if (widget.original != null) return 'Simpan perubahan';
     if (amount > kMaxExpenseAmount) return 'Simpan';
     return 'Simpan ${formatRupiah(amount)}';
   }

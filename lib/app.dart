@@ -6,11 +6,15 @@ import 'core/routes.dart';
 import 'core/theme.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_screen.dart';
+import 'features/expenses/expense_edit_screen.dart';
+import 'features/expenses/history_screen.dart';
+import 'features/expenses/model/expense.dart';
 import 'features/goals/contribute_screen.dart';
 import 'features/goals/goal_detail_screen.dart';
 import 'features/goals/goals_screen.dart';
 import 'features/goals/new_goal_screen.dart';
 import 'features/settings/settings_screen.dart';
+import 'features/shell/app_dock.dart';
 import 'features/wallets/wallet_form_screen.dart';
 import 'features/wallets/wallets_screen.dart';
 
@@ -89,9 +93,23 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: auth,
     redirect: (context, state) => authRedirect(auth.value, state.uri),
     routes: [
-      GoRoute(
-        path: kHomePath,
-        builder: (context, state) => const _Desa(),
+      ShellRoute(
+        builder: (context, state, child) =>
+            DockShell(location: state.uri.path, child: child),
+        routes: [
+          GoRoute(
+            path: kHomePath,
+            builder: (context, state) => const _Desa(),
+          ),
+          GoRoute(
+            path: kHistoryPath,
+            builder: (context, state) => const HistoryScreen(),
+          ),
+          GoRoute(
+            path: WalletRoutes.list,
+            builder: (context, state) => const WalletsScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: GoalRoutes.create,
@@ -105,18 +123,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: GoalRoutes.record,
-        builder: (context, state) => ContributeScreen(
-          goalParam: state.uri.queryParameters[GoalRoutes.recordGoalParam],
-          tabParam: state.uri.queryParameters[ExpenseRoutes.tabParam],
-        ),
+        builder: (context, state) {
+          final query = state.uri.queryParameters;
+          if (query[ExpenseRoutes.expenseParam] case final raw?) {
+            return ExpenseEditScreen(expense: _expenseFor(raw, state.extra));
+          }
+          return ContributeScreen(
+            goalParam: query[GoalRoutes.recordGoalParam],
+            tabParam: query[ExpenseRoutes.tabParam],
+          );
+        },
       ),
       GoRoute(
         path: kSettingsPath,
         builder: (context, state) => const _Settings(),
-      ),
-      GoRoute(
-        path: WalletRoutes.list,
-        builder: (context, state) => const WalletsScreen(),
       ),
       GoRoute(
         path: WalletRoutes.create,
@@ -140,6 +160,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   });
   return router;
 });
+
+/// The expense `/record?expense=<raw>` changes: the one the Riwayat passed
+/// as [extra] when its id is [raw], else null.
+Expense? _expenseFor(String raw, Object? extra) {
+  final id = ExpenseRoutes.parseId(raw);
+  return extra is Expense && id != null && extra.id == id ? extra : null;
+}
 
 class TepiraApp extends ConsumerWidget {
   const TepiraApp({super.key});

@@ -75,7 +75,10 @@ class ExpenseEdit {
 
   /// Blank means none.
   final String? note;
-  final ExpenseSource source;
+
+  /// The picked source, or null when none is picked (a stored source the app
+  /// does not know), which keeps the stored one.
+  final ExpenseSource? source;
 
   /// WIB day as `YYYY-MM-DD`.
   final String day;
@@ -95,7 +98,8 @@ class ExpensePatch {
       if (edit.walletId != original.walletId) 'walletId': edit.walletId,
       if (edit.category != original.category) 'category': edit.category,
       if (note != original.note) 'note': note,
-      if (edit.source.wire != original.source) 'source': edit.source.wire,
+      if (edit.source case final source? when source.wire != original.source)
+        'source': source.wire,
       if (edit.day != wibDayKey(original.date)) 'date': edit.day,
     });
   }

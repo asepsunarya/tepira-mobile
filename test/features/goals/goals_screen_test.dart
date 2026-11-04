@@ -267,15 +267,6 @@ void main() {
       expect(find.text('page /goal/new'), findsOneWidget);
     });
 
-    testWidgets('"Catat" in the dock opens the Jajan tab', (tester) async {
-      await _pumpDesa(tester, FakeGoalsRepository([_threeGoals]));
-
-      await tester.tap(find.byKey(const Key('record')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('page /record?tab=jajan'), findsOneWidget);
-    });
-
     testWidgets('the HUD avatar opens /settings', (tester) async {
       await _pumpDesa(tester, FakeGoalsRepository([_threeGoals]));
 
@@ -308,10 +299,9 @@ void main() {
       final repository = FakeGoalsRepository([_threeGoals]);
       await _pumpDesa(tester, repository);
 
-      await tester.tap(find.byKey(const Key('record')));
+      await tester.tap(find.byKey(const Key('build-plot')));
       await tester.pumpAndSettle();
-      final router =
-          GoRouter.of(tester.element(find.text('page /record?tab=jajan')));
+      final router = GoRouter.of(tester.element(find.text('page /goal/new')));
       router.pop();
       await tester.pumpAndSettle();
 

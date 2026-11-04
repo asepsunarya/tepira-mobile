@@ -16,6 +16,55 @@ ExpenseCreated fixtureExpenseCreated() =>
 ExpenseCreated fixtureExpenseDeduped() =>
     expenseCreatedFromJson(readFixture('mobile_expense_deduped'));
 
+/// Contract §6: November 2026, three expenses on 1 November WIB (one of
+/// them at 06:40 WIB, still 31 October in UTC), 50.000 in total.
+ExpenseList fixtureExpenseList() =>
+    expenseListFromJson(readFixture('mobile_expenses'));
+
+/// An expense with test defaults: 25.000 "nasi padang" from BCA (id 3).
+Expense testExpense({
+  int id = 501,
+  int amount = 25000,
+  String? category = 'Makan harian',
+  String? note = 'nasi padang',
+  String source = 'gaji',
+  required DateTime date,
+  int? walletId = 3,
+  String? walletName = 'BCA',
+}) {
+  return Expense(
+    id: id,
+    amount: amount,
+    category: category,
+    note: note,
+    source: source,
+    date: date,
+    createdAt: date,
+    walletId: walletId,
+    walletName: walletName,
+    placeName: null,
+  );
+}
+
+/// A month list of [expenses] (newest first) with the server's [total] and
+/// [count]; both default to the sum and number of [expenses].
+ExpenseList testExpenseList(
+  WibMonth period,
+  List<Expense> expenses, {
+  int? total,
+  int? count,
+  bool more = false,
+}) {
+  return ExpenseList(
+    asOf: DateTime.utc(2026, 11, 1, 7),
+    period: period,
+    total: total ?? expenses.fold(0, (sum, e) => sum + e.amount),
+    count: count ?? expenses.length,
+    more: more,
+    expenses: expenses,
+  );
+}
+
 /// [ExpensesRepository] whose writes answer from the given result lists in
 /// order (the last one repeats). An [Exception] entry is thrown instead of
 /// returned. Every call is recorded.
@@ -34,6 +83,15 @@ class FakeExpensesRepository implements ExpensesRepository {
 
   /// When set, [create] waits for it before answering.
   Completer<void>? createGate;
+
+  /// When set, [list] waits for it before answering.
+  Completer<void>? listGate;
+
+  /// When set, [update] waits for it before answering.
+  Completer<void>? updateGate;
+
+  /// When set, [delete] waits for it before answering.
+  Completer<void>? deleteGate;
 
   final List<NewExpense> created = [];
   final List<WibMonth?> listed = [];
@@ -58,6 +116,7 @@ class FakeExpensesRepository implements ExpensesRepository {
   Future<ExpenseList> list({WibMonth? month}) async {
     final call = listed.length;
     listed.add(month);
+    await listGate?.future;
     return _pick<ExpenseList>(listResults, call);
   }
 
@@ -65,6 +124,7 @@ class FakeExpensesRepository implements ExpensesRepository {
   Future<ExpenseUpdated> update(int id, ExpensePatch patch) async {
     final call = updated.length;
     updated.add((id, patch.toJson()));
+    await updateGate?.future;
     return _pick<ExpenseUpdated>(updateResults, call);
   }
 
@@ -72,6 +132,7 @@ class FakeExpensesRepository implements ExpensesRepository {
   Future<ExpenseDeleted> delete(int id) async {
     final call = deleted.length;
     deleted.add(id);
+    await deleteGate?.future;
     return _pick<ExpenseDeleted>(deleteResults, call);
   }
 }

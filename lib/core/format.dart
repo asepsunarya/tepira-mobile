@@ -19,3 +19,14 @@ const List<String> _shortMonths = [
 /// `toLocal()` first; calendar dates at UTC midnight pass as they are.
 String formatShortDate(DateTime date) =>
     '${date.day} ${_shortMonths[date.month - 1]} ${date.year}';
+
+const List<String> _months = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', //
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
+/// The name of calendar [month] (1..12): 10 -> "Oktober".
+String formatMonthName(int month) => _months[month - 1];
+
+/// Formats a calendar month: (2026, 11) -> "November 2026".
+String formatMonthYear(int year, int month) => '${_months[month - 1]} $year';

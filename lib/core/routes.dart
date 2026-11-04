@@ -32,6 +32,9 @@ abstract final class GoalRoutes {
 /// Path of the Pengaturan screen (artboard Pengaturan).
 const String kSettingsPath = '/settings';
 
+/// Path of the Riwayat screen (SPEC-v2 §4 `expenses`, artboard Riwayat).
+const String kHistoryPath = '/history';
+
 /// Paths of the wallet screens (SPEC-v2 §4 `wallets`, artboards Dompet and
 /// TambahDompet).
 abstract final class WalletRoutes {
@@ -48,7 +51,8 @@ abstract final class WalletRoutes {
 }
 
 /// The Jajan tab of the Catat screen (SPEC-v2 §4 `expenses`, artboard
-/// TambahSetoran): `/record?tab=jajan`.
+/// TambahSetoran): `/record?tab=jajan`, and the filled Jajan form that
+/// changes an expense: `/record?expense=<id>`.
 abstract final class ExpenseRoutes {
   /// Query parameter of [GoalRoutes.record] that picks the tab.
   static const String tabParam = 'tab';
@@ -57,4 +61,18 @@ abstract final class ExpenseRoutes {
   static const String jajanTab = 'jajan';
 
   static const String record = '${GoalRoutes.record}?$tabParam=$jajanTab';
+
+  /// Query parameter of [GoalRoutes.record] that opens the Jajan form
+  /// filled with an expense to change it (SPEC-v2 §4: `/record?expense=:id`).
+  static const String expenseParam = 'expense';
+
+  /// The Jajan form filled with expense [id]: `/record?expense=<id>`.
+  static String edit(int id) => Uri(
+        path: GoalRoutes.record,
+        queryParameters: {expenseParam: '$id'},
+      ).toString();
+
+  /// The expense id in [expenseParam], or null when it is not a positive
+  /// int32 written in decimal digits; the same rule as [GoalRoutes.parseId].
+  static int? parseId(String raw) => GoalRoutes.parseId(raw);
 }
