@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tepira_mobile/features/wallets/model/signed_rupiah_formatter.dart';
+import 'package:tepira_mobile/core/rupiah_input_formatter.dart';
 import 'package:tepira_mobile/features/wallets/model/wallet_form_rules.dart';
 
 // Independent edge cases for SignedRupiahFormatter (PR #21 follow-up test

@@ -299,7 +299,8 @@ class _LoadError extends StatelessWidget {
   }
 }
 
-/// Bottom dock: only the active Desa tab and the Catat button (SPEC 4).
+/// Bottom dock: only the active Desa tab and the Catat button, which opens
+/// the Jajan tab so a quick expense takes three taps (SPEC-v2 §4).
 class _Dock extends StatelessWidget {
   const _Dock();
 
@@ -336,7 +337,7 @@ class _Dock extends StatelessWidget {
                 key: const Key('record'),
                 icon: Icons.edit_note_rounded,
                 label: 'Catat',
-                onTap: () => context.push(GoalRoutes.record),
+                onTap: () => context.push(ExpenseRoutes.record),
               ),
             ],
           ),

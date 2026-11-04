@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tepira_mobile/features/wallets/model/signed_rupiah_formatter.dart';
+import 'package:tepira_mobile/core/rupiah_input_formatter.dart';
 
 // Re-test of PR #21 at 96c2315: separator handling of SignedRupiahFormatter.
 // Each case is the (old, new) pair Flutter hands the formatter for a real

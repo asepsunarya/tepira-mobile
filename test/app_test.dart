@@ -9,9 +9,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tepira_mobile/app.dart';
+import 'package:tepira_mobile/core/routes.dart';
 import 'package:tepira_mobile/data/api_client.dart';
 import 'package:tepira_mobile/data/auth/auth_repository.dart';
+import 'package:tepira_mobile/data/expenses/last_expense_wallet_store.dart';
 import 'package:tepira_mobile/data/goals/goals_repository.dart';
+import 'package:tepira_mobile/data/wallets/wallets_repository.dart';
 import 'package:tepira_mobile/features/auth/auth_providers.dart';
 import 'package:tepira_mobile/features/auth/login_screen.dart';
 import 'package:tepira_mobile/features/goals/contribute_screen.dart';
@@ -23,8 +26,10 @@ import 'package:tepira_mobile/features/settings/settings_screen.dart';
 
 import 'helpers/fake_auth_repository.dart';
 import 'helpers/fake_goals_repository.dart';
+import 'helpers/fake_last_expense_wallet_store.dart';
 import 'helpers/fake_google_id_token_source.dart';
 import 'helpers/fake_session_store.dart';
+import 'helpers/fake_wallets_repository.dart';
 
 void main() {
   group('authRedirect', () {
@@ -109,6 +114,12 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           authRepositoryProvider.overrideWithValue(repository),
+          walletsRepositoryProvider.overrideWithValue(
+            FakeWalletsRepository([fixtureWalletList()]),
+          ),
+          lastExpenseWalletStoreProvider.overrideWithValue(
+            FakeLastExpenseWalletStore(),
+          ),
           goalsRepositoryProvider.overrideWithValue(
             FakeGoalsRepository(
               [
@@ -196,6 +207,19 @@ void main() {
       final screen =
           tester.widget<ContributeScreen>(find.byType(ContributeScreen));
       expect(screen.goalParam, isNull);
+    });
+
+    testWidgets('/record?tab=jajan opens the Jajan tab', (tester) async {
+      final container =
+          await pumpApp(tester, FakeAuthRepository(restoredUser: testUser));
+
+      container.read(routerProvider).go(ExpenseRoutes.record);
+      await tester.pumpAndSettle();
+
+      final screen =
+          tester.widget<ContributeScreen>(find.byType(ContributeScreen));
+      expect(screen.tabParam, 'jajan');
+      expect(find.byKey(const Key('wallet-picker')), findsOneWidget);
     });
 
     testWidgets('/goal/:id opens the Kavling screen of that goal',

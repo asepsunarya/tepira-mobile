@@ -17,4 +17,10 @@ void main() {
     expect(WalletRoutes.parseId('abc'), isNull);
     expect(WalletRoutes.parseId('2147483648'), isNull);
   });
+
+  test('ExpenseRoutes.record opens the Jajan tab of /record', () {
+    final uri = Uri.parse(ExpenseRoutes.record);
+    expect(uri.path, GoalRoutes.record);
+    expect(uri.queryParameters, {ExpenseRoutes.tabParam: 'jajan'});
+  });
 }

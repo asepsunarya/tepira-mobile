@@ -13,9 +13,9 @@ String groupRupiahDigits(String digits) {
   return grouped.toString();
 }
 
-/// Keeps a leading `-` and the digits, grouped by thousands with `.`. An
-/// asset may be overdrawn and an old debt wallet may be stored negative, so
-/// the sign must survive; whether it is allowed is the validator's call.
+/// Keeps the digits, grouped by thousands with `.`, and a leading `-` when
+/// [allowNegative] is set. Whether a value is allowed is the validator's
+/// call.
 ///
 /// Amounts are read the Indonesian way: `.` groups thousands and `,` starts a
 /// fraction, which is dropped because rupiah are whole. A pasted
@@ -27,8 +27,12 @@ String groupRupiahDigits(String digits) {
 /// a backspace onto a `.` separator deletes the digit before it. Removing a
 /// separator any other way (forward Delete, or a selection of just the `.`)
 /// only regroups the digits, so the amount is unchanged.
-class SignedRupiahFormatter extends TextInputFormatter {
-  const SignedRupiahFormatter();
+class RupiahInputFormatter extends TextInputFormatter {
+  const RupiahInputFormatter({this.allowNegative = false});
+
+  /// Keeps a leading `-`. Off for amounts that are never negative, such as
+  /// an expense, where a typed `-` is dropped.
+  final bool allowNegative;
 
   @override
   TextEditingValue formatEditUpdate(
@@ -64,7 +68,7 @@ class SignedRupiahFormatter extends TextInputFormatter {
     final wholeEnd = start + (comma < 0 ? trimmed.length : comma);
     final kept = <int>[];
     final chars = StringBuffer();
-    final negative = trimmed.startsWith('-');
+    final negative = allowNegative && trimmed.startsWith('-');
     if (negative) {
       kept.add(start);
       chars.write('-');
@@ -124,4 +128,11 @@ class SignedRupiahFormatter extends TextInputFormatter {
     }
     return formatted.length;
   }
+}
+
+/// [RupiahInputFormatter] that keeps the sign: an asset may be overdrawn and
+/// an old debt wallet may be stored negative, so a wallet balance can be
+/// below zero.
+class SignedRupiahFormatter extends RupiahInputFormatter {
+  const SignedRupiahFormatter() : super(allowNegative: true);
 }
