@@ -168,6 +168,39 @@ void main() {
     expect(find.text('Jajan Rp25.000 tercatat'), findsOneWidget);
   });
 
+  testWidgets('Android back does nothing while Simpan runs', (tester) async {
+    final h = _Harness();
+    h.expenses.createGate = Completer<void>();
+    await h.open(tester);
+    await _tap(tester, 'expense-chip-25000');
+
+    await tester.tap(_submit);
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    // Past any route transition, so a pop would be complete.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+
+    expect(find.byType(ContributeScreen), findsOneWidget);
+    expect(find.text('home'), findsNothing);
+    expect(_submitLabel(tester), 'Menyimpan…');
+    h.expenses.createGate!.complete();
+    await tester.pumpAndSettle();
+    expect(h.expenses.created, hasLength(1));
+    expect(find.text('home'), findsOneWidget);
+  });
+
+  testWidgets('Android back leaves Catat when nothing runs', (tester) async {
+    final h = _Harness();
+    await h.open(tester);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ContributeScreen), findsNothing);
+    expect(find.text('home'), findsOneWidget);
+  });
+
   testWidgets('two taps on Simpan in the same frame send one request',
       (tester) async {
     final h = _Harness();

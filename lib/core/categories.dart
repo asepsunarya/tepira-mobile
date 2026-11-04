@@ -78,6 +78,17 @@ ExpenseCategory? categoryByLabel(String? label) {
   return null;
 }
 
+/// The label for a [stored] category: a known label as is, a web key (rows
+/// stored by older web versions, e.g. `transport`) as its label, and
+/// anything else (null or an unknown value) unchanged.
+String? categoryLabelOf(String? stored) {
+  if (categoryByLabel(stored) != null) return stored;
+  for (final category in kExpenseCategories) {
+    if (category.key == stored) return category.label;
+  }
+  return stored;
+}
+
 /// [kExpenseCategories] grouped by [ExpenseCategory.group], groups and
 /// categories in list order.
 Map<String, List<ExpenseCategory>> categoriesByGroup() {

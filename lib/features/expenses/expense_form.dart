@@ -79,7 +79,8 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
     if (widget.original case final original?) {
       _setAmount(original.amount);
       _note.text = original.note ?? '';
-      _category = original.category;
+      // A web key stored by an older web version selects its chip.
+      _category = categoryLabelOf(original.category);
       _pickedWalletId = original.walletId;
       _day = wibDate(original.date);
       _source = ExpenseSource.values

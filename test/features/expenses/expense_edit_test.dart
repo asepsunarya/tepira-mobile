@@ -292,6 +292,61 @@ void main() {
       expect(_submitEnabled(tester), isFalse);
     });
 
+    testWidgets(
+        'a web row (key category, spaced note) opens unchanged; '
+        'its chip is selected', (tester) async {
+      final base = fixtureExpenseList();
+      final legacy = testExpense(
+        id: 499,
+        category: 'transport',
+        note: '  nasi padang ',
+        date: DateTime.utc(2026, 11, 1, 5, 30),
+      );
+      final expenses = FakeExpensesRepository(
+        listResults: [
+          testExpenseList(base.period, [
+            for (final e in base.expenses) e.id == 499 ? legacy : e,
+          ]),
+        ],
+        updateResults: [
+          _updatedWith(
+            testExpense(
+              id: 499,
+              category: 'Makan harian',
+              note: '  nasi padang ',
+              date: DateTime.utc(2026, 11, 1, 5, 30),
+            ),
+          ),
+        ],
+      );
+      await _pump(tester, expenses);
+
+      await _openEdit(tester, 499);
+
+      expect(
+        tester
+            .widget<VillageChip>(find.byKey(const Key('category-transport')))
+            .selected,
+        isTrue,
+      );
+      expect(_submitLabel(tester), 'Belum ada perubahan');
+      expect(_submitEnabled(tester), isFalse);
+
+      await tester
+          .ensureVisible(find.byKey(const Key('category-makan_harian')));
+      await tester.tap(find.byKey(const Key('category-makan_harian')));
+      await tester.pump();
+      await tester.tap(_submit);
+      await tester.pumpAndSettle();
+
+      expect(_sent(expenses), [
+        [
+          499,
+          {'category': 'Makan harian'},
+        ],
+      ]);
+    });
+
     testWidgets('only the amount changed sends {amount}; the list follows',
         (tester) async {
       final expenses = FakeExpensesRepository(
@@ -458,6 +513,48 @@ void main() {
       expenses.updateGate!.complete();
       await tester.pumpAndSettle();
       expect(expenses.updated, hasLength(1));
+    });
+
+    testWidgets('Android back does nothing while the update runs',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        listResults: [fixtureExpenseList()],
+        updateResults: [_updatedWith(_row499(amount: 15000))],
+      )..updateGate = Completer<void>();
+      await _pump(tester, expenses);
+
+      await _openEdit(tester, 499);
+      await tester.tap(find.byKey(const Key('expense-chip-15000')));
+      await tester.pump();
+      await tester.tap(_submit);
+      await tester.pump();
+
+      await tester.binding.handlePopRoute();
+      // Past any route transition, so a pop would be complete.
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+
+      expect(find.byType(ExpenseEditScreen), findsOneWidget);
+      expect(find.byType(ExpenseRow), findsNothing);
+      expect(_submitLabel(tester), 'Menyimpan…');
+      expenses.updateGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(ExpenseEditScreen), findsNothing);
+      expect(expenses.updated, hasLength(1));
+    });
+
+    testWidgets('Android back closes the form when no update runs',
+        (tester) async {
+      final expenses =
+          FakeExpensesRepository(listResults: [fixtureExpenseList()]);
+      await _pump(tester, expenses);
+
+      await _openEdit(tester, 499);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ExpenseEditScreen), findsNothing);
+      expect(find.byType(ExpenseRow), findsNWidgets(3));
     });
 
     testWidgets('a 404 shows the message and keeps the form', (tester) async {

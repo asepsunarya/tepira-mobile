@@ -63,6 +63,7 @@ class WalletsNotifier extends AutoDisposeAsyncNotifier<WalletList> {
     required int free,
     required int reserved,
   }) {
+    // SPEC-v2 §9: optimistic, reconciled via summarizeWallets / reload below.
     final current = state.valueOrNull;
     if (current == null || state.hasError) {
       ref.invalidateSelf();
