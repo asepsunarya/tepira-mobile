@@ -5,11 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../core/categories.dart';
 import '../../core/clock.dart';
 import '../../core/errors.dart';
-import '../../core/unexpected_error.dart';
 import '../../core/format.dart';
 import '../../core/routes.dart';
 import '../../core/rupiah_input_formatter.dart';
 import '../../core/theme.dart';
+import '../../core/unexpected_error.dart';
 import '../../core/wib.dart';
 import '../../core/widgets/amount_keypad.dart';
 import '../../core/widgets/village_button.dart';
@@ -199,9 +199,9 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
       setState(() => _error = error.message);
       return;
     } catch (_) {
-      // Not an AppException: a bug or a parse error. Say so, and let it
-      // reach the zone handler.
-      if (mounted) showUnexpectedError(context);
+      // Not an AppException: a bug or a parse error. Say so inline, and
+      // rethrow so the error is forwarded to the zone error handler.
+      if (mounted) setState(() => _error = kUnexpectedErrorMessage);
       rethrow;
     } finally {
       // Any failure, including an unexpected error, unblocks the form.
@@ -244,9 +244,9 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
       setState(() => _error = error.message);
       return;
     } catch (_) {
-      // Not an AppException: a bug or a parse error. Say so, and let it
-      // reach the zone handler.
-      if (mounted) showUnexpectedError(context);
+      // Not an AppException: a bug or a parse error. Say so inline, and
+      // rethrow so the error is forwarded to the zone error handler.
+      if (mounted) setState(() => _error = kUnexpectedErrorMessage);
       rethrow;
     } finally {
       // Any failure, including an unexpected error, unblocks the form.

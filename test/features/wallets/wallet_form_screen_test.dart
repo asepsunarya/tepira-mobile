@@ -7,8 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/core/routes.dart';
-import 'package:tepira_mobile/core/unexpected_error.dart';
 import 'package:tepira_mobile/core/theme.dart';
+import 'package:tepira_mobile/core/unexpected_error.dart';
 import 'package:tepira_mobile/data/wallets/wallets_repository.dart';
 import 'package:tepira_mobile/features/wallets/model/wallet.dart';
 import 'package:tepira_mobile/features/wallets/model/wallet_form_rules.dart';
@@ -266,13 +266,23 @@ void main() {
       repository.writeGate!.complete();
       await tester.pumpAndSettle();
       expect(errors, [isA<FormatException>()]);
-      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
+      // Inline, in the form's error line above Simpan; no snackbar.
+      expect(
+        tester.widget<Text>(find.byKey(const Key('submitError'))).data,
+        kUnexpectedErrorMessage,
+      );
+      expect(find.byType(SnackBar), findsNothing);
       expect(find.byType(WalletFormScreen), findsOneWidget);
       expect(find.text('Menyimpan…'), findsNothing);
       expect(find.text('Simpan dompet'), findsOneWidget);
 
-      // A second Simpan is sent and succeeds.
+      // A second Simpan clears the message, is sent and succeeds.
+      repository.writeGate = Completer<void>();
       await tester.tap(find.byKey(const Key('submit')));
+      await tester.pump();
+      expect(find.text('Menyimpan…'), findsOneWidget);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+      repository.writeGate!.complete();
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(repository.created, hasLength(2));
@@ -606,9 +616,9 @@ void main() {
     });
   });
 
-  // PR #27 independent pass: the generic snackbar and the saving flag.
+  // PR #27 independent pass: the generic error and the saving flag.
   group('PR #27 edge cases', () {
-    testWidgets('a server validation error shows no generic snackbar',
+    testWidgets('a server validation error shows no generic error',
         (tester) async {
       final repository = FakeWalletsRepository(
         [fixtureWalletList()],
@@ -623,7 +633,7 @@ void main() {
       expect(find.text(kUnexpectedErrorMessage), findsNothing);
     });
 
-    testWidgets('a network failure shows no generic snackbar', (tester) async {
+    testWidgets('a network failure shows no generic error', (tester) async {
       final repository = FakeWalletsRepository(
         [fixtureWalletList()],
         createResults: [const NetworkException()],
@@ -667,7 +677,7 @@ void main() {
 
     testWidgets(
         'back during an erroring save: no setState after dispose, '
-        'no snackbar on the list', (tester) async {
+        'no generic error on the list', (tester) async {
       final repository = FakeWalletsRepository(
         [fixtureWalletList()],
         createResults: [const FormatException('boom')],

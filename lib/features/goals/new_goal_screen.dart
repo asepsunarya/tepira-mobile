@@ -161,9 +161,11 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
       left = await _createOrRecover(title, target);
     } catch (error) {
       // Not an AppException (those are handled below): a bug or a parse
-      // error from create or the list check. Say so, and let it reach the
-      // zone handler.
-      if (error is! AppException && mounted) showUnexpectedError(context);
+      // error from create or the list check. Say so inline, and rethrow so
+      // the error is forwarded to the zone error handler.
+      if (error is! AppException && mounted) {
+        setState(() => _submitError = kUnexpectedErrorMessage);
+      }
       rethrow;
     } finally {
       // Any outcome but leaving for the goal, including an unexpected
