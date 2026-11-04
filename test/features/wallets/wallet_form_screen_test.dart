@@ -15,6 +15,7 @@ import 'package:tepira_mobile/features/wallets/wallet_form_screen.dart';
 import 'package:tepira_mobile/features/wallets/wallets_screen.dart';
 
 import '../../helpers/fake_wallets_repository.dart';
+import '../../helpers/uncaught_errors.dart';
 
 const _newTotals = WalletTotals(
   assets: 16270000,
@@ -239,6 +240,41 @@ void main() {
         tester.widget<Text>(find.byKey(const Key('submitError'))).data,
         message,
       );
+    });
+
+    testWidgets('an unexpected save error leaves the form usable',
+        (tester) async {
+      final repository = FakeWalletsRepository(
+        [fixtureWalletList()],
+        createResults: [
+          const FormatException('boom'),
+          WalletWrite(wallet: testWallet(id: 22), totals: _newTotals),
+        ],
+      )..writeGate = Completer<void>();
+      await _pump(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('name')), 'Dompet');
+      final errors = <Object>[];
+      await collectUncaught(
+        errors,
+        () => tester.tap(find.byKey(const Key('submit'))),
+      );
+      await tester.pump();
+      expect(find.text('Menyimpan…'), findsOneWidget);
+
+      repository.writeGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(find.byType(WalletFormScreen), findsOneWidget);
+      expect(find.text('Menyimpan…'), findsNothing);
+      expect(find.text('Simpan dompet'), findsOneWidget);
+
+      // A second Simpan is sent and succeeds.
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(repository.created, hasLength(2));
+      expect(find.byType(WalletFormScreen), findsNothing);
     });
 
     testWidgets('a pasted decimal amount drops the fraction, not the comma',

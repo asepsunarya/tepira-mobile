@@ -1,6 +1,7 @@
 // Edge cases for the CP4 follow-ups: Android back (PopScope) while a save
 // runs on Setor, Jajan and the expense edit form, and the legacy-row
-// "unchanged" detection of the edit form.
+// "unchanged" detection of the edit form, and recovery from an
+// unexpected (non-AppException) save error.
 //
 // Every screen is opened on top of a '/' -> '/mid' stack, so a save that
 // pops twice would land on '/' instead of '/mid'.
@@ -32,6 +33,7 @@ import '../helpers/fake_goals_repository.dart';
 import '../helpers/fake_last_expense_wallet_store.dart';
 import '../helpers/fake_today_repository.dart';
 import '../helpers/fake_wallets_repository.dart';
+import '../helpers/uncaught_errors.dart';
 
 /// 2026-11-01 14:00 WIB, the contract's clock.
 final _now = DateTime.utc(2026, 11, 1, 7);
@@ -449,6 +451,107 @@ void main() {
       await _tap(tester, const Key('expense-submit'));
       await tester.pumpAndSettle();
       expect(expenses.updated.single.$2, {'note': 'soto'});
+    });
+  });
+
+  // A failure that is not an AppException (a bug, a parse error) is not
+  // handled by the save flows, but it must still unblock the screen: the
+  // saving flag is reset in a `finally`, so back and Simpan work again.
+  group('Unexpected (non-AppException) save errors', () {
+    testWidgets('Setor recovers: back and Simpan work again', (tester) async {
+      final goals = _Goals(errors: [const FormatException('boom')])
+        ..gate = Completer<void>();
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      final errors = <Object>[];
+      await collectUncaught(
+        errors,
+        () => _tap(tester, const Key('submit')),
+      );
+      await _back(tester);
+      expect(find.byType(ContributeScreen), findsOneWidget);
+
+      goals.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(find.byType(ContributeScreen), findsOneWidget);
+      expect(find.text('Menyimpan…'), findsNothing);
+      expect(
+        tester.widget<VillageButton>(find.byKey(const Key('submit'))).onPressed,
+        isNotNull,
+      );
+
+      await _back(tester);
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(goals.amounts, [20000]);
+    });
+
+    testWidgets('Jajan recovers: back and Simpan work again', (tester) async {
+      final expenses = FakeExpensesRepository(
+        createResults: [const FormatException('boom'), fixtureExpenseCreated()],
+      )..createGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.record,
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-25000'));
+      final errors = <Object>[];
+      await collectUncaught(
+        errors,
+        () => _tap(tester, const Key('expense-submit')),
+      );
+      await _back(tester);
+      expect(_expenseLabel(tester), 'Menyimpan…');
+
+      expenses.createGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(find.byType(ContributeScreen), findsOneWidget);
+      expect(_expenseLabel(tester), isNot('Menyimpan…'));
+      expect(_expenseEnabled(tester), isTrue);
+
+      // A second Simpan is sent and succeeds.
+      await _tap(tester, const Key('expense-submit'));
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.created, hasLength(2));
+    });
+
+    testWidgets('the edit form recovers: back works again', (tester) async {
+      final expenses = FakeExpensesRepository(
+        updateResults: [const FormatException('boom')],
+      )..updateGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.edit(499),
+        extra: _row(),
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-15000'));
+      final errors = <Object>[];
+      await collectUncaught(
+        errors,
+        () => _tap(tester, const Key('expense-submit')),
+      );
+      await _back(tester);
+      expect(find.byType(ExpenseEditScreen), findsOneWidget);
+
+      expenses.updateGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(find.byType(ExpenseEditScreen), findsOneWidget);
+      expect(_expenseLabel(tester), isNot('Menyimpan…'));
+      expect(_expenseEnabled(tester), isTrue);
+
+      await _back(tester);
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.updated, hasLength(1));
     });
   });
 }

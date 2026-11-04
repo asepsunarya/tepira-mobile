@@ -185,8 +185,10 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
     final lastWallet = ref.read(lastExpenseWalletStoreProvider);
     setState(() => _error = null);
     _setSubmitting(true);
+    var saved = false;
     try {
       await writer.create(expense);
+      saved = true;
     } on AppException catch (error) {
       if (!mounted) return;
       if (error is BadRequestException && error.code == 'wallet_not_found') {
@@ -194,8 +196,10 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
         ref.read(walletsProvider.notifier).refresh();
       }
       setState(() => _error = error.message);
-      _setSubmitting(false);
       return;
+    } finally {
+      // Any failure, including an unexpected error, unblocks the form.
+      if (!saved && mounted) _setSubmitting(false);
     }
     // Best effort: a storage failure only loses the next default.
     lastWallet.write(wallet.id).catchError((Object _) {});
@@ -217,12 +221,14 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
     final writer = ref.read(expenseWriterProvider);
     setState(() => _error = null);
     _setSubmitting(true);
+    var saved = false;
     try {
       await writer.update(
         original.id,
         patch,
         listedIn: WibMonth.of(original.date),
       );
+      saved = true;
     } on AppException catch (error) {
       if (!mounted) return;
       if (error is BadRequestException && error.code == 'wallet_not_found') {
@@ -230,8 +236,10 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
         ref.read(walletsProvider.notifier).refresh();
       }
       setState(() => _error = error.message);
-      _setSubmitting(false);
       return;
+    } finally {
+      // Any failure, including an unexpected error, unblocks the form.
+      if (!saved && mounted) _setSubmitting(false);
     }
     if (!mounted) return;
     widget.onSubmittingChanged?.call(false);
