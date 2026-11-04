@@ -1,0 +1,34 @@
+{
+  "ok": true,
+  "asOf": "2026-11-01T07:00:00.000Z",
+  "date": "2026-11-01",
+  "period": {
+    "year": 2026,
+    "month": 11,
+    "daysInMonth": 30,
+    "daysLeft": 30
+  },
+  "spent": {
+    "today": 50000,
+    "month": 50000
+  },
+  "savedThisMonth": 500000,
+  "budget": {
+    "status": "NO_BUDGET",
+    "limit": null,
+    "spent": 50000,
+    "remaining": null
+  },
+  "safeToday": {
+    "basis": "wallet",
+    "state": "ok",
+    "days": 30,
+    "allowance": 236833,
+    "spentToday": 35000,
+    "remaining": 201833
+  },
+  "wallets": {
+    "free": 7070000,
+    "reserved": 3000000
+  }
+}

@@ -299,7 +299,7 @@ dipakai web dan Cyrene; izin untuk itu diminta eksplisit bersama PR.
   - chip 10/15/25/50 ribu, keypad, kategori;
   - pemilih dompet: default dompet terakhir yang bukan dicadangkan, `lastExpenseWalletId` di
     secure storage;
-  - tanggal, catatan, sumber di "Lainnya";
+  - tanggal dan catatan langsung di form; "Lainnya" hanya berisi sumber dana (SPEC §4 `expenses`);
   - tanpa dompet → ajakan ke `/wallets/new`;
   - hilangkan pemilih "Dompet" di tab Setor bila ada (K8).
 - Dikerjakan setelah T16 dalam urutan eksekusi, tetapi hanya butuh konstanta rute dari T15.

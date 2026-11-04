@@ -11,8 +11,10 @@ import 'package:tepira_mobile/core/theme.dart';
 import 'package:tepira_mobile/data/goals/goals_repository.dart';
 import 'package:tepira_mobile/features/goals/goals_screen.dart';
 import 'package:tepira_mobile/features/goals/widgets/goal_row.dart';
+import 'package:tepira_mobile/data/today/today_repository.dart';
 
 import '../../helpers/fake_goals_repository.dart';
+import '../../helpers/fake_today_repository.dart';
 
 final _threeGoals = [
   testGoal(id: 1, title: 'Dana darurat', saved: 3450000, target: 10000000),
@@ -50,7 +52,10 @@ Future<void> _pumpDesa(
   addTearDown(router.dispose);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [goalsRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        todayRepositoryProvider.overrideWithValue(FakeTodayRepository.budget()),
+        goalsRepositoryProvider.overrideWithValue(repository),
+      ],
       child:
           MaterialApp.router(theme: buildVillageTheme(), routerConfig: router),
     ),
@@ -262,13 +267,13 @@ void main() {
       expect(find.text('page /goal/new'), findsOneWidget);
     });
 
-    testWidgets('"Catat" in the dock opens /record', (tester) async {
+    testWidgets('"Catat" in the dock opens the Jajan tab', (tester) async {
       await _pumpDesa(tester, FakeGoalsRepository([_threeGoals]));
 
       await tester.tap(find.byKey(const Key('record')));
       await tester.pumpAndSettle();
 
-      expect(find.text('page /record'), findsOneWidget);
+      expect(find.text('page /record?tab=jajan'), findsOneWidget);
     });
 
     testWidgets('the HUD avatar opens /settings', (tester) async {
@@ -305,7 +310,8 @@ void main() {
 
       await tester.tap(find.byKey(const Key('record')));
       await tester.pumpAndSettle();
-      final router = GoRouter.of(tester.element(find.text('page /record')));
+      final router =
+          GoRouter.of(tester.element(find.text('page /record?tab=jajan')));
       router.pop();
       await tester.pumpAndSettle();
 

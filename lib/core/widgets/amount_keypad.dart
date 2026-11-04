@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme.dart';
+import '../theme.dart';
 
 /// The largest amount the keypad builds, as in artboard TambahSetoran.
 const int kMaxKeypadAmount = 999999999;

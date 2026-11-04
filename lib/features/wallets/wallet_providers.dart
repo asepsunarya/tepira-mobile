@@ -48,6 +48,88 @@ class WalletsNotifier extends AutoDisposeAsyncNotifier<WalletList> {
       ),
     );
   }
+
+  /// Puts the wallets an expense write returned into the list without
+  /// reloading. Expense answers carry no wallet totals, only the server's
+  /// new [free] and [reserved] (its `today.wallets`); the debts total moves
+  /// by the change in the returned debt wallets, and the assets total is
+  /// what keeps `free = assets - reserved - debts` true. A wallet the list
+  /// does not hold, a wallet whose debt flag changed (its type was edited on
+  /// the web), or a list that is not loaded, means the list is stale, so it
+  /// reloads instead. After applying, totals that no longer match the
+  /// server's `summarizeWallets` over the local list also reload.
+  void applyExpenseWrite(
+    List<Wallet> written, {
+    required int free,
+    required int reserved,
+  }) {
+    final current = state.valueOrNull;
+    if (current == null || state.hasError) {
+      ref.invalidateSelf();
+      return;
+    }
+    final wallets = [...current.wallets];
+    var debts = current.totals.debts;
+    for (final wallet in written) {
+      final index = wallets.indexWhere((w) => w.id == wallet.id);
+      if (index < 0 || wallets[index].isDebt != wallet.isDebt) {
+        ref.invalidateSelf();
+        return;
+      }
+      if (wallet.isDebt) {
+        debts -= wallet.displayBalance - wallets[index].displayBalance;
+      }
+      wallets[index] = wallet;
+    }
+    final totals = WalletTotals(
+      assets: free + reserved + debts,
+      debts: debts,
+      reserved: reserved,
+      netWorth: free + reserved,
+      free: free,
+    );
+    if (totals != summarizeWallets(wallets)) {
+      ref.invalidateSelf();
+      return;
+    }
+    final loading = state.isLoading;
+    state = AsyncData(
+      WalletList(
+        asOf: current.asOf,
+        period: current.period,
+        wallets: List.unmodifiable(wallets),
+        totals: totals,
+      ),
+    );
+    // A reload in flight may have read the list before this write; restart
+    // it so its stale answer cannot replace the newer numbers.
+    if (loading) ref.invalidateSelf();
+  }
+}
+
+/// The backend's `summarizeWallets` (SPEC-v2 §2) over [wallets]: debts are
+/// the absolute display balances of debt wallets, assets and reserved sum
+/// the non-debt ones, and `free = assets - debts - reserved`.
+WalletTotals summarizeWallets(Iterable<Wallet> wallets) {
+  var assets = 0;
+  var debts = 0;
+  var reserved = 0;
+  for (final wallet in wallets) {
+    if (wallet.isDebt) {
+      debts += wallet.displayBalance.abs();
+    } else {
+      assets += wallet.displayBalance;
+      if (wallet.isReserved) reserved += wallet.displayBalance;
+    }
+  }
+  final netWorth = assets - debts;
+  return WalletTotals(
+    assets: assets,
+    debts: debts,
+    reserved: reserved,
+    netWorth: netWorth,
+    free: netWorth - reserved,
+  );
 }
 
 final walletsProvider =

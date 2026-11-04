@@ -6,30 +6,37 @@ import '../../core/errors.dart';
 import '../../core/format.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/amount_keypad.dart';
 import '../../core/widgets/village_button.dart';
 import '../../core/widgets/village_card.dart';
 import '../../core/widgets/village_chip.dart';
 import '../../data/goals/goals_repository.dart';
+import '../expenses/expense_form.dart';
 import 'goal_providers.dart';
 import 'model/goal.dart';
-import 'widgets/amount_keypad.dart';
 
 /// Amounts of the quick chips (SPEC section 4: 10, 20, 50 and 100 thousand).
 const List<int> kQuickAmounts = [10000, 20000, 50000, 100000];
 
-/// The Setor screen (`/record?goal=<id>`, artboard TambahSetoran): pick a
-/// goal, enter an amount with the chips or keypad, add an optional note and
-/// deposit. Jajan and quick capture are outside SPEC section 4.
+/// The Catat screen (artboard TambahSetoran) with two tabs. Setor
+/// (`/record?goal=<id>`): pick a goal, enter an amount with the chips or
+/// keypad, add an optional note and deposit. Jajan (`/record?tab=jajan`):
+/// the [ExpenseForm]. Setor has no wallet field: a deposit cannot store one
+/// (SPEC-v2 §12 K8).
 ///
 /// A deposit that fails on the network may still have been stored, so it is
 /// never retried by itself: the goal is reloaded and its latest deposits are
 /// shown, and the user decides whether to deposit again.
 class ContributeScreen extends ConsumerStatefulWidget {
-  const ContributeScreen({super.key, this.goalParam});
+  const ContributeScreen({super.key, this.goalParam, this.tabParam});
 
   /// Raw `goal` query parameter. It preselects a goal when it is a decimal
   /// goal id from the user's list; otherwise the user picks one.
   final String? goalParam;
+
+  /// Raw `tab` query parameter: [ExpenseRoutes.jajanTab] opens Jajan,
+  /// anything else Setor.
+  final String? tabParam;
 
   @override
   ConsumerState<ContributeScreen> createState() => _ContributeScreenState();
@@ -48,6 +55,12 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
 
   /// Goal whose last deposit failed on the network, so may be stored.
   int? _uncertainGoalId;
+
+  late _Tab _tab =
+      widget.tabParam == ExpenseRoutes.jajanTab ? _Tab.jajan : _Tab.setor;
+
+  /// A Jajan save is running; the tabs stay put until it ends.
+  bool _expenseSubmitting = false;
 
   @override
   void dispose() {
@@ -165,85 +178,100 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              const _Header(),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-                  children: [
-                    _GoalField(
-                      goals: goals,
-                      selected: selected,
-                      requestMissing: requestMissing,
-                      onTap: list == null || _submitting
-                          ? null
-                          : () => _openPicker(list),
-                      onRetry: () => ref.invalidate(goalsProvider),
-                    ),
-                    if (uncertainId != null) ...[
-                      const SizedBox(height: 12),
-                      _UncertainDeposit(goalId: uncertainId),
-                    ],
-                    const SizedBox(height: 12),
-                    _AmountDisplay(amount: _amount),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        for (final (i, amount) in kQuickAmounts.indexed) ...[
-                          if (i > 0) const SizedBox(width: 6),
-                          Expanded(
-                            child: VillageChip(
-                              key: Key('chip-$amount'),
-                              label: formatRupiah(amount),
-                              selected: _amount == amount,
-                              onTap:
-                                  _submitting ? null : () => _setAmount(amount),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      key: const Key('note'),
-                      controller: _note,
-                      enabled: !_submitting,
-                      maxLength: 120,
-                      textInputAction: TextInputAction.done,
-                      decoration: const InputDecoration(
-                        labelText: 'Catatan (opsional)',
-                        hintText: 'misal: sisa uang jajan',
-                        counterText: '',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    AmountKeypad(
-                      onKey: _submitting
-                          ? null
-                          : (key) => _setAmount(keypadAmount(_amount, key)),
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        _error!,
-                        key: const Key('submit-error'),
-                        textAlign: TextAlign.center,
-                        style: villageText(fontSize: 13, color: c.merah),
-                      ),
-                    ],
-                  ],
-                ),
+              _Header(
+                tab: _tab,
+                onTab: _submitting || _expenseSubmitting
+                    ? null
+                    : (tab) => setState(() => _tab = tab),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: VillageButton(
-                    key: const Key('submit'),
-                    label: _ctaLabel(selected),
-                    onPressed: canSubmit ? () => _submit(selected) : null,
+              if (_tab == _Tab.jajan)
+                Expanded(
+                  child: ExpenseForm(
+                    onSubmittingChanged: (busy) =>
+                        setState(() => _expenseSubmitting = busy),
+                  ),
+                )
+              else ...[
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                    children: [
+                      _GoalField(
+                        goals: goals,
+                        selected: selected,
+                        requestMissing: requestMissing,
+                        onTap: list == null || _submitting
+                            ? null
+                            : () => _openPicker(list),
+                        onRetry: () => ref.invalidate(goalsProvider),
+                      ),
+                      if (uncertainId != null) ...[
+                        const SizedBox(height: 12),
+                        _UncertainDeposit(goalId: uncertainId),
+                      ],
+                      const SizedBox(height: 12),
+                      _AmountDisplay(amount: _amount),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          for (final (i, amount) in kQuickAmounts.indexed) ...[
+                            if (i > 0) const SizedBox(width: 6),
+                            Expanded(
+                              child: VillageChip(
+                                key: Key('chip-$amount'),
+                                label: formatRupiah(amount),
+                                selected: _amount == amount,
+                                onTap: _submitting
+                                    ? null
+                                    : () => _setAmount(amount),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        key: const Key('note'),
+                        controller: _note,
+                        enabled: !_submitting,
+                        maxLength: 120,
+                        textInputAction: TextInputAction.done,
+                        decoration: const InputDecoration(
+                          labelText: 'Catatan (opsional)',
+                          hintText: 'misal: sisa uang jajan',
+                          counterText: '',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      AmountKeypad(
+                        onKey: _submitting
+                            ? null
+                            : (key) => _setAmount(keypadAmount(_amount, key)),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          _error!,
+                          key: const Key('submit-error'),
+                          textAlign: TextAlign.center,
+                          style: villageText(fontSize: 13, color: c.merah),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: VillageButton(
+                      key: const Key('submit'),
+                      label: _ctaLabel(selected),
+                      onPressed: canSubmit ? () => _submit(selected) : null,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -260,15 +288,21 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
   }
 }
 
-/// Close button and the Setor title. Jajan is shown but disabled: it is
-/// outside SPEC section 4.
+enum _Tab { setor, jajan }
+
+/// Close button and the Setor / Jajan tabs. A null [onTab] locks the tabs
+/// while a save runs.
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.tab, required this.onTab});
+
+  final _Tab tab;
+  final ValueChanged<_Tab>? onTab;
 
   @override
   Widget build(BuildContext context) {
     final c = VillageColors.of(context);
     final radius = BorderRadius.circular(16);
+    final onTab = this.onTab;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Row(
@@ -293,14 +327,22 @@ class _Header extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              'Setor',
-              textAlign: TextAlign.center,
-              style: villageText(
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-                color: c.ink,
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (final (i, (value, label)) in const [
+                  (_Tab.setor, 'Setor'),
+                  (_Tab.jajan, 'Jajan'),
+                ].indexed) ...[
+                  if (i > 0) const SizedBox(width: 6),
+                  VillageChip(
+                    key: Key('tab-${value.name}'),
+                    label: label,
+                    selected: tab == value,
+                    onTap: onTab == null ? null : () => onTab(value),
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(width: 44),

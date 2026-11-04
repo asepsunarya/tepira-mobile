@@ -13,14 +13,16 @@ abstract interface class SessionStore {
   Future<void> clear();
 }
 
+/// The platform keychain/keystore with the options every secure value in
+/// the app uses, so all keys live in the same Android backend.
+const FlutterSecureStorage kSecureStorage = FlutterSecureStorage(
+  aOptions: AndroidOptions(encryptedSharedPreferences: true),
+);
+
 /// [SessionStore] backed by the platform keychain/keystore. The token never
 /// goes to SharedPreferences or logs (SPEC section 9).
 class SecureSessionStore implements SessionStore {
-  const SecureSessionStore([
-    this._storage = const FlutterSecureStorage(
-      aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    ),
-  ]);
+  const SecureSessionStore([this._storage = kSecureStorage]);
 
   static const tokenKey = 'tepira.session.token';
   static const userKey = 'tepira.session.user';

@@ -1,0 +1,73 @@
+{
+  "ok": true,
+  "expense": {
+    "id": 499,
+    "amount": 30000,
+    "category": "Makan harian",
+    "note": null,
+    "source": "gaji",
+    "date": "2026-11-01T05:30:00.000Z",
+    "createdAt": "2026-11-01T05:30:02.000Z",
+    "walletId": 9,
+    "walletName": "Kartu Kredit",
+    "placeName": null
+  },
+  "wallets": [
+    {
+      "id": 3,
+      "name": "BCA",
+      "type": "bank",
+      "balance": 8275000,
+      "displayBalance": 8275000,
+      "isDebt": false,
+      "isReserved": false,
+      "description": null,
+      "sortOrder": 0,
+      "spentThisMonth": 0
+    },
+    {
+      "id": 9,
+      "name": "Kartu Kredit",
+      "type": "credit",
+      "balance": 1230000,
+      "displayBalance": -1230000,
+      "isDebt": true,
+      "isReserved": false,
+      "description": null,
+      "sortOrder": 2,
+      "spentThisMonth": 40000
+    }
+  ],
+  "today": {
+    "date": "2026-11-01",
+    "period": {
+      "year": 2026,
+      "month": 11,
+      "daysInMonth": 30,
+      "daysLeft": 30
+    },
+    "spent": {
+      "today": 55000,
+      "month": 55000
+    },
+    "savedThisMonth": 500000,
+    "budget": {
+      "status": "WITHIN_BUDGET",
+      "limit": 4500000,
+      "spent": 55000,
+      "remaining": 4445000
+    },
+    "safeToday": {
+      "basis": "budget",
+      "state": "ok",
+      "days": 30,
+      "allowance": 150000,
+      "spentToday": 55000,
+      "remaining": 95000
+    },
+    "wallets": {
+      "free": 7065000,
+      "reserved": 3000000
+    }
+  }
+}

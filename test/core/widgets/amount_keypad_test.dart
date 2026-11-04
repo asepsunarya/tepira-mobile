@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tepira_mobile/features/goals/widgets/amount_keypad.dart';
+import 'package:tepira_mobile/core/widgets/amount_keypad.dart';
 
 void main() {
   test('digits append, and zeros do not start an amount', () {

@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "deleted": {
+    "id": 497,
+    "amount": 15000
+  },
+  "wallet": null,
+  "today": {
+    "date": "2026-11-01",
+    "period": {
+      "year": 2026,
+      "month": 11,
+      "daysInMonth": 30,
+      "daysLeft": 30
+    },
+    "spent": {
+      "today": 10000,
+      "month": 10000
+    },
+    "savedThisMonth": 500000,
+    "budget": {
+      "status": "WITHIN_BUDGET",
+      "limit": 4500000,
+      "spent": 10000,
+      "remaining": 4490000
+    },
+    "safeToday": {
+      "basis": "budget",
+      "state": "ok",
+      "days": 30,
+      "allowance": 150000,
+      "spentToday": 10000,
+      "remaining": 140000
+    },
+    "wallets": {
+      "free": 7095000,
+      "reserved": 3000000
+    }
+  }
+}

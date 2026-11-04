@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "asOf": "2026-11-01T07:00:00.000Z",
+  "period": {
+    "year": 2026,
+    "month": 11
+  },
+  "total": 50000,
+  "count": 3,
+  "more": false,
+  "expenses": [
+    {
+      "id": 499,
+      "amount": 25000,
+      "category": "Makan harian",
+      "note": "nasi padang",
+      "source": "gaji",
+      "date": "2026-11-01T05:30:00.000Z",
+      "createdAt": "2026-11-01T05:30:02.000Z",
+      "walletId": 3,
+      "walletName": "BCA",
+      "placeName": null
+    },
+    {
+      "id": 498,
+      "amount": 10000,
+      "category": "Transport",
+      "note": null,
+      "source": "gaji",
+      "date": "2026-11-01T01:15:00.000Z",
+      "createdAt": "2026-11-01T01:15:04.000Z",
+      "walletId": 9,
+      "walletName": "Kartu Kredit",
+      "placeName": null
+    },
+    {
+      "id": 497,
+      "amount": 15000,
+      "category": "Transport",
+      "note": "ojek (dompet sudah dihapus)",
+      "source": "gaji",
+      "date": "2026-10-31T23:40:00.000Z",
+      "createdAt": "2026-10-31T23:40:05.000Z",
+      "walletId": null,
+      "walletName": null,
+      "placeName": null
+    }
+  ]
+}

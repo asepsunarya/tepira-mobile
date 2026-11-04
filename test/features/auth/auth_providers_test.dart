@@ -5,14 +5,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/data/api_client.dart';
 import 'package:tepira_mobile/data/auth/auth_repository.dart';
+import 'package:tepira_mobile/data/expenses/last_expense_wallet_store.dart';
 import 'package:tepira_mobile/features/auth/auth_providers.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_last_expense_wallet_store.dart';
 import '../../helpers/fake_session_store.dart';
 
-ProviderContainer _container(FakeAuthRepository repository) {
+ProviderContainer _container(
+  FakeAuthRepository repository, {
+  FakeLastExpenseWalletStore? lastWallet,
+}) {
   final container = ProviderContainer(
-    overrides: [authRepositoryProvider.overrideWithValue(repository)],
+    overrides: [
+      authRepositoryProvider.overrideWithValue(repository),
+      lastExpenseWalletStoreProvider
+          .overrideWithValue(lastWallet ?? FakeLastExpenseWalletStore()),
+    ],
   );
   addTearDown(container.dispose);
   return container;
@@ -94,6 +103,36 @@ void main() {
     expect(container.read(authStateProvider), const AuthSignedOut());
     expect(store.token, isNull);
     expect(store.userJson, isNull);
+  });
+
+  test('signOut forgets the last Jajan wallet', () async {
+    final lastWallet = FakeLastExpenseWalletStore(9);
+    final container = _container(
+      FakeAuthRepository(restoredUser: testUser),
+      lastWallet: lastWallet,
+    );
+    await _settled(container);
+
+    await container.read(authStateProvider.notifier).signOut();
+
+    expect(lastWallet.clearCalls, 1);
+    expect(await lastWallet.read(), isNull);
+  });
+
+  test('an expired session forgets the last Jajan wallet too', () async {
+    final lastWallet = FakeLastExpenseWalletStore(9);
+    final container = _container(
+      FakeAuthRepository(restoredUser: testUser),
+      lastWallet: lastWallet,
+    );
+    await _settled(container);
+
+    container.read(unauthorizedEventsProvider).notify();
+    await _settled(container);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(lastWallet.clearCalls, 1);
+    expect(await lastWallet.read(), isNull);
   });
 
   group('unauthorized event', () {

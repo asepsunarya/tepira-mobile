@@ -107,6 +107,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: GoalRoutes.record,
         builder: (context, state) => ContributeScreen(
           goalParam: state.uri.queryParameters[GoalRoutes.recordGoalParam],
+          tabParam: state.uri.queryParameters[ExpenseRoutes.tabParam],
         ),
       ),
       GoRoute(

@@ -46,3 +46,15 @@ abstract final class WalletRoutes {
   /// [GoalRoutes.parseId], because the server's path ids are the same.
   static int? parseId(String raw) => GoalRoutes.parseId(raw);
 }
+
+/// The Jajan tab of the Catat screen (SPEC-v2 §4 `expenses`, artboard
+/// TambahSetoran): `/record?tab=jajan`.
+abstract final class ExpenseRoutes {
+  /// Query parameter of [GoalRoutes.record] that picks the tab.
+  static const String tabParam = 'tab';
+
+  /// [tabParam] value of the Jajan tab; any other value opens Setor.
+  static const String jajanTab = 'jajan';
+
+  static const String record = '${GoalRoutes.record}?$tabParam=$jajanTab';
+}

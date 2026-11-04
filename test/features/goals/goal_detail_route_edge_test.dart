@@ -6,9 +6,11 @@ import 'package:tepira_mobile/data/auth/auth_repository.dart';
 import 'package:tepira_mobile/data/goals/goals_repository.dart';
 import 'package:tepira_mobile/features/goals/goal_detail_screen.dart';
 import 'package:tepira_mobile/features/goals/model/goal.dart';
+import 'package:tepira_mobile/data/today/today_repository.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_goals_repository.dart';
+import '../../helpers/fake_today_repository.dart';
 
 /// Independent edge cases for how the real router turns `/goal/:id` into a
 /// goal id (T8, 578adf7). The id comes from `GoalRoutes.parseId`: positive
@@ -30,6 +32,7 @@ void main() {
         authRepositoryProvider.overrideWithValue(
           FakeAuthRepository(restoredUser: testUser),
         ),
+        todayRepositoryProvider.overrideWithValue(FakeTodayRepository.budget()),
         goalsRepositoryProvider.overrideWithValue(goals),
       ],
     );

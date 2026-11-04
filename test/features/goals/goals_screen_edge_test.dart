@@ -11,8 +11,10 @@ import 'package:tepira_mobile/data/goals/goals_repository.dart';
 import 'package:tepira_mobile/features/goals/goals_screen.dart';
 import 'package:tepira_mobile/features/goals/model/goal.dart';
 import 'package:tepira_mobile/features/goals/widgets/goal_row.dart';
+import 'package:tepira_mobile/data/today/today_repository.dart';
 
 import '../../helpers/fake_goals_repository.dart';
+import '../../helpers/fake_today_repository.dart';
 
 /// Independent edge cases for the Desa screen (T7, cdaf758).
 Future<void> _pumpDesa(
@@ -44,7 +46,10 @@ Future<void> _pumpDesa(
   addTearDown(router.dispose);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [goalsRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        todayRepositoryProvider.overrideWithValue(FakeTodayRepository.budget()),
+        goalsRepositoryProvider.overrideWithValue(repository),
+      ],
       child:
           MaterialApp.router(theme: buildVillageTheme(), routerConfig: router),
     ),

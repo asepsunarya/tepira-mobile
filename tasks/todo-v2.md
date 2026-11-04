@@ -26,9 +26,9 @@ Selesai: digabung ke `main` `tepira` (PR #33, `4ca29a1`).
 - [x] T16 Layar Tambah/Ubah dompet (toggle dicadangkan) + test validasi
 
 ## Fase 7. Catat jajan dan angka harian
-- [ ] T17 `expenses` + `today` data + unit test
-- [ ] T18 Tab Jajan di layar Catat (dompet dicadangkan boleh, tidak pernah default) + widget test
-- [ ] T19 Kartu "Aman dipakai hari ini" di Desa + widget test
+- [x] T17 `expenses` + `today` data + unit test
+- [x] T18 Tab Jajan di layar Catat (dompet dicadangkan boleh, tidak pernah default) + widget test
+- [x] T19 Kartu "Aman dipakai hari ini" di Desa + widget test
 
 ## Fase 8. Riwayat
 - [ ] T20 Layar Riwayat (jajan) + widget test

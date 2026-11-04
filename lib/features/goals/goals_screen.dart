@@ -7,13 +7,16 @@ import '../../core/routes.dart';
 import '../../core/theme.dart';
 import '../../core/widgets/village_button.dart';
 import '../../core/widgets/village_card.dart';
+import '../today/today_providers.dart';
+import '../today/widgets/safe_today_card.dart';
 import 'goal_providers.dart';
 import 'model/goal.dart';
 import 'widgets/desa_skeleton.dart';
 import 'widgets/goal_row.dart';
 
-/// The Desa screen (`/`, artboard Main): a small HUD, the list of plots and
-/// a dock with the Desa tab and the Catat button. Pull down to reload.
+/// The Desa screen (`/`, artboard Main): a small HUD, the "Aman dipakai hari
+/// ini" card with this month's tiles, the list of plots and a dock with the
+/// Desa tab and the Catat button. Pull down to reload both.
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key, this.userName});
 
@@ -26,13 +29,19 @@ class GoalsScreen extends ConsumerWidget {
     final goals = ref.watch(goalsProvider);
     final notifier = ref.read(goalsProvider.notifier);
     final list = goals.valueOrNull;
+    Future<void> refresh() => Future.wait([
+          notifier.refresh(),
+          ref.read(todayProvider.notifier).refresh(),
+        ]);
 
     final Widget body;
     if (list != null && !goals.hasError) {
       body = _Refreshable(
-        onRefresh: notifier.refresh,
+        onRefresh: refresh,
         children: [
           _Hud(userName: userName, goals: list),
+          const SizedBox(height: 12),
+          const TodaySection(),
           const SizedBox(height: 12),
           if (list.isEmpty)
             _EmptyVillage(onReload: notifier.refresh)
@@ -42,8 +51,12 @@ class GoalsScreen extends ConsumerWidget {
       );
     } else if (goals.hasError && !goals.isLoading) {
       body = _Refreshable(
-        onRefresh: notifier.refresh,
-        children: [_LoadError(error: goals.error!, onRetry: notifier.refresh)],
+        onRefresh: refresh,
+        children: [
+          const TodaySection(),
+          const SizedBox(height: 12),
+          _LoadError(error: goals.error!, onRetry: notifier.refresh),
+        ],
       );
     } else {
       body = const DesaSkeleton();
@@ -299,7 +312,8 @@ class _LoadError extends StatelessWidget {
   }
 }
 
-/// Bottom dock: only the active Desa tab and the Catat button (SPEC 4).
+/// Bottom dock: only the active Desa tab and the Catat button, which opens
+/// the Jajan tab so a quick expense takes three taps (SPEC-v2 §4).
 class _Dock extends StatelessWidget {
   const _Dock();
 
@@ -336,7 +350,7 @@ class _Dock extends StatelessWidget {
                 key: const Key('record'),
                 icon: Icons.edit_note_rounded,
                 label: 'Catat',
-                onTap: () => context.push(GoalRoutes.record),
+                onTap: () => context.push(ExpenseRoutes.record),
               ),
             ],
           ),
