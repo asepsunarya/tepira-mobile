@@ -48,6 +48,52 @@ class WalletsNotifier extends AutoDisposeAsyncNotifier<WalletList> {
       ),
     );
   }
+
+  /// Puts the wallets an expense write returned into the list without
+  /// reloading. Expense answers carry no wallet totals, only the server's
+  /// new [free] and [reserved] (its `today.wallets`); the debts total moves
+  /// by the change in the returned debt wallets, and the assets total is
+  /// what keeps `free = assets - reserved - debts` true. A wallet the list
+  /// does not hold, or a list that is not loaded, means the list is stale,
+  /// so it reloads instead.
+  void applyExpenseWrite(
+    List<Wallet> written, {
+    required int free,
+    required int reserved,
+  }) {
+    final current = state.valueOrNull;
+    if (current == null || state.hasError) {
+      ref.invalidateSelf();
+      return;
+    }
+    final wallets = [...current.wallets];
+    var debts = current.totals.debts;
+    for (final wallet in written) {
+      final index = wallets.indexWhere((w) => w.id == wallet.id);
+      if (index < 0) {
+        ref.invalidateSelf();
+        return;
+      }
+      if (wallet.isDebt) {
+        debts -= wallet.displayBalance - wallets[index].displayBalance;
+      }
+      wallets[index] = wallet;
+    }
+    state = AsyncData(
+      WalletList(
+        asOf: current.asOf,
+        period: current.period,
+        wallets: List.unmodifiable(wallets),
+        totals: WalletTotals(
+          assets: free + reserved + debts,
+          debts: debts,
+          reserved: reserved,
+          netWorth: free + reserved,
+          free: free,
+        ),
+      ),
+    );
+  }
 }
 
 final walletsProvider =

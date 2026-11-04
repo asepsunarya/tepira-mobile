@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "deduped": true,
+  "expense": {
+    "id": 500,
+    "amount": 18000,
+    "category": "Makan harian",
+    "note": "bakso",
+    "source": "gaji",
+    "date": "2026-11-01T07:00:00.000Z",
+    "createdAt": "2026-11-01T07:00:00.000Z",
+    "walletId": 3,
+    "walletName": "BCA",
+    "placeName": null
+  },
+  "wallet": {
+    "id": 3,
+    "name": "BCA",
+    "type": "bank",
+    "balance": 8232000,
+    "displayBalance": 8232000,
+    "isDebt": false,
+    "isReserved": false,
+    "description": null,
+    "sortOrder": 0,
+    "spentThisMonth": 43000
+  },
+  "today": {
+    "date": "2026-11-01",
+    "period": {
+      "year": 2026,
+      "month": 11,
+      "daysInMonth": 30,
+      "daysLeft": 30
+    },
+    "spent": {
+      "today": 68000,
+      "month": 68000
+    },
+    "savedThisMonth": 500000,
+    "budget": {
+      "status": "WITHIN_BUDGET",
+      "limit": 4500000,
+      "spent": 68000,
+      "remaining": 4432000
+    },
+    "safeToday": {
+      "basis": "budget",
+      "state": "ok",
+      "days": 30,
+      "allowance": 150000,
+      "spentToday": 68000,
+      "remaining": 82000
+    },
+    "wallets": {
+      "free": 7052000,
+      "reserved": 3000000
+    }
+  }
+}
