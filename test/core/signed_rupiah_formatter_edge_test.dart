@@ -189,22 +189,23 @@ void main() {
     });
 
     test(
-      'forward delete (Del key) on a separator must not remove the digit '
-      'before the cursor',
+      'forward delete (Del key) on a separator removes the digit after it, '
+      'not the one before the cursor',
       () {
         // '1.500' with the cursor after '1' (offset 1). A hardware Delete key
         // removes the '.' to the right: Flutter sends '1500' with the cursor
-        // still at 1. Only the digits are regrouped, so the edit is a no-op
-        // on the amount and the cursor stays after the '1'.
+        // still at 1. The '5' after the separator is deleted instead, and the
+        // cursor stays after the '1'.
         final r = _f.formatEditUpdate(_at('1.500', 1), _at('1500', 1));
-        _expectValue(r, '1.500', 1);
+        _expectValue(r, '100', 1);
       },
     );
 
-    test('forward delete on a later separator keeps the digits', () {
-      // '1.234.567' cursor after '4' (offset 5), Delete removes the second '.'.
+    test('forward delete on a later separator removes the next digit', () {
+      // '1.234.567' cursor after '4' (offset 5), Delete removes the second
+      // '.', so the '5' goes: '1.23467' regroups to '123.467'.
       final r = _f.formatEditUpdate(_at('1.234.567', 5), _at('1.234567', 5));
-      _expectValue(r, '1.234.567', 5);
+      _expectValue(r, '123.467', 5);
     });
 
     test('selecting only the separator then backspace keeps the digits', () {

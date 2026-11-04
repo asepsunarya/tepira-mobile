@@ -53,22 +53,59 @@ void main() {
       _expectValue(second, '-123.567', 4);
     });
 
-    test('forward Delete on each separator keeps the amount', () {
+    test('forward Delete on each separator deletes the digit after it', () {
+      // Delete at offset 1 (before the first '.') deletes the '2'.
       final first = _f.formatEditUpdate(
         _at('1.234.567', 1),
         _at('1234.567', 1),
       );
-      _expectValue(first, '1.234.567', 1);
+      _expectValue(first, '134.567', 1);
+      // Delete at offset 5 (before the second '.') deletes the '5'.
       final second = _f.formatEditUpdate(
         _at('1.234.567', 5),
         _at('1.234567', 5),
       );
-      _expectValue(second, '1.234.567', 5);
+      _expectValue(second, '123.467', 5);
       final negative = _f.formatEditUpdate(
         _at('-1.234.567', 6),
         _at('-1.234567', 6),
       );
-      _expectValue(negative, '-1.234.567', 6);
+      _expectValue(negative, '-123.467', 6);
+    });
+
+    test('forward Delete right after a separator deletes the next digit', () {
+      // '1.|500' + Delete: Flutter sends '1.00' with the cursor at 2, which
+      // regroups to '100' with the cursor after the '1'.
+      final r = _f.formatEditUpdate(_at('1.500', 2), _at('1.00', 2));
+      _expectValue(r, '100', 1);
+    });
+
+    test('forward Delete onto a separator, then backspace onto one', () {
+      // Delete before the first '.' of '12.345.678' deletes the '3'.
+      final del = _f.formatEditUpdate(
+        _at('12.345.678', 2),
+        _at('12345.678', 2),
+      );
+      _expectValue(del, '1.245.678', 3);
+      // The backspace rule is unchanged: at offset 6 (after the second '.')
+      // it deletes the '5' before it.
+      final back = _f.formatEditUpdate(
+        _at('1.245.678', 6),
+        _at('1.245678', 5),
+      );
+      _expectValue(back, '124.678', 3);
+    });
+
+    test('forward Delete onto a separator with leading zeros left over', () {
+      // '1|.000' + Delete deletes a '0'; the result keeps the '1'.
+      final r = _f.formatEditUpdate(_at('1.000', 1), _at('1000', 1));
+      _expectValue(r, '100', 1);
+    });
+
+    test('the unsigned formatter also deletes the digit after a separator', () {
+      const positive = RupiahInputFormatter();
+      final r = positive.formatEditUpdate(_at('25.000', 2), _at('25000', 2));
+      _expectValue(r, '2.500', 3);
     });
 
     test('deleting a selection of separator plus digits', () {
