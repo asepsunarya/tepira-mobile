@@ -31,7 +31,7 @@ Selesai: digabung ke `main` `tepira` (PR #33, `4ca29a1`).
 - [x] T19 Kartu "Aman dipakai hari ini" di Desa + widget test
 
 ## Fase 8. Riwayat
-- [ ] T20 Layar Riwayat (jajan) + widget test
+- [x] T20 Layar Riwayat (jajan) + widget test
 - [ ] T21 Ubah dan hapus jajan + test
 - [ ] T22 Dock navigasi + test rute
 

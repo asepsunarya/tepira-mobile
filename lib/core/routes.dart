@@ -32,6 +32,9 @@ abstract final class GoalRoutes {
 /// Path of the Pengaturan screen (artboard Pengaturan).
 const String kSettingsPath = '/settings';
 
+/// Path of the Riwayat screen (SPEC-v2 §4 `expenses`, artboard Riwayat).
+const String kHistoryPath = '/history';
+
 /// Paths of the wallet screens (SPEC-v2 §4 `wallets`, artboards Dompet and
 /// TambahDompet).
 abstract final class WalletRoutes {

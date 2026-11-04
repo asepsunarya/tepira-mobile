@@ -6,6 +6,7 @@ import 'core/routes.dart';
 import 'core/theme.dart';
 import 'features/auth/auth_providers.dart';
 import 'features/auth/login_screen.dart';
+import 'features/expenses/history_screen.dart';
 import 'features/goals/contribute_screen.dart';
 import 'features/goals/goal_detail_screen.dart';
 import 'features/goals/goals_screen.dart';
@@ -113,6 +114,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: kSettingsPath,
         builder: (context, state) => const _Settings(),
+      ),
+      GoRoute(
+        path: kHistoryPath,
+        builder: (context, state) => const HistoryScreen(),
       ),
       GoRoute(
         path: WalletRoutes.list,

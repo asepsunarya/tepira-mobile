@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors.dart';
+import '../../core/wib.dart';
 import '../../data/expenses/expenses_repository.dart';
 import '../today/today_providers.dart';
 import '../wallets/wallet_providers.dart';
@@ -81,3 +82,27 @@ Duration? retryWaitOf(ServerException error) {
 }
 
 final expenseWriterProvider = Provider<ExpenseWriter>(ExpenseWriter.new);
+
+/// One WIB month of expenses for the Riwayat screen (`GET
+/// /api/mobile/expenses?year=&month=`), newest first. Disposed when no
+/// screen shows the month, so the next visit loads it fresh.
+class HistoryNotifier
+    extends AutoDisposeFamilyAsyncNotifier<ExpenseList, WibMonth> {
+  @override
+  Future<ExpenseList> build(WibMonth month) =>
+      ref.watch(expensesRepositoryProvider).list(month: month);
+
+  /// Reloads the month. A failure lands in the state as an error, not at
+  /// the caller.
+  Future<void> refresh() async {
+    ref.invalidateSelf();
+    try {
+      await future;
+    } on Object {
+      // Already exposed as AsyncError in the state.
+    }
+  }
+}
+
+final historyProvider = AsyncNotifierProvider.autoDispose
+    .family<HistoryNotifier, ExpenseList, WibMonth>(HistoryNotifier.new);
