@@ -248,6 +248,34 @@ void main() {
     expect(after.count, 4);
   });
 
+  test('a dedupe answer for a row not listed reloads the month', () async {
+    // The row was written after the month loaded (maybe through another
+    // channel), so the loaded total may already count it.
+    // The server's month also counts a row past those sent, so a local
+    // add (68.000, 4) would differ from the reload.
+    final reloaded = testExpenseList(
+      _november,
+      [fixtureExpenseCreated().expense, ...fixtureExpenseList().expenses],
+      total: 90000,
+      count: 5,
+    );
+    final s = _Setup(
+      FakeExpensesRepository(
+        listResults: [fixtureExpenseList(), reloaded],
+        createResults: [fixtureExpenseDeduped()],
+      ),
+    );
+    await s.loaded(_november);
+
+    await s.writer.create(_bakso);
+    final after = await s.loaded(_november);
+
+    expect(s.expenses.listed, [_november, _november]);
+    expect(_ids(after), [500, 499, 498, 497]);
+    expect(after.total, 90000);
+    expect(after.count, 5);
+  });
+
   test('a month nobody shows is not loaded by a write', () async {
     final s = _Setup(
       FakeExpensesRepository(

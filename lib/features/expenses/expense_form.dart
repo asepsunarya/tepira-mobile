@@ -64,7 +64,11 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
 
   /// The chosen WIB day (UTC midnight, as [wibDate]); null means today.
   DateTime? _day;
-  ExpenseSource _source = ExpenseSource.gaji;
+
+  /// The picked source. Null only when changing an expense whose stored
+  /// source the app does not know: no chip is selected and the stored
+  /// source is kept unless the user picks one.
+  ExpenseSource? _source = ExpenseSource.gaji;
   bool _showMore = false;
   bool _submitting = false;
   String? _error;
@@ -78,10 +82,9 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
       _category = original.category;
       _pickedWalletId = original.walletId;
       _day = wibDate(original.date);
-      _source = ExpenseSource.values.firstWhere(
-        (source) => source.wire == original.source,
-        orElse: () => ExpenseSource.gaji,
-      );
+      _source = ExpenseSource.values
+          .where((source) => source.wire == original.source)
+          .firstOrNull;
       _showMore = _source != ExpenseSource.gaji;
       // Simpan follows whether the note differs from the stored one.
       _note.addListener(_noteChanged);
@@ -174,7 +177,7 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
       walletId: wallet.id,
       category: _category,
       note: _note.text,
-      source: _source,
+      source: _source ?? ExpenseSource.gaji,
       day: day == null || day == _today ? null : wibDayKey(day),
     );
     final writer = ref.read(expenseWriterProvider);

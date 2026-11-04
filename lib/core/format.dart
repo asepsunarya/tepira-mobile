@@ -25,5 +25,8 @@ const List<String> _months = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
 ];
 
+/// The name of calendar [month] (1..12): 10 -> "Oktober".
+String formatMonthName(int month) => _months[month - 1];
+
 /// Formats a calendar month: (2026, 11) -> "November 2026".
 String formatMonthYear(int year, int month) => '${_months[month - 1]} $year';

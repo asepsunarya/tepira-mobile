@@ -12,6 +12,7 @@ import 'package:tepira_mobile/core/routes.dart';
 import 'package:tepira_mobile/core/theme.dart';
 import 'package:tepira_mobile/core/wib.dart';
 import 'package:tepira_mobile/core/widgets/village_button.dart';
+import 'package:tepira_mobile/core/widgets/village_chip.dart';
 import 'package:tepira_mobile/data/expenses/expense_dto.dart';
 import 'package:tepira_mobile/data/expenses/expenses_repository.dart';
 import 'package:tepira_mobile/data/expenses/last_expense_wallet_store.dart';
@@ -50,6 +51,7 @@ Future<void> _pump(
   String initialLocation = kHistoryPath,
   DateTime? now,
   Object? initialExtra,
+  FakeWalletsRepository? wallets,
 }) async {
   tester.view.physicalSize = const Size(390, 1400);
   tester.view.devicePixelRatio = 1;
@@ -80,8 +82,9 @@ Future<void> _pump(
     ProviderScope(
       overrides: [
         expensesRepositoryProvider.overrideWithValue(expenses),
-        walletsRepositoryProvider
-            .overrideWithValue(FakeWalletsRepository([fixtureWalletList()])),
+        walletsRepositoryProvider.overrideWithValue(
+          wallets ?? FakeWalletsRepository([fixtureWalletList()]),
+        ),
         todayRepositoryProvider.overrideWithValue(FakeTodayRepository.budget()),
         lastExpenseWalletStoreProvider
             .overrideWithValue(FakeLastExpenseWalletStore(11)),
@@ -566,6 +569,47 @@ void main() {
     });
   });
 
+  group('Ubah: wallet_not_found', () {
+    testWidgets('reloads the wallets, drops the pick and keeps the form',
+        (tester) async {
+      final wallets =
+          FakeWalletsRepository([fixtureWalletList(), fixtureWalletList()]);
+      final expenses = FakeExpensesRepository(
+        listResults: [fixtureExpenseList()],
+        updateResults: [
+          const BadRequestException(
+            code: 'wallet_not_found',
+            message: 'Dompet tidak ditemukan. Pilih dompet lain.',
+          ),
+        ],
+      );
+      await _pump(tester, expenses, wallets: wallets);
+
+      await _openEdit(tester, 499);
+      await tester.tap(find.byKey(const Key('wallet-picker')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('pick-wallet-11')));
+      await tester.pumpAndSettle();
+      await tester.tap(_submit);
+      await tester.pumpAndSettle();
+
+      expect(_sent(expenses), [
+        [
+          499,
+          {'walletId': 11},
+        ],
+      ]);
+      expect(
+        find.text('Dompet tidak ditemukan. Pilih dompet lain.'),
+        findsOneWidget,
+      );
+      expect(wallets.listCalls, 2);
+      expect(find.byType(ExpenseEditScreen), findsOneWidget);
+      expect(_submitLabel(tester), 'Pilih dompet dulu');
+      expect(_submitEnabled(tester), isFalse);
+    });
+  });
+
   group('Ubah: deep link fallback', () {
     testWidgets('an extra for another id shows the fallback', (tester) async {
       await _pump(
@@ -607,7 +651,7 @@ void main() {
     ExpenseList oddList() => testExpenseList(_november, [odd()]);
 
     testWidgets(
-      '[BUG skipped] opening it shows no change to save',
+      'opening it shows no change to save',
       (tester) async {
         final expenses = FakeExpensesRepository(listResults: [oddList()]);
         await _pump(tester, expenses);
@@ -617,12 +661,10 @@ void main() {
         expect(_submitLabel(tester), 'Belum ada perubahan');
         expect(_submitEnabled(tester), isFalse);
       },
-      skip: true, // BUG: an unknown source maps to gaji, so the untouched
-      // form already differs and Simpan says "Simpan perubahan".
     );
 
     testWidgets(
-      '[BUG skipped] changing only the amount does not overwrite the source',
+      'changing only the amount does not overwrite the source',
       (tester) async {
         final expenses = FakeExpensesRepository(
           listResults: [oddList()],
@@ -652,8 +694,90 @@ void main() {
           ],
         ]);
       },
-      skip: true, // BUG: sends {amount: 15000, source: gaji}, silently
-      // overwriting the stored source 'thr'.
     );
+
+    testWidgets('opens Lainnya with no source chip selected', (tester) async {
+      final expenses = FakeExpensesRepository(listResults: [oddList()]);
+      await _pump(tester, expenses);
+
+      await _openEdit(tester, 499);
+
+      for (final wire in ['gaji', 'bonus']) {
+        final chip = find.byKey(Key('source-$wire'));
+        expect(chip, findsOneWidget);
+        expect(tester.widget<VillageChip>(chip).selected, isFalse);
+      }
+    });
+
+    testWidgets('picking a source sends it', (tester) async {
+      final expenses = FakeExpensesRepository(
+        listResults: [oddList()],
+        updateResults: [
+          _updatedWith(
+            testExpense(
+              id: 499,
+              source: 'gaji',
+              date: DateTime.utc(2026, 11, 1, 5, 30),
+            ),
+          ),
+        ],
+      );
+      await _pump(tester, expenses);
+
+      await _openEdit(tester, 499);
+      await tester.tap(find.byKey(const Key('source-gaji')));
+      await tester.pump();
+      expect(_submitEnabled(tester), isTrue);
+      await tester.tap(_submit);
+      await tester.pumpAndSettle();
+
+      expect(_sent(expenses), [
+        [
+          499,
+          {'source': 'gaji'},
+        ],
+      ]);
+    });
+  });
+
+  group('Ubah: a bonus row', () {
+    testWidgets('changing only the amount sends just the amount',
+        (tester) async {
+      final bonus = testExpense(
+        id: 499,
+        source: 'bonus',
+        date: DateTime.utc(2026, 11, 1, 5, 30),
+      );
+      final expenses = FakeExpensesRepository(
+        listResults: [
+          testExpenseList(_november, [bonus]),
+        ],
+        updateResults: [
+          _updatedWith(
+            testExpense(
+              id: 499,
+              amount: 15000,
+              source: 'bonus',
+              date: DateTime.utc(2026, 11, 1, 5, 30),
+            ),
+          ),
+        ],
+      );
+      await _pump(tester, expenses);
+
+      await _openEdit(tester, 499);
+      expect(_submitEnabled(tester), isFalse);
+      await tester.tap(find.byKey(const Key('expense-chip-15000')));
+      await tester.pump();
+      await tester.tap(_submit);
+      await tester.pumpAndSettle();
+
+      expect(_sent(expenses), [
+        [
+          499,
+          {'amount': 15000},
+        ],
+      ]);
+    });
   });
 }

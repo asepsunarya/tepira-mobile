@@ -15,6 +15,7 @@ import 'package:tepira_mobile/features/auth/auth_providers.dart';
 import 'package:tepira_mobile/features/auth/login_screen.dart';
 import 'package:tepira_mobile/features/expenses/expense_edit_screen.dart';
 import 'package:tepira_mobile/features/expenses/history_screen.dart';
+import 'package:tepira_mobile/features/expenses/widgets/expense_action_sheet.dart';
 import 'package:tepira_mobile/features/goals/contribute_screen.dart';
 import 'package:tepira_mobile/features/goals/goal_detail_screen.dart';
 import 'package:tepira_mobile/features/goals/goals_screen.dart';
@@ -283,6 +284,19 @@ void main() {
 
       expect(find.byKey(const Key('expense-missing')), findsOneWidget);
       expect(find.byType(ContributeScreen), findsNothing);
+    });
+
+    testWidgets('the Riwayat row actions open above the dock', (tester) async {
+      await _signedIn(tester);
+      await _tap(tester, 'dock-riwayat');
+
+      await _tap(tester, 'expense-499');
+
+      final sheet = tester.element(find.byType(ExpenseActionSheet));
+      expect(
+        Navigator.of(sheet),
+        same(Navigator.of(sheet, rootNavigator: true)),
+      );
     });
 
     testWidgets('Riwayat Ubah opens the filled form through the router',

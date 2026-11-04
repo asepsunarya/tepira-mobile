@@ -233,6 +233,25 @@ void main() {
     expect(find.byType(ExpenseRow), findsNWidgets(3));
   });
 
+  testWidgets('a past month names itself above the total', (tester) async {
+    final october = testExpenseList(_october, [
+      testExpense(id: 400, amount: 12000, date: DateTime.utc(2026, 10, 9, 5)),
+    ]);
+    final repository = FakeExpensesRepository(
+      listResults: [fixtureExpenseList(), october, fixtureExpenseList()],
+    );
+    await _pumpRiwayat(tester, repository);
+    expect(_text(tester, 'history-total-label'), 'DIPAKAI BULAN INI');
+
+    await tester.tap(find.byKey(const Key('month-previous')));
+    await tester.pumpAndSettle();
+    expect(_text(tester, 'history-total-label'), 'DIPAKAI OKTOBER');
+
+    await tester.tap(find.byKey(const Key('month-next')));
+    await tester.pumpAndSettle();
+    expect(_text(tester, 'history-total-label'), 'DIPAKAI BULAN INI');
+  });
+
   testWidgets('January goes back to December of the year before',
       (tester) async {
     final repository = FakeExpensesRepository(

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors.dart';
@@ -25,7 +27,8 @@ class ExpenseWriter {
       () => _repository.create(expense),
     );
     applyWriteResult(result);
-    _history(WibMonth.of(result.expense.date))?.upsert(result.expense);
+    _history(WibMonth.of(result.expense.date))
+        ?.upsert(result.expense, deduped: result.deduped);
     return result;
   }
 
@@ -151,11 +154,19 @@ class HistoryNotifier
   /// exactly that row's change, so they stay the server's numbers without a
   /// reload. Without a loaded month it reloads instead; a reload in flight
   /// may have read the month before the write, so it is restarted.
-  void upsert(Expense expense) {
+  ///
+  /// A [deduped] create answer whose row is not listed is a row written
+  /// before (maybe through another channel, after the month loaded) that
+  /// the total may already count, so the month is reloaded instead.
+  void upsert(Expense expense, {bool deduped = false}) {
     final current = _loaded();
     if (current == null) return;
     final expenses = [...current.expenses];
     final index = expenses.indexWhere((e) => e.id == expense.id);
+    if (index < 0 && deduped) {
+      unawaited(refresh());
+      return;
+    }
     var total = current.total + expense.amount;
     var count = current.count;
     if (index < 0) {

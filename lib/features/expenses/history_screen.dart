@@ -46,6 +46,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Future<void> _openActions(Expense expense) async {
     final action = await showModalBottomSheet<ExpenseAction>(
       context: context,
+      // Above the dock, which the shell's navigator sits under.
+      useRootNavigator: true,
       builder: (context) => ExpenseActionSheet(expense: expense),
     );
     if (!mounted) return;
@@ -94,7 +96,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       body = _Refreshable(
         onRefresh: notifier.refresh,
         children: [
-          _MonthTotal(list: data),
+          _MonthTotal(list: data, current: month == _currentMonth),
           if (data.more) ...[
             const SizedBox(height: 8),
             Text(
@@ -283,9 +285,12 @@ class _MonthSwitcher extends StatelessWidget {
 /// The month's total and count, both from the server: they cover every
 /// expense of the month, also those past the 500 sent.
 class _MonthTotal extends StatelessWidget {
-  const _MonthTotal({required this.list});
+  const _MonthTotal({required this.list, required this.current});
 
   final ExpenseList list;
+
+  /// Whether [list] is the current WIB month; a past month is named.
+  final bool current;
 
   @override
   Widget build(BuildContext context) {
@@ -304,7 +309,10 @@ class _MonthTotal extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'DIPAKAI BULAN INI',
+                  current
+                      ? 'DIPAKAI BULAN INI'
+                      : 'DIPAKAI ${formatMonthName(list.period.month).toUpperCase()}',
+                  key: const Key('history-total-label'),
                   style: villageText(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
