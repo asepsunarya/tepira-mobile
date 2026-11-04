@@ -77,8 +77,14 @@ void main() {
         () => tester.tap(find.byKey(const Key('missing'))),
       ),
     );
-    expect(thrown, isNotNull);
-    expect(thrown, isNot(isA<FormatException>()));
+    expect(
+      thrown,
+      isA<FlutterError>().having(
+        (error) => error.message,
+        'message',
+        contains('could not find any matching widgets'),
+      ),
+    );
     expect(errors, isEmpty);
   });
 
