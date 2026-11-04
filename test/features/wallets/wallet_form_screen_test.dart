@@ -255,7 +255,7 @@ void main() {
 
       await tester.enterText(find.byKey(const Key('name')), 'Dompet');
       final errors = <Object>[];
-      await collectUncaught(
+      await collectUncaught<FormatException>(
         errors,
         () => tester.tap(find.byKey(const Key('submit'))),
       );

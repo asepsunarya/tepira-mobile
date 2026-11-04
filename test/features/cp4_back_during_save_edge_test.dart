@@ -465,7 +465,7 @@ void main() {
 
       await _tap(tester, const Key('chip-20000'));
       final errors = <Object>[];
-      await collectUncaught(
+      await collectUncaught<FormatException>(
         errors,
         () => _tap(tester, const Key('submit')),
       );
@@ -500,7 +500,7 @@ void main() {
 
       await _tap(tester, const Key('expense-chip-25000'));
       final errors = <Object>[];
-      await collectUncaught(
+      await collectUncaught<FormatException>(
         errors,
         () => _tap(tester, const Key('expense-submit')),
       );
@@ -534,7 +534,7 @@ void main() {
 
       await _tap(tester, const Key('expense-chip-15000'));
       final errors = <Object>[];
-      await collectUncaught(
+      await collectUncaught<FormatException>(
         errors,
         () => _tap(tester, const Key('expense-submit')),
       );
@@ -616,7 +616,10 @@ void main() {
 
       await _tap(tester, const Key('chip-20000'));
       final errors = <Object>[];
-      await collectUncaught(errors, () => _tap(tester, const Key('submit')));
+      await collectUncaught<FormatException>(
+        errors,
+        () => _tap(tester, const Key('submit')),
+      );
       goals.gate!.complete();
       await tester.pumpAndSettle();
       expect(errors, [isA<FormatException>()]);
