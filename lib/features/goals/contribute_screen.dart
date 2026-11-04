@@ -6,6 +6,7 @@ import '../../core/errors.dart';
 import '../../core/format.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../../core/widgets/amount_keypad.dart';
 import '../../core/widgets/village_button.dart';
 import '../../core/widgets/village_card.dart';
 import '../../core/widgets/village_chip.dart';
@@ -13,7 +14,6 @@ import '../../data/goals/goals_repository.dart';
 import '../expenses/expense_form.dart';
 import 'goal_providers.dart';
 import 'model/goal.dart';
-import '../../core/widgets/amount_keypad.dart';
 
 /// Amounts of the quick chips (SPEC section 4: 10, 20, 50 and 100 thousand).
 const List<int> kQuickAmounts = [10000, 20000, 50000, 100000];
