@@ -164,6 +164,13 @@ void main() {
         ['bank', 'e-wallet', 'cash', 'investment', 'other', 'kripto'],
       );
     });
+
+    test('an asset wallet stored as credit keeps credit selectable', () {
+      expect(
+        walletTypeChoices(testWallet(type: 'credit')),
+        ['bank', 'e-wallet', 'cash', 'investment', 'other', 'credit'],
+      );
+    });
   });
 
   test('walletIsDebt follows the type on create and the stored flag on edit',

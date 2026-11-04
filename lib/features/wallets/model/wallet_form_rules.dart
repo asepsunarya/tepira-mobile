@@ -96,13 +96,17 @@ String? walletBalanceError(
 /// of [kWalletTypes]; an asset wallet may not take a debt type
 /// ([kDebtWalletTypes]), the only type change the server refuses (a debt
 /// wallet stays debt whatever its type). The stored type stays selectable
-/// even when the app does not know it.
+/// whenever it would otherwise be missing: unknown to the app, or a debt type
+/// on a wallet the server keeps as an asset.
 List<String> walletTypeChoices(Wallet? original) {
   if (original == null) return kWalletTypes;
-  return [
+  final choices = [
     for (final type in kWalletTypes)
       if (original.isDebt || !kDebtWalletTypes.contains(type)) type,
-    if (!kWalletTypes.contains(original.type)) original.type,
+  ];
+  return [
+    ...choices,
+    if (!choices.contains(original.type)) original.type,
   ];
 }
 

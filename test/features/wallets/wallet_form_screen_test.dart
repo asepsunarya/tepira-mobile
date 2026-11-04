@@ -388,11 +388,16 @@ void main() {
 
     testWidgets('a debt wallet may change type but cannot be reserved',
         (tester) async {
-      await _pump(
-        tester,
-        FakeWalletsRepository([fixtureWalletList()]),
-        location: WalletRoutes.edit(9),
+      final repository = FakeWalletsRepository(
+        [fixtureWalletList()],
+        updateResults: [
+          WalletWrite(
+            wallet: testWallet(id: 9, type: 'cash', isDebt: true),
+            totals: _newTotals,
+          ),
+        ],
       );
+      await _pump(tester, repository, location: WalletRoutes.edit(9));
 
       expect(find.byKey(const Key('type-credit')), findsOneWidget);
       expect(find.byKey(const Key('type-paylater')), findsOneWidget);
@@ -404,6 +409,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Terutang saat ini'), findsOneWidget);
       expect(_reservedToggle(tester).onChanged, isNull);
+
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.pumpAndSettle();
+      expect(repository.updated.single.$2, {'type': 'cash'});
     });
 
     testWidgets('an asset wallet cannot become debt', (tester) async {

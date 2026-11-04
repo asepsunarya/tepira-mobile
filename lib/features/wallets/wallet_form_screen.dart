@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +11,7 @@ import '../../core/widgets/village_button.dart';
 import '../../core/widgets/village_card.dart';
 import '../../core/widgets/village_chip.dart';
 import '../../data/wallets/wallets_repository.dart';
+import 'model/signed_rupiah_formatter.dart';
 import 'model/wallet.dart';
 import 'model/wallet_form_rules.dart';
 import 'model/wallet_input.dart';
@@ -118,7 +118,7 @@ class _WalletFormState extends ConsumerState<_WalletForm> {
     final original = _original;
     _name = TextEditingController(text: original?.name ?? '');
     _balance = TextEditingController(
-      text: original == null ? '' : _groupDigits('${original.balance}'),
+      text: original == null ? '' : groupRupiahDigits('${original.balance}'),
     );
     _description = TextEditingController(text: original?.description ?? '');
     _type = original?.type ?? 'cash';
@@ -278,7 +278,7 @@ class _WalletFormState extends ConsumerState<_WalletForm> {
                     keyboardType: const TextInputType.numberWithOptions(
                       signed: true,
                     ),
-                    inputFormatters: const [_SignedRupiahFormatter()],
+                    inputFormatters: const [SignedRupiahFormatter()],
                     decoration: const InputDecoration(
                       prefixText: 'Rp ',
                       hintText: '0',
@@ -624,50 +624,6 @@ class _Label extends StatelessWidget {
           color: c.ink2,
         ),
       ),
-    );
-  }
-}
-
-/// [digits] grouped by thousands with `.`, keeping a leading `-`:
-/// `1500000` -> `1.500.000`, `-25000` -> `-25.000`.
-String _groupDigits(String digits) {
-  final negative = digits.startsWith('-');
-  final plain = negative ? digits.substring(1) : digits;
-  final grouped = StringBuffer(negative ? '-' : '');
-  for (var i = 0; i < plain.length; i++) {
-    if (i > 0 && (plain.length - i) % 3 == 0) grouped.write('.');
-    grouped.write(plain[i]);
-  }
-  return grouped.toString();
-}
-
-/// Keeps a leading `-` and the digits, grouped by thousands with `.`. An
-/// asset may be overdrawn and an old debt wallet may be stored negative, so
-/// the sign must survive; whether it is allowed is the validator's call.
-///
-/// Amounts are read the Indonesian way: `.` groups thousands and `,` starts a
-/// fraction, which is dropped because rupiah are whole. A pasted
-/// `1.500.000,50` (or `Rp1.500.000,-`) becomes `1.500.000`; the decimal part
-/// never joins the digits and inflates the amount.
-class _SignedRupiahFormatter extends TextInputFormatter {
-  const _SignedRupiahFormatter();
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final raw = newValue.text.trim();
-    final negative = raw.startsWith('-');
-    final comma = raw.indexOf(',');
-    final whole = comma < 0 ? raw : raw.substring(0, comma);
-    final digits = whole
-        .replaceAll(RegExp(r'[^0-9]'), '')
-        .replaceFirst(RegExp(r'^0+(?=[0-9])'), '');
-    final text = _groupDigits('${negative ? '-' : ''}$digits');
-    return TextEditingValue(
-      text: text,
-      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }

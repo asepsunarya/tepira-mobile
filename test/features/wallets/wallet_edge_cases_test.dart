@@ -12,6 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/core/routes.dart';
 import 'package:tepira_mobile/core/theme.dart';
+import 'package:tepira_mobile/core/widgets/village_chip.dart';
 import 'package:tepira_mobile/data/wallets/wallets_repository.dart';
 import 'package:tepira_mobile/features/wallets/model/wallet.dart';
 import 'package:tepira_mobile/features/wallets/model/wallet_form_rules.dart';
@@ -576,10 +577,8 @@ void main() {
           await tester.tap(find.byKey(const Key('submit')));
           await tester.pumpAndSettle();
 
-          // Either refused, or sent as 1500000 — never 150000050.
-          if (repository.created.isNotEmpty) {
-            expect(repository.created.single.balance, isNot(150000050));
-          }
+          // The fraction is dropped, never joined: 1500000, not 150000050.
+          expect(repository.created.single.balance, 1500000);
         },
       );
     });
@@ -609,6 +608,12 @@ void main() {
             location: WalletRoutes.edit(12),
           );
           expect(find.byKey(const Key('type-other')), findsOneWidget);
+          expect(
+            tester
+                .widget<VillageChip>(find.byKey(const Key('type-other')))
+                .selected,
+            isTrue,
+          );
         },
       );
     });
