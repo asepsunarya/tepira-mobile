@@ -22,8 +22,14 @@ class TodayNotifier extends AutoDisposeAsyncNotifier<TodaySummary> {
   }
 
   /// Shows the `today` an expense write returned, computed by the server
-  /// after the write, instead of reloading.
-  void applySummary(TodaySummary summary) => state = AsyncData(summary);
+  /// after the write, instead of reloading. If a load is in flight its GET
+  /// may predate the write, so it is restarted: the newer numbers show now
+  /// and the stale answer can never replace them.
+  void applySummary(TodaySummary summary) {
+    final loading = state.isLoading;
+    state = AsyncData(summary);
+    if (loading) ref.invalidateSelf();
+  }
 }
 
 final todayProvider =
