@@ -78,8 +78,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       message = 'Jajan ${formatRupiah(expense.amount)} dihapus';
     } on AppException catch (error) {
       message = error.message;
+    } finally {
+      // Any failure, including an unexpected error, frees the row again.
+      if (mounted) setState(() => _deleting.remove(expense.id));
     }
-    if (mounted) setState(() => _deleting.remove(expense.id));
     messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 

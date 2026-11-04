@@ -25,6 +25,7 @@ import '../../helpers/fake_expenses_repository.dart';
 import '../../helpers/fake_last_expense_wallet_store.dart';
 import '../../helpers/fake_today_repository.dart';
 import '../../helpers/fake_wallets_repository.dart';
+import '../../helpers/uncaught_errors.dart';
 
 /// 2026-11-01 14:00 WIB, the contract's clock.
 final _now = DateTime.utc(2026, 11, 1, 7);
@@ -228,6 +229,33 @@ void main() {
       expenses.deleteGate!.complete();
       await tester.pumpAndSettle();
       expect(expenses.deleted, [499]);
+    });
+
+    testWidgets('an unexpected delete error frees the row again',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        listResults: [fixtureExpenseList()],
+        deleteResults: [
+          const FormatException('boom'),
+          expenseDeletedFromJson(readFixture('mobile_expense_deleted')),
+        ],
+      )..deleteGate = Completer<void>();
+      await _pump(tester, expenses);
+
+      // The delete runs on from the row tap, so collect from there on.
+      final errors = <Object>[];
+      await collectUncaught(errors, () => _confirmDelete(tester, 499));
+      expect(find.byKey(const ValueKey('expense-499')), findsOneWidget);
+      expenses.deleteGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(expenses.deleted, [499]);
+
+      // The row takes taps again, and a second delete is sent.
+      await _confirmDelete(tester, 499);
+      expect(tester.takeException(), isNull);
+      expect(expenses.deleted, [499, 499]);
+      expect(find.byKey(const ValueKey('expense-499')), findsNothing);
     });
 
     testWidgets('a delete of a row already gone says so and reloads',
@@ -592,6 +620,32 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ExpenseRow), findsNWidgets(3));
+    });
+  });
+
+  // PR #25 independent pass: a rejected delete frees the row, and a second
+  // delete then succeeds.
+  group('Riwayat delete error then success', () {
+    testWidgets('a rejected delete, then a retry that succeeds',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        listResults: [fixtureExpenseList()],
+        deleteResults: [
+          const ApiException('Gagal menghapus'),
+          expenseDeletedFromJson(readFixture('mobile_expense_deleted')),
+        ],
+      );
+      await _pump(tester, expenses);
+
+      await _confirmDelete(tester, 499);
+      expect(find.text('Gagal menghapus'), findsOneWidget);
+      expect(find.byKey(const ValueKey('expense-499')), findsOneWidget);
+      expect(expenses.deleted, [499]);
+
+      await _confirmDelete(tester, 499);
+      expect(tester.takeException(), isNull);
+      expect(expenses.deleted, [499, 499]);
+      expect(find.byKey(const ValueKey('expense-499')), findsNothing);
     });
   });
 }

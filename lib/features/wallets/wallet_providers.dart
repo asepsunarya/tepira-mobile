@@ -63,7 +63,10 @@ class WalletsNotifier extends AutoDisposeAsyncNotifier<WalletList> {
     required int free,
     required int reserved,
   }) {
-    // SPEC-v2 §9: optimistic, reconciled via summarizeWallets / reload below.
+    // SPEC-v2 §9 (Never): client-side wallet totals are not the source of
+    // truth. [free] and [reserved] come from the server's answer; the totals
+    // derived here are only checked against summarizeWallets over the local
+    // list, and any mismatch or stale list reloads from the server instead.
     final current = state.valueOrNull;
     if (current == null || state.hasError) {
       ref.invalidateSelf();

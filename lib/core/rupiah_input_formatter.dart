@@ -23,10 +23,11 @@ String groupRupiahDigits(String digits) {
 /// never joins the digits and inflates the amount. A single `,` typed into
 /// the field is ignored instead, so it cannot wipe the digits after it.
 ///
-/// The cursor stays after the same digit it followed before regrouping, and
-/// a backspace onto a `.` separator deletes the digit before it. Removing a
-/// separator any other way (forward Delete, or a selection of just the `.`)
-/// only regroups the digits, so the amount is unchanged.
+/// The cursor stays after the same digit it followed before regrouping. A
+/// backspace onto a `.` separator deletes the digit before it, and a forward
+/// Delete onto one deletes the digit after it, so neither key seems to do
+/// nothing. Removing a selection of just the `.` only regroups the digits,
+/// so the amount is unchanged.
 class RupiahInputFormatter extends TextInputFormatter {
   const RupiahInputFormatter({this.allowNegative = false});
 
@@ -52,6 +53,13 @@ class RupiahInputFormatter extends TextInputFormatter {
       // Backspace onto a separator: delete the digit it grouped instead.
       text = text.substring(0, cursor - 1) + text.substring(cursor);
       cursor -= 1;
+    } else if (oldSelection.isCollapsed &&
+        oldSelection.extentOffset == cursor &&
+        _removedOnly(oldValue.text, text, cursor, '.') &&
+        cursor < text.length &&
+        _isDigit(text[cursor])) {
+      // Forward Delete onto a separator: delete the digit after it instead.
+      text = text.substring(0, cursor) + text.substring(cursor + 1);
     } else if (cursor > 0 &&
         text[cursor - 1] == ',' &&
         _removedOnly(text, oldValue.text, cursor - 1, ',')) {

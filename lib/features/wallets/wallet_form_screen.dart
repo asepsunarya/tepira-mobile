@@ -177,8 +177,10 @@ class _WalletFormState extends ConsumerState<_WalletForm> {
 
     setState(() => _submitting = true);
     final WalletWrite write;
+    var saved = false;
     try {
       write = await request();
+      saved = true;
     } on AppException catch (error) {
       if (!mounted) return;
       final uncertain = original == null &&
@@ -187,11 +189,13 @@ class _WalletFormState extends ConsumerState<_WalletForm> {
         ref.read(walletsProvider.notifier).refresh();
       }
       setState(() {
-        _submitting = false;
         _submitError =
             uncertain ? kWalletCreateUncertainMessage : error.message;
       });
       return;
+    } finally {
+      // Any failure, including an unexpected error, unblocks the form.
+      if (!saved && mounted) setState(() => _submitting = false);
     }
     if (!mounted) return;
     if (ref.exists(walletsProvider)) {
