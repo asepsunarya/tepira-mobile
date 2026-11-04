@@ -75,6 +75,26 @@ jobs:
           path: build/app/outputs/flutter-apk/tepira-*.apk
           if-no-files-found: error
 
+      # Per-ABI APKs: the fat APK exceeds WhatsApp's 50 MB limit, so also ship
+      # a standalone arm64-v8a APK (covers nearly all current Android phones).
+      # Staged outside flutter-apk/ so it never matches the fat artifact glob.
+      - name: Build split-per-ABI APKs
+        run: |
+          flutter build apk --release --split-per-abi \
+            --dart-define=TEPIRA_API_BASE_URL="$TEPIRA_API_BASE_URL" \
+            --dart-define=TEPIRA_GOOGLE_SERVER_CLIENT_ID="$TEPIRA_GOOGLE_SERVER_CLIENT_ID" \
+            --dart-define=TEPIRA_GOOGLE_IOS_CLIENT_ID="$TEPIRA_GOOGLE_IOS_CLIENT_ID"
+          mkdir -p build/apk-split
+          mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
+            "build/apk-split/tepira-arm64-${GITHUB_SHA::7}.apk"
+          ls -l build/apk-split
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tepira-arm64-${{ github.sha }}
+          path: build/apk-split/tepira-arm64-*.apk
+          if-no-files-found: error
+
       - name: Remove signing material
         if: always()
         run: rm -f android/app/upload-keystore.jks android/key.properties
