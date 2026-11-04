@@ -21,6 +21,33 @@ class WalletsNotifier extends AutoDisposeAsyncNotifier<WalletList> {
       // Already exposed as AsyncError in the state.
     }
   }
+
+  /// Puts a create or update answer into the list without reloading: the
+  /// written wallet replaces the one with its id, or is appended (the server
+  /// gives a new wallet the last `sortOrder`), and the totals become the
+  /// server's new ones. Without a loaded list it reloads instead.
+  void applyWrite(WalletWrite write) {
+    final current = state.valueOrNull;
+    if (current == null || state.hasError) {
+      ref.invalidateSelf();
+      return;
+    }
+    final wallets = [...current.wallets];
+    final index = wallets.indexWhere((w) => w.id == write.wallet.id);
+    if (index < 0) {
+      wallets.add(write.wallet);
+    } else {
+      wallets[index] = write.wallet;
+    }
+    state = AsyncData(
+      WalletList(
+        asOf: current.asOf,
+        period: current.period,
+        wallets: List.unmodifiable(wallets),
+        totals: write.totals,
+      ),
+    );
+  }
 }
 
 final walletsProvider =

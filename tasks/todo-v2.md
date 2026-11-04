@@ -23,7 +23,7 @@ Selesai: digabung ke `main` `tepira` (PR #33, `4ca29a1`).
 
 ## Fase 6. Dompet
 - [x] T15 Layar Dompet (termasuk kelompok Dana dicadangkan, Uang bebas di kepala) + widget test
-- [ ] T16 Layar Tambah/Ubah dompet (toggle dicadangkan) + test validasi
+- [x] T16 Layar Tambah/Ubah dompet (toggle dicadangkan) + test validasi
 
 ## Fase 7. Catat jajan dan angka harian
 - [ ] T17 `expenses` + `today` data + unit test
