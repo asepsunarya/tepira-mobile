@@ -99,6 +99,26 @@ void main() {
         expect(categoryLabelOf(c.key), c.label);
       }
     });
+
+    test('matches keys exactly: no trimming or case folding', () {
+      expect(categoryLabelOf(''), '');
+      expect(categoryLabelOf('TRANSPORT'), 'TRANSPORT');
+      expect(categoryLabelOf(' transport'), ' transport');
+      expect(categoryLabelOf('transport '), 'transport ');
+    });
+
+    test('no web key equals a label, so the mapping is unambiguous', () {
+      final labels = kExpenseCategories.map((c) => c.label).toSet();
+      for (final c in kExpenseCategories) {
+        expect(labels.contains(c.key), isFalse, reason: c.key);
+      }
+    });
+
+    test('is idempotent', () {
+      for (final c in kExpenseCategories) {
+        expect(categoryLabelOf(categoryLabelOf(c.key)), c.label);
+      }
+    });
   });
 
   test('categoriesByGroup keeps list order', () {

@@ -1,0 +1,454 @@
+// Edge cases for the CP4 follow-ups: Android back (PopScope) while a save
+// runs on Setor, Jajan and the expense edit form, and the legacy-row
+// "unchanged" detection of the edit form.
+//
+// Every screen is opened on top of a '/' -> '/mid' stack, so a save that
+// pops twice would land on '/' instead of '/mid'.
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:tepira_mobile/core/clock.dart';
+import 'package:tepira_mobile/core/errors.dart';
+import 'package:tepira_mobile/core/routes.dart';
+import 'package:tepira_mobile/core/theme.dart';
+import 'package:tepira_mobile/core/widgets/village_button.dart';
+import 'package:tepira_mobile/core/widgets/village_chip.dart';
+import 'package:tepira_mobile/data/expenses/expense_dto.dart';
+import 'package:tepira_mobile/data/expenses/expenses_repository.dart';
+import 'package:tepira_mobile/data/expenses/last_expense_wallet_store.dart';
+import 'package:tepira_mobile/data/goals/goals_repository.dart';
+import 'package:tepira_mobile/data/today/today_repository.dart';
+import 'package:tepira_mobile/data/wallets/wallets_repository.dart';
+import 'package:tepira_mobile/features/expenses/expense_edit_screen.dart';
+import 'package:tepira_mobile/features/expenses/model/expense.dart';
+import 'package:tepira_mobile/features/goals/contribute_screen.dart';
+
+import '../helpers/fake_expenses_repository.dart';
+import '../helpers/fake_goals_repository.dart';
+import '../helpers/fake_last_expense_wallet_store.dart';
+import '../helpers/fake_today_repository.dart';
+import '../helpers/fake_wallets_repository.dart';
+
+/// 2026-11-01 14:00 WIB, the contract's clock.
+final _now = DateTime.utc(2026, 11, 1, 7);
+
+/// Goals fake whose [contribute] is gated and may throw per call.
+class _Goals extends FakeGoalsRepository {
+  _Goals({this.errors = const []})
+      : super([
+          [testGoal()],
+        ]);
+
+  final List<Exception?> errors;
+  final List<int> amounts = [];
+  Completer<void>? gate;
+
+  @override
+  Future<void> contribute(int goalId, int amount, [String? note]) async {
+    final call = amounts.length;
+    amounts.add(amount);
+    await gate?.future;
+    final error = call < errors.length ? errors[call] : null;
+    if (error != null) throw error;
+  }
+}
+
+ExpenseUpdated _updatedWith(Expense expense) {
+  final base = expenseUpdatedFromJson(readFixture('mobile_expense_updated'));
+  return ExpenseUpdated(
+    expense: expense,
+    wallets: base.wallets,
+    today: base.today,
+  );
+}
+
+Expense _row({
+  int amount = 25000,
+  String? category = 'Makan harian',
+  String? note = 'nasi padang',
+}) =>
+    testExpense(
+      id: 499,
+      amount: amount,
+      category: category,
+      note: note,
+      date: DateTime.utc(2026, 11, 1, 5, 30),
+    );
+
+Future<void> _pump(
+  WidgetTester tester, {
+  required String location,
+  Object? extra,
+  _Goals? goals,
+  FakeExpensesRepository? expenses,
+}) async {
+  tester.view.physicalSize = const Size(390, 1400);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  final router = GoRouter(
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const Scaffold(body: Text('root')),
+      ),
+      GoRoute(
+        path: '/mid',
+        builder: (context, state) => const Scaffold(body: Text('mid')),
+      ),
+      GoRoute(
+        path: GoalRoutes.detailPattern,
+        builder: (context, state) => Scaffold(body: Text('goal ${state.uri}')),
+      ),
+      GoRoute(
+        path: kHistoryPath,
+        builder: (context, state) => const Scaffold(body: Text('history')),
+      ),
+      GoRoute(
+        path: GoalRoutes.record,
+        builder: (context, state) {
+          final query = state.uri.queryParameters;
+          if (query.containsKey(ExpenseRoutes.expenseParam)) {
+            final extra = state.extra;
+            return ExpenseEditScreen(expense: extra is Expense ? extra : null);
+          }
+          return ContributeScreen(
+            goalParam: query[GoalRoutes.recordGoalParam],
+            tabParam: query[ExpenseRoutes.tabParam],
+          );
+        },
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        goalsRepositoryProvider.overrideWithValue(goals ?? _Goals()),
+        expensesRepositoryProvider.overrideWithValue(
+          expenses ??
+              FakeExpensesRepository(createResults: [fixtureExpenseCreated()]),
+        ),
+        walletsRepositoryProvider
+            .overrideWithValue(FakeWalletsRepository([fixtureWalletList()])),
+        todayRepositoryProvider.overrideWithValue(FakeTodayRepository.budget()),
+        lastExpenseWalletStoreProvider
+            .overrideWithValue(FakeLastExpenseWalletStore(11)),
+        clockProvider.overrideWithValue(() => _now),
+      ],
+      child:
+          MaterialApp.router(theme: buildVillageTheme(), routerConfig: router),
+    ),
+  );
+  await tester.runAsync(GoogleFonts.pendingFonts);
+  await tester.pumpAndSettle();
+  unawaited(router.push('/mid'));
+  await tester.pumpAndSettle();
+  unawaited(router.push(location, extra: extra));
+  await tester.pumpAndSettle();
+}
+
+/// Sends Android back and lets any route transition finish.
+Future<void> _back(WidgetTester tester) async {
+  await tester.binding.handlePopRoute();
+  await tester.pump(const Duration(seconds: 1));
+  await tester.pump();
+}
+
+Future<void> _tap(WidgetTester tester, Key key) async {
+  await tester.ensureVisible(find.byKey(key));
+  await tester.tap(find.byKey(key));
+  await tester.pump();
+}
+
+final _expenseSubmit = find.byKey(const Key('expense-submit'));
+
+String _expenseLabel(WidgetTester tester) => tester
+    .widget<Text>(
+      find.descendant(of: _expenseSubmit, matching: find.byType(Text)),
+    )
+    .data!;
+
+bool _expenseEnabled(WidgetTester tester) =>
+    tester.widget<VillageButton>(_expenseSubmit).onPressed != null;
+
+void _expectOnMid(WidgetTester tester) {
+  expect(find.text('mid'), findsOneWidget);
+  expect(find.text('root'), findsNothing);
+  expect(find.byType(ContributeScreen), findsNothing);
+  expect(find.byType(ExpenseEditScreen), findsNothing);
+  expect(tester.takeException(), isNull);
+}
+
+void main() {
+  group('Setor: back during a deposit', () {
+    testWidgets('blocked while running; success pops exactly once',
+        (tester) async {
+      final goals = _Goals()..gate = Completer<void>();
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      await _tap(tester, const Key('submit'));
+      await _back(tester);
+
+      expect(find.byType(ContributeScreen), findsOneWidget);
+      expect(goals.amounts, [20000]);
+
+      goals.gate!.complete();
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(goals.amounts, [20000]);
+    });
+
+    testWidgets('a rejected deposit re-enables back', (tester) async {
+      final goals = _Goals(errors: [const ApiException('Nominal tidak valid')])
+        ..gate = Completer<void>();
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      await _tap(tester, const Key('submit'));
+      await _back(tester);
+      expect(find.byType(ContributeScreen), findsOneWidget);
+
+      goals.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(ContributeScreen), findsOneWidget);
+      expect(find.text('Nominal tidak valid'), findsOneWidget);
+
+      await _back(tester);
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+    });
+
+    testWidgets('an uncertain (network) deposit re-enables back',
+        (tester) async {
+      final goals = _Goals(errors: [const NetworkException()])
+        ..gate = Completer<void>();
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      await _tap(tester, const Key('submit'));
+      await _back(tester);
+      expect(find.byType(ContributeScreen), findsOneWidget);
+
+      goals.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(ContributeScreen), findsOneWidget);
+
+      await _back(tester);
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+    });
+  });
+
+  group('Jajan tab: back during Simpan', () {
+    testWidgets('a failed save re-enables back', (tester) async {
+      final expenses = FakeExpensesRepository(
+        createResults: [const ApiException('Gagal menyimpan')],
+      )..createGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.record,
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-25000'));
+      await _tap(tester, const Key('expense-submit'));
+      await _back(tester);
+      expect(find.byType(ContributeScreen), findsOneWidget);
+      expect(_expenseLabel(tester), 'Menyimpan…');
+
+      expenses.createGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(ContributeScreen), findsOneWidget);
+      expect(find.text('Gagal menyimpan'), findsOneWidget);
+
+      await _back(tester);
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.created, hasLength(1));
+    });
+
+    testWidgets('success after a blocked back pops exactly once',
+        (tester) async {
+      final expenses =
+          FakeExpensesRepository(createResults: [fixtureExpenseCreated()])
+            ..createGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.record,
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-25000'));
+      await _tap(tester, const Key('expense-submit'));
+      await _back(tester);
+      await _back(tester);
+      expect(find.byType(ContributeScreen), findsOneWidget);
+
+      expenses.createGate!.complete();
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.created, hasLength(1));
+    });
+  });
+
+  group('Edit form: back during the update', () {
+    testWidgets('a failed update re-enables back', (tester) async {
+      final row = _row();
+      final expenses = FakeExpensesRepository(
+        updateResults: [const NotFoundException()],
+      )..updateGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.edit(499),
+        extra: row,
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-15000'));
+      await _tap(tester, const Key('expense-submit'));
+      await _back(tester);
+      expect(find.byType(ExpenseEditScreen), findsOneWidget);
+
+      expenses.updateGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Data tidak ditemukan.'), findsOneWidget);
+      expect(find.byType(ExpenseEditScreen), findsOneWidget);
+
+      await _back(tester);
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.updated, hasLength(1));
+    });
+
+    testWidgets('success after a blocked back pops exactly once',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        updateResults: [_updatedWith(_row(amount: 15000))],
+      )..updateGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.edit(499),
+        extra: _row(),
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-15000'));
+      await _tap(tester, const Key('expense-submit'));
+      await _back(tester);
+      await _back(tester);
+      expect(find.byType(ExpenseEditScreen), findsOneWidget);
+
+      expenses.updateGate!.complete();
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.updated, hasLength(1));
+    });
+  });
+
+  group('Edit form: legacy rows', () {
+    Future<FakeExpensesRepository> open(
+      WidgetTester tester,
+      Expense row,
+    ) async {
+      final expenses = FakeExpensesRepository(
+        updateResults: [_updatedWith(row)],
+      );
+      await _pump(
+        tester,
+        location: ExpenseRoutes.edit(row.id),
+        extra: row,
+        expenses: expenses,
+      );
+      return expenses;
+    }
+
+    bool selected(WidgetTester tester, String key) =>
+        tester.widget<VillageChip>(find.byKey(Key('category-$key'))).selected;
+
+    testWidgets('legacy key + changed amount sends only {amount}',
+        (tester) async {
+      final expenses = await open(tester, _row(category: 'transport'));
+
+      expect(selected(tester, 'transport'), isTrue);
+      await _tap(tester, const Key('expense-chip-15000'));
+      expect(_expenseEnabled(tester), isTrue);
+      await _tap(tester, const Key('expense-submit'));
+      await tester.pumpAndSettle();
+
+      expect(expenses.updated.single.$2, {'amount': 15000});
+    });
+
+    testWidgets('legacy key, tapping its own chip off sends category null',
+        (tester) async {
+      final expenses = await open(tester, _row(category: 'transport'));
+
+      await _tap(tester, const Key('category-transport'));
+      expect(selected(tester, 'transport'), isFalse);
+      await _tap(tester, const Key('expense-submit'));
+      await tester.pumpAndSettle();
+
+      expect(expenses.updated.single.$2, {'category': null});
+    });
+
+    testWidgets('unknown category opens unchanged with no chip selected',
+        (tester) async {
+      final expenses = await open(tester, _row(category: 'Lain-lain'));
+
+      expect(_expenseLabel(tester), 'Belum ada perubahan');
+      expect(_expenseEnabled(tester), isFalse);
+      final chips = tester
+          .widgetList<VillageChip>(
+            find.byWidgetPredicate(
+              (w) =>
+                  w is VillageChip &&
+                  w.key is ValueKey<String> &&
+                  (w.key! as ValueKey<String>).value.startsWith('category-'),
+            ),
+          )
+          .toList();
+      expect(chips, isNotEmpty);
+      expect(chips.where((c) => c.selected), isEmpty);
+
+      await _tap(tester, const Key('category-kesehatan'));
+      await _tap(tester, const Key('expense-submit'));
+      await tester.pumpAndSettle();
+      expect(expenses.updated.single.$2, {'category': 'Kesehatan / Obat'});
+    });
+
+    testWidgets('whitespace-only stored note opens unchanged', (tester) async {
+      await open(tester, _row(note: '   '));
+
+      expect(_expenseLabel(tester), 'Belum ada perubahan');
+      expect(_expenseEnabled(tester), isFalse);
+    });
+
+    testWidgets('null stored note + typing only spaces stays unchanged',
+        (tester) async {
+      final expenses = await open(tester, _row(note: null));
+
+      await tester.ensureVisible(find.byKey(const Key('expense-note')));
+      await tester.enterText(find.byKey(const Key('expense-note')), '   ');
+      await tester.pump();
+      expect(_expenseLabel(tester), 'Belum ada perubahan');
+      expect(_expenseEnabled(tester), isFalse);
+      expect(expenses.updated, isEmpty);
+    });
+
+    testWidgets('null stored note + real text sends the trimmed note',
+        (tester) async {
+      final expenses = await open(tester, _row(note: null));
+
+      await tester.ensureVisible(find.byKey(const Key('expense-note')));
+      await tester.enterText(find.byKey(const Key('expense-note')), '  soto ');
+      await tester.pump();
+      await _tap(tester, const Key('expense-submit'));
+      await tester.pumpAndSettle();
+      expect(expenses.updated.single.$2, {'note': 'soto'});
+    });
+  });
+}
