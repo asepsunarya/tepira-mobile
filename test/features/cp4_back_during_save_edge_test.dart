@@ -746,4 +746,167 @@ void main() {
       expect(expenses.updated.last.$2, {'amount': 15000});
     });
   });
+
+  // PR #27 independent pass: the generic snackbar only for unexpected
+  // errors, and an erroring save whose screen is torn down (the stack is
+  // replaced, which PopScope does not block) does not touch the dead state.
+  group('PR #27 edge cases', () {
+    testWidgets('Setor: a rejected deposit shows no generic snackbar',
+        (tester) async {
+      final goals = _Goals(errors: [const ApiException('Nominal tidak valid')]);
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      await _tap(tester, const Key('submit'));
+      await tester.pumpAndSettle();
+      expect(find.text('Nominal tidak valid'), findsOneWidget);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('Setor: a network failure shows no generic snackbar',
+        (tester) async {
+      final goals = _Goals(errors: [const NetworkException()]);
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      await _tap(tester, const Key('submit'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ContributeScreen), findsOneWidget);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('Jajan: a rejected save shows no generic snackbar',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        createResults: [const ApiException('Gagal menyimpan')],
+      );
+      await _pump(tester, location: ExpenseRoutes.record, expenses: expenses);
+
+      await _tap(tester, const Key('expense-chip-25000'));
+      await _tap(tester, const Key('expense-submit'));
+      await tester.pumpAndSettle();
+      expect(find.text('Gagal menyimpan'), findsOneWidget);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('Edit form: a not-found update shows no generic snackbar',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        updateResults: [const NotFoundException()],
+      );
+      await _pump(
+        tester,
+        location: ExpenseRoutes.edit(499),
+        extra: _row(),
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-15000'));
+      await _tap(tester, const Key('expense-submit'));
+      await tester.pumpAndSettle();
+      expect(find.text('Data tidak ditemukan.'), findsOneWidget);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    /// Replaces the whole stack with '/', disposing the open form.
+    Future<void> leave(WidgetTester tester, Type screen) async {
+      GoRouter.of(tester.element(find.byType(screen))).go('/');
+      await tester.pumpAndSettle();
+      expect(find.byType(screen), findsNothing);
+      expect(find.text('root'), findsOneWidget);
+    }
+
+    testWidgets('Setor: torn down during an erroring deposit', (tester) async {
+      final goals = _Goals(errors: [const FormatException('boom')])
+        ..gate = Completer<void>();
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(
+        errors,
+        () => _tap(tester, const Key('submit')),
+      );
+      await leave(tester, ContributeScreen);
+
+      goals.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(tester.takeException(), isNull);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('Jajan: torn down during an erroring save', (tester) async {
+      final expenses = FakeExpensesRepository(
+        createResults: [const FormatException('boom')],
+      )..createGate = Completer<void>();
+      await _pump(tester, location: ExpenseRoutes.record, expenses: expenses);
+
+      await _tap(tester, const Key('expense-chip-25000'));
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(
+        errors,
+        () => _tap(tester, const Key('expense-submit')),
+      );
+      await leave(tester, ContributeScreen);
+
+      expenses.createGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(tester.takeException(), isNull);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('Edit form: torn down during an erroring update',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        updateResults: [const FormatException('boom')],
+      )..updateGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.edit(499),
+        extra: _row(),
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-15000'));
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(
+        errors,
+        () => _tap(tester, const Key('expense-submit')),
+      );
+      await leave(tester, ExpenseEditScreen);
+
+      expenses.updateGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(tester.takeException(), isNull);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('Jajan: a double tap during an erroring save: one write',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        createResults: [const FormatException('boom')],
+      )..createGate = Completer<void>();
+      await _pump(tester, location: ExpenseRoutes.record, expenses: expenses);
+
+      await _tap(tester, const Key('expense-chip-25000'));
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(errors, () async {
+        await tester.ensureVisible(_expenseSubmit);
+        await tester.tap(_expenseSubmit);
+        await tester.tap(_expenseSubmit);
+        await tester.pump();
+      });
+      expect(expenses.created, hasLength(1));
+
+      expenses.createGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(expenses.created, hasLength(1));
+      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
+      expect(_expenseEnabled(tester), isTrue);
+    });
+  });
 }

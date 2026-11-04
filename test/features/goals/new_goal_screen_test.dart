@@ -711,4 +711,192 @@ void main() {
       expect(find.text(kUnexpectedErrorMessage), findsNothing);
     });
   });
+
+  // PR #27 independent pass: edge cases around the saving flag.
+  group('PR #27 edge cases', () {
+    Future<void> back(WidgetTester tester) async {
+      await tester.binding.handlePopRoute();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a double tap during an erroring create: one create, one error',
+        (tester) async {
+      final repository = _CreatingRepository(
+        createResult: const FormatException('boom'),
+      )..createGate = Completer();
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(errors, () async {
+        await tester.ensureVisible(find.byKey(const Key('submit')));
+        await tester.tap(find.byKey(const Key('submit')));
+        await tester.tap(find.byKey(const Key('submit')));
+        await tester.pump();
+        await tester.tap(find.byKey(const Key('submit')), warnIfMissed: false);
+        await tester.pump();
+      });
+      expect(repository.createCalls, hasLength(1));
+      expect(find.text('Mematok kavling…'), findsOneWidget);
+
+      repository.createGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(repository.createCalls, hasLength(1));
+      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
+      expect(find.text('Mematok kavling…'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'back during an erroring create: no setState after dispose, '
+        'no snackbar on the page below', (tester) async {
+      final repository = _CreatingRepository(
+        createResult: const FormatException('boom'),
+      )..createGate = Completer();
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(
+        errors,
+        () => _tapSubmit(tester),
+      );
+      await tester.pump();
+      expect(find.text('Mematok kavling…'), findsOneWidget);
+
+      await back(tester);
+      expect(find.byType(NewGoalScreen), findsNothing);
+      expect(find.text('desa'), findsOneWidget);
+
+      repository.createGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(tester.takeException(), isNull);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+      expect(repository.createCalls, hasLength(1));
+    });
+
+    testWidgets(
+        'back during a network-failed create: no error, no create retry',
+        (tester) async {
+      final repository = _CreatingRepository(
+        createResult: const NetworkException(),
+      )..createGate = Completer();
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      await _tapSubmit(tester);
+      await tester.pump();
+      await back(tester);
+      expect(find.byType(NewGoalScreen), findsNothing);
+
+      repository.createGate!.complete();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+      expect(repository.createCalls, hasLength(1));
+    });
+
+    testWidgets(
+        'after a successful create the form stays saving while it leaves',
+        (tester) async {
+      final repository = _CreatingRepository()..createGate = Completer();
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      await _tapSubmit(tester);
+      await tester.pump();
+      repository.createGate!.complete();
+      // One frame into the transition: the old page is still built and
+      // must not flip back to an enabled "Patok kavling".
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      final submit = find.byKey(const Key('submit'));
+      expect(submit, findsOneWidget);
+      expect(find.text('Patok kavling'), findsNothing);
+      expect(tester.widget<VillageButton>(submit).onPressed, isNull);
+      await tester.pumpAndSettle();
+      expect(find.text('kavling 16'), findsOneWidget);
+      expect(repository.createCalls, hasLength(1));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a recovered goal keeps the form saving while it leaves',
+        (tester) async {
+      final repository = _CreatingRepository(
+        createResult: const NetworkException(),
+      );
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      await _tapSubmit(tester);
+      await tester.pumpAndSettle();
+      expect(find.text(kNewGoalUncertainTitle), findsOneWidget);
+
+      // The earlier attempt did store the goal: the retry finds it.
+      repository.listResults
+        ..clear()
+        ..add([testGoal(id: 16, title: 'Kamera mirrorless', target: 9000000)]);
+      await tester.ensureVisible(find.byKey(const Key('uncertain-retry')));
+      await tester.tap(find.byKey(const Key('uncertain-retry')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      final submit = find.byKey(const Key('submit'));
+      expect(submit, findsOneWidget);
+      expect(tester.widget<VillageButton>(submit).onPressed, isNull);
+      await tester.pumpAndSettle();
+      expect(find.text('kavling 16'), findsOneWidget);
+      expect(find.text(kNewGoalRecoveredMessage), findsOneWidget);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+      expect(repository.createCalls, hasLength(1));
+    });
+
+    testWidgets('a network failure (uncertain) shows no generic snackbar',
+        (tester) async {
+      final repository = _CreatingRepository(
+        createResult: const NetworkException(),
+      );
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      await _tapSubmit(tester);
+      await tester.pumpAndSettle();
+      expect(find.text(kNewGoalUncertainTitle), findsOneWidget);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('an unexpected error does not clear the uncertain state',
+        (tester) async {
+      final repository = _CreatingRepository(
+        createResult: const NetworkException(),
+      );
+      await _pumpNewGoal(tester, repository);
+
+      await _fill(tester);
+      await _tapSubmit(tester);
+      await tester.pumpAndSettle();
+      expect(find.text(kNewGoalUncertainTitle), findsOneWidget);
+
+      repository.listThrows = const FormatException('boom');
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(errors, () async {
+        await tester.ensureVisible(find.byKey(const Key('uncertain-retry')));
+        await tester.tap(find.byKey(const Key('uncertain-retry')));
+      });
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      // Still uncertain: a later retry must check again, never create blind.
+      expect(find.text(kNewGoalUncertainTitle), findsOneWidget);
+
+      repository.listThrows = null;
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('uncertain-retry')));
+      await tester.tap(find.byKey(const Key('uncertain-retry')));
+      await tester.pumpAndSettle();
+      expect(repository.listCalls, greaterThanOrEqualTo(3));
+    });
+  });
 }

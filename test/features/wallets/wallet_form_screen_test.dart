@@ -605,4 +605,94 @@ void main() {
       expect(find.byType(WalletsScreen), findsOneWidget);
     });
   });
+
+  // PR #27 independent pass: the generic snackbar and the saving flag.
+  group('PR #27 edge cases', () {
+    testWidgets('a server validation error shows no generic snackbar',
+        (tester) async {
+      final repository = FakeWalletsRepository(
+        [fixtureWalletList()],
+        createResults: [const BadRequestException(message: 'Tidak valid.')],
+      );
+      await _pump(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('name')), 'Dompet');
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Tidak valid.'), findsOneWidget);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('a network failure shows no generic snackbar', (tester) async {
+      final repository = FakeWalletsRepository(
+        [fixtureWalletList()],
+        createResults: [const NetworkException()],
+      );
+      await _pump(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('name')), 'Dompet');
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.pumpAndSettle();
+      expect(find.text(kWalletCreateUncertainMessage), findsOneWidget);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('a double tap during an erroring save: one write, one error',
+        (tester) async {
+      final repository = FakeWalletsRepository(
+        [fixtureWalletList()],
+        createResults: [const FormatException('boom')],
+      )..writeGate = Completer<void>();
+      await _pump(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('name')), 'Dompet');
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(errors, () async {
+        await tester.tap(find.byKey(const Key('submit')));
+        await tester.tap(find.byKey(const Key('submit')));
+        await tester.pump();
+        await tester.tap(find.byKey(const Key('submit')), warnIfMissed: false);
+        await tester.pump();
+      });
+      expect(repository.created, hasLength(1));
+
+      repository.writeGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(repository.created, hasLength(1));
+      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
+      expect(find.text('Simpan dompet'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'back during an erroring save: no setState after dispose, '
+        'no snackbar on the list', (tester) async {
+      final repository = FakeWalletsRepository(
+        [fixtureWalletList()],
+        createResults: [const FormatException('boom')],
+      )..writeGate = Completer<void>();
+      await _pump(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('name')), 'Dompet');
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(
+        errors,
+        () => tester.tap(find.byKey(const Key('submit'))),
+      );
+      await tester.pump();
+      expect(find.text('Menyimpan…'), findsOneWidget);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(WalletFormScreen), findsNothing);
+      expect(find.byType(WalletsScreen), findsOneWidget);
+
+      repository.writeGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      expect(tester.takeException(), isNull);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+  });
 }
