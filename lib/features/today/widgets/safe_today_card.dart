@@ -22,6 +22,14 @@ import '../today_providers.dart';
 /// While shown it reloads the summary when the app comes back to the
 /// foreground and when the WIB date changes (00:00 WIB by [clockProvider]),
 /// so the card never shows yesterday's numbers as today's.
+/// Wait before reloading again when the summary loaded at 00:00 WIB still
+/// carries the previous day.
+const Duration kTodayRecheckDelay = Duration(seconds: 60);
+
+/// Most re-checks after 00:00 WIB before waiting for the next midnight, so
+/// a device clock that is far off does not poll all day.
+const int kTodayMaxRechecks = 15;
+
 class TodaySection extends ConsumerStatefulWidget {
   const TodaySection({super.key});
 
@@ -49,10 +57,30 @@ class _TodaySectionState extends ConsumerState<TodaySection> {
 
   void _scheduleMidnight() {
     final now = ref.read(clockProvider)();
-    _midnight = Timer(wibDayStart(now, 1).difference(now), () {
-      _reload();
-      _scheduleMidnight();
-    });
+    _midnight = Timer(wibDayStart(now, 1).difference(now), _reloadNewDay);
+  }
+
+  /// Reloads for the new WIB day. When the device clock runs ahead of the
+  /// server, the answer still carries yesterday's `date`; then it checks
+  /// again every [kTodayRecheckDelay] (at most [kTodayMaxRechecks] times)
+  /// until the server's day has turned too.
+  Future<void> _reloadNewDay([int rechecks = 0]) async {
+    _reload();
+    TodaySummary? summary;
+    try {
+      summary = await ref.read(todayProvider.future);
+    } on Object {
+      // The card shows the error and its retry button.
+    }
+    if (!mounted) return;
+    final today = wibDate(ref.read(clockProvider)());
+    if (summary != null &&
+        summary.date != today &&
+        rechecks < kTodayMaxRechecks) {
+      _midnight = Timer(kTodayRecheckDelay, () => _reloadNewDay(rechecks + 1));
+      return;
+    }
+    _scheduleMidnight();
   }
 
   void _reload() => ref.invalidate(todayProvider);

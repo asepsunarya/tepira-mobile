@@ -79,7 +79,11 @@ void main() {
   group('00:00 WIB rollover', () {
     testWidgets('reloads on 1 Dec 00:00 WIB, then waits a full day',
         (tester) async {
-      final today = FakeTodayRepository.budget();
+      final today = FakeTodayRepository([
+        fixtureTodayBudget(),
+        testToday(date: DateTime.utc(2026, 12)),
+        testToday(date: DateTime.utc(2026, 12, 2)),
+      ]);
       // 30 Nov 23:59:30 WIB.
       final clock = _Clock(DateTime.utc(2026, 11, 30, 16, 59, 30));
       await _pumpDesa(tester, today, clock);
@@ -129,6 +133,67 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(today.calls, 1);
+    });
+
+    testWidgets(
+        'device clock ahead of the server: re-checks every 60 s until the '
+        "server's date turns", (tester) async {
+      final today = FakeTodayRepository([
+        testToday(date: DateTime.utc(2026, 11, 30)),
+        // At the device's 00:00 the server is still on 30 Nov.
+        testToday(date: DateTime.utc(2026, 11, 30), remaining: 1),
+        testToday(date: DateTime.utc(2026, 11, 30), remaining: 2),
+        testToday(date: DateTime.utc(2026, 12), remaining: 3),
+      ]);
+      final clock = _Clock(DateTime.utc(2026, 11, 30, 16, 59, 30));
+      await _pumpDesa(tester, today, clock);
+
+      clock.now = DateTime.utc(2026, 11, 30, 17);
+      await tester.pump(const Duration(seconds: 30));
+      await tester.pumpAndSettle();
+      expect(today.calls, 2);
+
+      clock.now = DateTime.utc(2026, 11, 30, 17, 0, 59);
+      await tester.pump(const Duration(seconds: 59));
+      await tester.pumpAndSettle();
+      expect(today.calls, 2);
+
+      clock.now = DateTime.utc(2026, 11, 30, 17, 1);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(today.calls, 3);
+
+      clock.now = DateTime.utc(2026, 11, 30, 17, 2);
+      await tester.pump(const Duration(seconds: 60));
+      await tester.pumpAndSettle();
+      expect(today.calls, 4);
+      expect(find.text('Rp3'), findsOneWidget);
+
+      // The server's day turned: no more re-checks until the next 00:00.
+      clock.now = DateTime.utc(2026, 11, 30, 18);
+      await tester.pump(const Duration(minutes: 58));
+      await tester.pumpAndSettle();
+      expect(today.calls, 4);
+    });
+
+    testWidgets('re-checks stop after the cap when the dates never agree',
+        (tester) async {
+      final today = FakeTodayRepository([
+        testToday(date: DateTime.utc(2026, 11, 30)),
+      ]);
+      final clock = _Clock(DateTime.utc(2026, 11, 30, 16, 59, 30));
+      await _pumpDesa(tester, today, clock);
+
+      clock.now = DateTime.utc(2026, 11, 30, 17);
+      await tester.pump(const Duration(seconds: 30));
+      await tester.pumpAndSettle();
+      for (var i = 0; i < kTodayMaxRechecks + 5; i++) {
+        clock.now = clock.now.add(kTodayRecheckDelay);
+        await tester.pump(kTodayRecheckDelay);
+        await tester.pumpAndSettle();
+      }
+
+      expect(today.calls, 2 + kTodayMaxRechecks);
     });
 
     testWidgets('leaving the Desa stops the midnight reload', (tester) async {

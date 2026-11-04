@@ -31,6 +31,7 @@ TodaySummary testToday({
   BudgetStatus? status,
   int spentMonth = 50000,
   int savedThisMonth = 500000,
+  DateTime? date,
 }) {
   final base = fixtureTodayBudget();
   final budgetStatus = status ??
@@ -42,7 +43,7 @@ TodaySummary testToday({
   final noBudget = budgetStatus == BudgetStatus.noBudget;
   return TodaySummary(
     asOf: base.asOf,
-    date: base.date,
+    date: date ?? base.date,
     period: base.period,
     spentToday: base.spentToday,
     spentMonth: spentMonth,
