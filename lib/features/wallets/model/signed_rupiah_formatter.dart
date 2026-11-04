@@ -24,7 +24,9 @@ String groupRupiahDigits(String digits) {
 /// the field is ignored instead, so it cannot wipe the digits after it.
 ///
 /// The cursor stays after the same digit it followed before regrouping, and
-/// a backspace onto a `.` separator deletes the digit before it.
+/// a backspace onto a `.` separator deletes the digit before it. Removing a
+/// separator any other way (forward Delete, or a selection of just the `.`)
+/// only regroups the digits, so the amount is unchanged.
 class SignedRupiahFormatter extends TextInputFormatter {
   const SignedRupiahFormatter();
 
@@ -37,7 +39,10 @@ class SignedRupiahFormatter extends TextInputFormatter {
     final end = newValue.selection.end;
     var cursor = end < 0 || end > text.length ? text.length : end;
 
-    if (_removedOnly(oldValue.text, text, cursor, '.') &&
+    final oldSelection = oldValue.selection;
+    if (oldSelection.isCollapsed &&
+        oldSelection.extentOffset == cursor + 1 &&
+        _removedOnly(oldValue.text, text, cursor, '.') &&
         cursor > 0 &&
         _isDigit(text[cursor - 1])) {
       // Backspace onto a separator: delete the digit it grouped instead.

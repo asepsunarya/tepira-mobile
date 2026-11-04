@@ -194,15 +194,41 @@ void main() {
       () {
         // '1.500' with the cursor after '1' (offset 1). A hardware Delete key
         // removes the '.' to the right: Flutter sends '1500' with the cursor
-        // still at 1. The formatter treats this like a backspace onto the
-        // separator and deletes the '1' to the LEFT, giving '500'.
+        // still at 1. Only the digits are regrouped, so the edit is a no-op
+        // on the amount and the cursor stays after the '1'.
         final r = _f.formatEditUpdate(_at('1.500', 1), _at('1500', 1));
-        expect(r.text, isNot('500'));
-        expect(r.text.replaceAll('.', ''), anyOf('1500', '100'));
+        _expectValue(r, '1.500', 1);
       },
-      skip: 'BUG (PR #21 fu, low): forward delete over "." deletes the digit '
-          'before the cursor ("1.500"|cursor 1 + Del -> "500"). The formatter '
-          'ignores oldValue.selection, so it cannot tell Del from Backspace.',
     );
+
+    test('forward delete on a later separator keeps the digits', () {
+      // '1.234.567' cursor after '4' (offset 5), Delete removes the second '.'.
+      final r = _f.formatEditUpdate(_at('1.234.567', 5), _at('1.234567', 5));
+      _expectValue(r, '1.234.567', 5);
+    });
+
+    test('selecting only the separator then backspace keeps the digits', () {
+      final r = _f.formatEditUpdate(_sel('1.500', 1, 2), _at('1500', 1));
+      _expectValue(r, '1.500', 1);
+      // Same with the selection made right-to-left.
+      final rev = _f.formatEditUpdate(_sel('1.500', 2, 1), _at('1500', 1));
+      _expectValue(rev, '1.500', 1);
+    });
+
+    test('backspace over the separator of a negative amount', () {
+      // '-1.500' cursor after '.', backspace -> '-1500' cursor 2: the '1'
+      // the separator grouped is deleted, the sign stays.
+      final r = _f.formatEditUpdate(_at('-1.500', 3), _at('-1500', 2));
+      _expectValue(r, '-500', 1);
+    });
+
+    test('cursor before the minus sign', () {
+      // Backspace at offset 0 is a no-op.
+      final back = _f.formatEditUpdate(_at('-1.500', 0), _at('-1.500', 0));
+      _expectValue(back, '-1.500', 0);
+      // Forward Delete at offset 0 removes only the sign.
+      final del = _f.formatEditUpdate(_at('-1.500', 0), _at('1.500', 0));
+      _expectValue(del, '1.500', 0);
+    });
   });
 }
