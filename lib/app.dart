@@ -14,6 +14,7 @@ import 'features/goals/goal_detail_screen.dart';
 import 'features/goals/goals_screen.dart';
 import 'features/goals/new_goal_screen.dart';
 import 'features/settings/settings_screen.dart';
+import 'features/shell/app_dock.dart';
 import 'features/wallets/wallet_form_screen.dart';
 import 'features/wallets/wallets_screen.dart';
 
@@ -92,9 +93,23 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: auth,
     redirect: (context, state) => authRedirect(auth.value, state.uri),
     routes: [
-      GoRoute(
-        path: kHomePath,
-        builder: (context, state) => const _Desa(),
+      ShellRoute(
+        builder: (context, state, child) =>
+            DockShell(location: state.uri.path, child: child),
+        routes: [
+          GoRoute(
+            path: kHomePath,
+            builder: (context, state) => const _Desa(),
+          ),
+          GoRoute(
+            path: kHistoryPath,
+            builder: (context, state) => const HistoryScreen(),
+          ),
+          GoRoute(
+            path: WalletRoutes.list,
+            builder: (context, state) => const WalletsScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: GoalRoutes.create,
@@ -122,14 +137,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: kSettingsPath,
         builder: (context, state) => const _Settings(),
-      ),
-      GoRoute(
-        path: kHistoryPath,
-        builder: (context, state) => const HistoryScreen(),
-      ),
-      GoRoute(
-        path: WalletRoutes.list,
-        builder: (context, state) => const WalletsScreen(),
       ),
       GoRoute(
         path: WalletRoutes.create,

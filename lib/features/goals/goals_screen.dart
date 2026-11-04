@@ -15,8 +15,9 @@ import 'widgets/desa_skeleton.dart';
 import 'widgets/goal_row.dart';
 
 /// The Desa screen (`/`, artboard Main): a small HUD, the "Aman dipakai hari
-/// ini" card with this month's tiles, the list of plots and a dock with the
-/// Desa tab and the Catat button. Pull down to reload both.
+/// ini" card with this month's tiles and the list of plots. The app dock
+/// sits below it (`lib/features/shell/app_dock.dart`). Pull down to reload
+/// both.
 class GoalsScreen extends ConsumerWidget {
   const GoalsScreen({super.key, this.userName});
 
@@ -73,12 +74,7 @@ class GoalsScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(child: body),
-              const _Dock(),
-            ],
-          ),
+          child: body,
         ),
       ),
     );
@@ -307,107 +303,6 @@ class _LoadError extends StatelessWidget {
           const SizedBox(height: 16),
           VillageButton(label: 'Coba lagi', onPressed: onRetry),
         ],
-      ),
-    );
-  }
-}
-
-/// Bottom dock: only the active Desa tab and the Catat button, which opens
-/// the Jajan tab so a quick expense takes three taps (SPEC-v2 §4).
-class _Dock extends StatelessWidget {
-  const _Dock();
-
-  @override
-  Widget build(BuildContext context) {
-    final c = VillageColors.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, top: 4),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: c.kartu.withValues(alpha: 0.88),
-          border: Border.all(color: c.putih, width: 2),
-          borderRadius: BorderRadius.circular(VillageRadius.card),
-          boxShadow: [
-            BoxShadow(
-              color: c.shadow,
-              offset: const Offset(0, 10),
-              blurRadius: 30,
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const _DockTile(
-                icon: Icons.cottage_rounded,
-                label: 'Desa',
-                selected: true,
-              ),
-              const SizedBox(width: 6),
-              _DockTile(
-                key: const Key('record'),
-                icon: Icons.edit_note_rounded,
-                label: 'Catat',
-                onTap: () => context.push(ExpenseRoutes.record),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DockTile extends StatelessWidget {
-  const _DockTile({
-    super.key,
-    required this.icon,
-    required this.label,
-    this.selected = false,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = VillageColors.of(context);
-    final foreground = selected ? c.pinkText : c.redup;
-    final radius = BorderRadius.circular(18);
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: Material(
-        color: selected ? c.pinkSoft : Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: radius,
-          side: selected
-              ? BorderSide(color: c.pink.withValues(alpha: 0.4), width: 2)
-              : BorderSide.none,
-        ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: radius,
-          child: SizedBox.square(
-            dimension: 62,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 24, color: foreground),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: villageText(fontSize: 10, color: foreground),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

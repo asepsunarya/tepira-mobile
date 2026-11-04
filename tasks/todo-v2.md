@@ -33,7 +33,7 @@ Selesai: digabung ke `main` `tepira` (PR #33, `4ca29a1`).
 ## Fase 8. Riwayat
 - [x] T20 Layar Riwayat (jajan) + widget test
 - [x] T21 Ubah dan hapus jajan + test
-- [ ] T22 Dock navigasi + test rute
+- [x] T22 Dock navigasi + test rute
 
 ## Checkpoint 4
 - [ ] Fixture B6 menggantikan fixture sementara; semua test hijau
