@@ -61,7 +61,7 @@ class ExpenseWalletField extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'BAYAR DARI DOMPET',
+                      'DOMPET',
                       style: villageText(fontSize: 10, color: c.redup),
                     ),
                     Text(

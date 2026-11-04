@@ -168,6 +168,26 @@ void main() {
     expect(find.text('Jajan Rp25.000 tercatat'), findsOneWidget);
   });
 
+  testWidgets('two taps on Simpan in the same frame send one request',
+      (tester) async {
+    final h = _Harness();
+    h.expenses.createGate = Completer<void>();
+    await h.open(tester);
+    await _tap(tester, 'expense-chip-25000');
+
+    // No pump between the taps: the second lands before Simpan rebuilds as
+    // disabled, so only the in-flight guard can stop it.
+    await tester.tap(_submit);
+    await tester.tap(_submit, warnIfMissed: false);
+    await tester.pump();
+
+    expect(h.expenses.created, hasLength(1));
+    h.expenses.createGate!.complete();
+    await tester.pumpAndSettle();
+    expect(h.expenses.created, hasLength(1));
+    expect(find.text('Jajan Rp25.000 tercatat'), findsOneWidget);
+  });
+
   testWidgets('a deduped answer is a plain success', (tester) async {
     final h = _Harness(createResults: [fixtureExpenseDeduped()]);
     await h.open(tester);
@@ -179,6 +199,22 @@ void main() {
     expect(find.text('Jajan Rp10.000 tercatat'), findsOneWidget);
     expect(find.text('home'), findsOneWidget);
     expect(find.byKey(const Key('expense-error')), findsNothing);
+  });
+
+  testWidgets('labels match the artboard: "Nominal" and "DOMPET"',
+      (tester) async {
+    await _Harness().open(tester);
+
+    expect(find.text('Nominal'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('wallet-picker')),
+        matching: find.text('DOMPET'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Nominal jajan'), findsNothing);
+    expect(find.text('BAYAR DARI DOMPET'), findsNothing);
   });
 
   group('amount', () {
@@ -319,7 +355,14 @@ void main() {
 
     await _tap(tester, 'wallet-picker');
 
-    expect(find.text('DOMPET'), findsOneWidget);
+    // The field behind the sheet is labelled "DOMPET" too (artboard).
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('DOMPET'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('KARTU KREDIT & CICILAN'), findsOneWidget);
     expect(find.text('DICADANGKAN'), findsOneWidget);
     final reserved = tester.getTopLeft(find.byKey(const Key('pick-wallet-7')));

@@ -445,7 +445,7 @@ class _AmountField extends StatelessWidget {
     );
     return Column(
       children: [
-        Text('Nominal jajan', style: villageText(fontSize: 12, color: c.redup)),
+        Text('Nominal', style: villageText(fontSize: 12, color: c.redup)),
         const SizedBox(height: 4),
         TextField(
           key: const Key('expense-amount'),
