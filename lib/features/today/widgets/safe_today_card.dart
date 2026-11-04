@@ -102,7 +102,9 @@ class _TodaySectionState extends ConsumerState<TodaySection> {
 
 /// "Aman dipakai hari ini" as the server sent it: the card reads
 /// [SafeToday.state] and shows the server's numbers without recomputing
-/// them. Over the month's budget it never says "aman".
+/// them. Over the month's budget it never says "aman": `OVER_BUDGET` reads
+/// as `over_month` even if a summary pairs it with another state (the
+/// parser already rejects that pairing).
 class SafeTodayCard extends StatelessWidget {
   const SafeTodayCard({super.key, required this.summary});
 
@@ -112,8 +114,11 @@ class SafeTodayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = VillageColors.of(context);
     final safe = summary.safeToday;
+    final state = summary.budget.status == BudgetStatus.overBudget
+        ? SafeTodayState.overMonth
+        : safe.state;
     final over = formatRupiah(safe.remaining.abs());
-    final (String title, String amount, String? note) = switch (safe.state) {
+    final (String title, String amount, String? note) = switch (state) {
       SafeTodayState.ok => (
           'Aman dipakai hari ini',
           formatRupiah(safe.remaining),
@@ -130,8 +135,8 @@ class SafeTodayCard extends StatelessWidget {
           null
         ),
     };
-    final red = safe.state != SafeTodayState.ok;
-    final basis = switch ((safe.state, safe.basis)) {
+    final red = state != SafeTodayState.ok;
+    final basis = switch ((state, safe.basis)) {
       (SafeTodayState.overMonth, _) => null,
       (_, SafeTodayBasis.budget) =>
         'Jatah ${formatRupiah(safe.allowance)}/hari dari anggaran bulan ini',

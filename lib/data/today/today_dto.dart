@@ -8,14 +8,17 @@ import '../json_fields.dart';
 
 /// The body of `GET /api/mobile/today` (with `asOf`) or the `today` object
 /// of an expense write (without it). An unknown `status`, `basis` or `state`
-/// throws [FormatException]: the card must not guess what it means.
+/// throws [FormatException]: the card must not guess what it means. So does
+/// `OVER_BUDGET` paired with any `safeToday.state` but `over_month`, which
+/// the server never sends (SPEC-v2 §3.4): the card shows its error state
+/// instead of a possibly wrong "aman".
 TodaySummary todaySummaryFromJson(Map<String, Object?> json) {
   final period = objectField(json, 'period');
   final spent = objectField(json, 'spent');
   final budget = objectField(json, 'budget');
   final safeToday = objectField(json, 'safeToday');
   final wallets = objectField(json, 'wallets');
-  return TodaySummary(
+  final summary = TodaySummary(
     asOf: json.containsKey('asOf') ? instantField(json, 'asOf') : null,
     date: _calendarDate(requiredField<String>(json, 'date')),
     period: TodayPeriod(
@@ -54,6 +57,14 @@ TodaySummary todaySummaryFromJson(Map<String, Object?> json) {
     walletsFree: requiredField<int>(wallets, 'free'),
     walletsReserved: requiredField<int>(wallets, 'reserved'),
   );
+  if (summary.budget.status == BudgetStatus.overBudget &&
+      summary.safeToday.state != SafeTodayState.overMonth) {
+    throw FormatException(
+      'OVER_BUDGET needs safeToday.state "over_month"',
+      safeToday['state'],
+    );
+  }
+  return summary;
 }
 
 T _enum<T>(Map<String, Object?> json, String key, Map<String, T> values) {

@@ -212,7 +212,7 @@ void main() {
     }
 
     group(
-      'BUG: OVER_BUDGET paired with state ok/over_today '
+      'OVER_BUDGET paired with state ok/over_today '
       '(contract-violating input)',
       () {
         for (final state in [SafeTodayState.ok, SafeTodayState.overToday]) {
@@ -232,13 +232,6 @@ void main() {
           });
         }
       },
-      skip: 'BUG (defensive, contract-violating input): the card reads '
-          'only safeToday.state, so budget.status OVER_BUDGET with '
-          'state ok/over_today shows "Aman dipakai hari ini". SPEC-v2 '
-          '§3.4 says the server always pairs OVER_BUDGET with '
-          'over_month; the client neither rejects the mismatch in '
-          'lib/data/today/today_dto.dart nor checks it in '
-          'lib/features/today/widgets/safe_today_card.dart.',
     );
   });
 }

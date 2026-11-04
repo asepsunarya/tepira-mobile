@@ -99,6 +99,19 @@ void main() {
       ('an unknown basis', _with(base, 'safeToday', 'basis', 'gaji')),
       ('an unknown budget status', _with(base, 'budget', 'status', 'X')),
       (
+        'OVER_BUDGET with state ok',
+        _with(base, 'budget', 'status', 'OVER_BUDGET'),
+      ),
+      (
+        'OVER_BUDGET with state over_today',
+        _with(
+          _with(base, 'safeToday', 'state', 'over_today'),
+          'budget',
+          'status',
+          'OVER_BUDGET',
+        ),
+      ),
+      (
         'a missing nullable limit',
         {
           ...base,
