@@ -19,6 +19,56 @@ void main() {
     );
   });
 
+  test('categories.json holds the nine web categories (tepira 206408b)', () {
+    final fixture = jsonDecode(
+      File('test/fixtures/categories.json').readAsStringSync(),
+    ) as List<Object?>;
+
+    expect(fixture, [
+      {
+        'key': 'makan_harian',
+        'label': 'Makan harian',
+        'group': 'Kebutuhan wajib',
+      },
+      {'key': 'transport', 'label': 'Transport', 'group': 'Kebutuhan wajib'},
+      {
+        'key': 'pulsa_internet',
+        'label': 'Pulsa & Internet',
+        'group': 'Kebutuhan wajib',
+      },
+      {
+        'key': 'listrik_kos',
+        'label': 'Listrik / Air / Kos',
+        'group': 'Kebutuhan wajib',
+      },
+      {
+        'key': 'langganan',
+        'label': 'Langganan (Spotify, Netflix, dll)',
+        'group': 'Kewajiban & rutin',
+      },
+      {
+        'key': 'kesehatan',
+        'label': 'Kesehatan / Obat',
+        'group': 'Kewajiban & rutin',
+      },
+      {
+        'key': 'sosial',
+        'label': 'Sosial (sedekah / bantu keluarga)',
+        'group': 'Kewajiban & rutin',
+      },
+      {
+        'key': 'nongkrong',
+        'label': 'Nongkrong / jajan',
+        'group': 'Hiburan & fleksibel',
+      },
+      {
+        'key': 'belanja_kecil',
+        'label': 'Belanja kecil',
+        'group': 'Hiburan & fleksibel',
+      },
+    ]);
+  });
+
   test('labels are unique (the API identifies a category by label)', () {
     final labels = kExpenseCategories.map((c) => c.label).toList();
 
