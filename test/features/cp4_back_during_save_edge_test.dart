@@ -15,6 +15,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tepira_mobile/core/clock.dart';
 import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/core/routes.dart';
+import 'package:tepira_mobile/core/unexpected_error.dart';
 import 'package:tepira_mobile/core/theme.dart';
 import 'package:tepira_mobile/core/widgets/village_button.dart';
 import 'package:tepira_mobile/core/widgets/village_chip.dart';
@@ -164,6 +165,14 @@ Future<void> _tap(WidgetTester tester, Key key) async {
   await tester.ensureVisible(find.byKey(key));
   await tester.tap(find.byKey(key));
   await tester.pump();
+}
+
+/// Lets the generic error snackbar time out: it covers the bottom-docked
+/// Simpan button while shown.
+Future<void> _waitOutSnackBar(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 5));
+  await tester.pumpAndSettle();
+  expect(find.text(kUnexpectedErrorMessage), findsNothing);
 }
 
 final _expenseSubmit = find.byKey(const Key('expense-submit'));
@@ -475,6 +484,7 @@ void main() {
       goals.gate!.complete();
       await tester.pumpAndSettle();
       expect(errors, [isA<FormatException>()]);
+      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
       expect(find.byType(ContributeScreen), findsOneWidget);
       expect(find.text('Menyimpan…'), findsNothing);
       expect(
@@ -510,11 +520,13 @@ void main() {
       expenses.createGate!.complete();
       await tester.pumpAndSettle();
       expect(errors, [isA<FormatException>()]);
+      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
       expect(find.byType(ContributeScreen), findsOneWidget);
       expect(_expenseLabel(tester), isNot('Menyimpan…'));
       expect(_expenseEnabled(tester), isTrue);
 
       // A second Simpan is sent and succeeds.
+      await _waitOutSnackBar(tester);
       await _tap(tester, const Key('expense-submit'));
       await tester.pumpAndSettle();
       _expectOnMid(tester);
@@ -544,6 +556,7 @@ void main() {
       expenses.updateGate!.complete();
       await tester.pumpAndSettle();
       expect(errors, [isA<FormatException>()]);
+      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
       expect(find.byType(ExpenseEditScreen), findsOneWidget);
       expect(_expenseLabel(tester), isNot('Menyimpan…'));
       expect(_expenseEnabled(tester), isTrue);
@@ -623,7 +636,9 @@ void main() {
       goals.gate!.complete();
       await tester.pumpAndSettle();
       expect(errors, [isA<FormatException>()]);
+      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
 
+      await _waitOutSnackBar(tester);
       await _tap(tester, const Key('submit'));
       await tester.pumpAndSettle();
       _expectOnMid(tester);

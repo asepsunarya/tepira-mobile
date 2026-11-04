@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/core/routes.dart';
+import 'package:tepira_mobile/core/unexpected_error.dart';
 import 'package:tepira_mobile/core/theme.dart';
 import 'package:tepira_mobile/data/wallets/wallets_repository.dart';
 import 'package:tepira_mobile/features/wallets/model/wallet.dart';
@@ -265,6 +266,7 @@ void main() {
       repository.writeGate!.complete();
       await tester.pumpAndSettle();
       expect(errors, [isA<FormatException>()]);
+      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
       expect(find.byType(WalletFormScreen), findsOneWidget);
       expect(find.text('Menyimpan…'), findsNothing);
       expect(find.text('Simpan dompet'), findsOneWidget);

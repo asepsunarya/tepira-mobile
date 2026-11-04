@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/errors.dart';
+import '../../core/unexpected_error.dart';
 import '../../core/format.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
@@ -118,6 +119,11 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       }
       setState(() => _error = error.message);
       return;
+    } catch (_) {
+      // Not an AppException: a bug or a parse error. Say so, and let it
+      // reach the zone handler.
+      if (mounted) showUnexpectedError(context);
+      rethrow;
     } finally {
       // Any failure, including an unexpected error, unblocks the form.
       if (!saved && mounted) setState(() => _submitting = false);
