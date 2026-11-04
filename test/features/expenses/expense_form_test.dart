@@ -239,6 +239,24 @@ void main() {
       expect(find.text(kExpenseAmountMessage), findsOneWidget);
       expect(h.expenses.created, isEmpty);
     });
+
+    testWidgets('a paste too long to parse is over the limit, never 0',
+        (tester) async {
+      final h = _Harness();
+      await h.open(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('expense-amount')),
+        '123456789012345678901234567890',
+      );
+      await tester.pump();
+      expect(_submitLabel(tester), 'Simpan');
+      await tester.tap(_submit);
+      await tester.pumpAndSettle();
+
+      expect(find.text(kExpenseAmountMessage), findsOneWidget);
+      expect(h.expenses.created, isEmpty);
+    });
   });
 
   group('wallet default', () {

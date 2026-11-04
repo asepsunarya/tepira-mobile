@@ -72,7 +72,14 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
     super.dispose();
   }
 
-  int get _amountValue => int.tryParse(_amount.text.replaceAll('.', '')) ?? 0;
+  /// The typed amount. Digits too many to parse (a long paste) count as
+  /// over [kMaxExpenseAmount], so Simpan shows [kExpenseAmountMessage]
+  /// instead of silently treating them as 0.
+  int get _amountValue {
+    final digits = _amount.text.replaceAll('.', '');
+    if (digits.isEmpty) return 0;
+    return int.tryParse(digits) ?? kMaxExpenseAmount + 1;
+  }
 
   /// Rebuilds for every edit (chip, keypad, typing or paste), so the chips
   /// and Simpan follow the amount; a new amount clears the last error.
@@ -414,6 +421,7 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
     if (_submitting) return 'Menyimpan…';
     if (amount < kMinExpenseAmount) return 'Isi nominal dulu';
     if (selected == null) return 'Pilih dompet dulu';
+    if (amount > kMaxExpenseAmount) return 'Simpan';
     return 'Simpan ${formatRupiah(amount)}';
   }
 }
