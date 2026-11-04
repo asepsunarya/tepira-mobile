@@ -82,11 +82,10 @@ void main() {
     });
 
     test('deleting a selection that is only a separator keeps digits', () {
-      // Select just the '.' in '1.500' and press backspace. The digit count
-      // must stay at most 4 and the cursor must stay inside the number.
+      // Select just the '.' in '1.500' and press backspace: the digits are
+      // only regrouped, and the cursor stays after the '1'.
       final r = _f.formatEditUpdate(_sel('1.500', 1, 2), _at('1500', 1));
-      expect(r.text.replaceAll('.', '').length, lessThanOrEqualTo(4));
-      expect(r.selection.baseOffset, inInclusiveRange(0, r.text.length));
+      _expectValue(r, '1.500', 1);
     });
 
     test('very long input groups every 3 digits; validator rejects it', () {
