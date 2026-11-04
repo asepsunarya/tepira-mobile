@@ -521,4 +521,86 @@ void main() {
       );
     });
   });
+
+  // PR #25 independent pass: double Simpan and error-then-success.
+  group('Simpan while saving', () {
+    testWidgets('a double tap on Tambah sends one wallet', (tester) async {
+      final repository = FakeWalletsRepository(
+        [fixtureWalletList()],
+        createResults: [
+          WalletWrite(wallet: testWallet(id: 22), totals: _newTotals),
+        ],
+      )..writeGate = Completer<void>();
+      await _pump(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('name')), 'Dompet');
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('submit')), warnIfMissed: false);
+      await tester.pump();
+      expect(repository.created, hasLength(1));
+      expect(find.text('Menyimpan…'), findsOneWidget);
+
+      repository.writeGate!.complete();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(repository.created, hasLength(1));
+      expect(find.byType(WalletFormScreen), findsNothing);
+      expect(find.byType(WalletsScreen), findsOneWidget);
+    });
+
+    testWidgets('a rejected save, then a retry that succeeds', (tester) async {
+      const message = 'Jenis dompet tidak dikenal.';
+      final repository = FakeWalletsRepository(
+        [fixtureWalletList()],
+        createResults: [
+          const BadRequestException(message: message),
+          WalletWrite(wallet: testWallet(id: 22), totals: _newTotals),
+        ],
+      )..writeGate = Completer<void>();
+      await _pump(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('name')), 'Dompet');
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.pump();
+      repository.writeGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text(message), findsOneWidget);
+      expect(find.text('Simpan dompet'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(repository.created, hasLength(2));
+      expect(find.byType(WalletFormScreen), findsNothing);
+    });
+
+    testWidgets('a double tap on Ubah sends one update', (tester) async {
+      final list = fixtureWalletList();
+      final bca = list.wallets.firstWhere((w) => w.id == 3);
+      final renamed = testWallet(
+        id: 3,
+        name: 'BCA Utama',
+        balance: bca.balance,
+        spentThisMonth: bca.spentThisMonth,
+      );
+      final repository = FakeWalletsRepository(
+        [list],
+        updateResults: [WalletWrite(wallet: renamed, totals: _newTotals)],
+      )..writeGate = Completer<void>();
+      await _pump(tester, repository, location: WalletRoutes.edit(3));
+
+      await tester.enterText(find.byKey(const Key('name')), 'BCA Utama');
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.pump();
+      expect(repository.updated, hasLength(1));
+
+      repository.writeGate!.complete();
+      await tester.pumpAndSettle();
+      expect(repository.updated, hasLength(1));
+      expect(find.byType(WalletsScreen), findsOneWidget);
+    });
+  });
 }

@@ -622,4 +622,30 @@ void main() {
       expect(find.byType(ExpenseRow), findsNWidgets(3));
     });
   });
+
+  // PR #25 independent pass: a rejected delete frees the row, and a second
+  // delete then succeeds.
+  group('Riwayat delete error then success', () {
+    testWidgets('a rejected delete, then a retry that succeeds',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        listResults: [fixtureExpenseList()],
+        deleteResults: [
+          const ApiException('Gagal menghapus'),
+          expenseDeletedFromJson(readFixture('mobile_expense_deleted')),
+        ],
+      );
+      await _pump(tester, expenses);
+
+      await _confirmDelete(tester, 499);
+      expect(find.text('Gagal menghapus'), findsOneWidget);
+      expect(find.byKey(const ValueKey('expense-499')), findsOneWidget);
+      expect(expenses.deleted, [499]);
+
+      await _confirmDelete(tester, 499);
+      expect(tester.takeException(), isNull);
+      expect(expenses.deleted, [499, 499]);
+      expect(find.byKey(const ValueKey('expense-499')), findsNothing);
+    });
+  });
 }

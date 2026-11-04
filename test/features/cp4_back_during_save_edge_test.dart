@@ -554,4 +554,178 @@ void main() {
       expect(expenses.updated, hasLength(1));
     });
   });
+
+  // PR #25 independent pass: a second Simpan while a save runs is dropped,
+  // and a failed save followed by a successful one pops exactly once.
+  group('Double Simpan and error-then-success', () {
+    /// Two taps in the same frame (the button has not rebuilt yet), then a
+    /// third once it has.
+    Future<void> tapThrice(WidgetTester tester, Key key) async {
+      await tester.ensureVisible(find.byKey(key));
+      await tester.tap(find.byKey(key));
+      await tester.tap(find.byKey(key));
+      await tester.pump();
+      await tester.tap(find.byKey(key), warnIfMissed: false);
+      await tester.pump();
+    }
+
+    testWidgets('Setor: a double tap sends one deposit', (tester) async {
+      final goals = _Goals()..gate = Completer<void>();
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      await tapThrice(tester, const Key('submit'));
+      expect(goals.amounts, [20000]);
+      expect(find.text('Menyimpan…'), findsOneWidget);
+
+      goals.gate!.complete();
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(goals.amounts, [20000]);
+    });
+
+    testWidgets('Setor: a rejected deposit, then a retry that succeeds',
+        (tester) async {
+      final goals = _Goals(
+        errors: [const ApiException('Nominal tidak valid'), null],
+      )..gate = Completer<void>();
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      await _tap(tester, const Key('submit'));
+      goals.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Nominal tidak valid'), findsOneWidget);
+      expect(find.text('Menyimpan…'), findsNothing);
+      expect(
+        tester.widget<VillageButton>(find.byKey(const Key('submit'))).onPressed,
+        isNotNull,
+      );
+
+      await _tap(tester, const Key('submit'));
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(goals.amounts, [20000, 20000]);
+    });
+
+    testWidgets('Setor: an unexpected error, then a retry that succeeds',
+        (tester) async {
+      final goals = _Goals(errors: [const FormatException('boom'), null])
+        ..gate = Completer<void>();
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      final errors = <Object>[];
+      await collectUncaught(errors, () => _tap(tester, const Key('submit')));
+      goals.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+
+      await _tap(tester, const Key('submit'));
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(goals.amounts, [20000, 20000]);
+    });
+
+    testWidgets('Jajan: a double tap sends one expense', (tester) async {
+      final expenses =
+          FakeExpensesRepository(createResults: [fixtureExpenseCreated()])
+            ..createGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.record,
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-25000'));
+      await tapThrice(tester, const Key('expense-submit'));
+      expect(expenses.created, hasLength(1));
+      expect(_expenseLabel(tester), 'Menyimpan…');
+      expect(_expenseEnabled(tester), isFalse);
+
+      expenses.createGate!.complete();
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.created, hasLength(1));
+    });
+
+    testWidgets('Jajan: a failed save, then a retry that succeeds',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        createResults: [
+          const ApiException('Gagal menyimpan'),
+          fixtureExpenseCreated(),
+        ],
+      )..createGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.record,
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-25000'));
+      await _tap(tester, const Key('expense-submit'));
+      expenses.createGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Gagal menyimpan'), findsOneWidget);
+      expect(_expenseLabel(tester), isNot('Menyimpan…'));
+      expect(_expenseEnabled(tester), isTrue);
+
+      await _tap(tester, const Key('expense-submit'));
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.created, hasLength(2));
+    });
+
+    testWidgets('Edit form: a double tap sends one update', (tester) async {
+      final expenses = FakeExpensesRepository(
+        updateResults: [_updatedWith(_row(amount: 15000))],
+      )..updateGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.edit(499),
+        extra: _row(),
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-15000'));
+      await tapThrice(tester, const Key('expense-submit'));
+      expect(expenses.updated, hasLength(1));
+      expect(_expenseLabel(tester), 'Menyimpan…');
+
+      expenses.updateGate!.complete();
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.updated, hasLength(1));
+    });
+
+    testWidgets('Edit form: a failed update, then a retry that succeeds',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        updateResults: [
+          const NotFoundException(),
+          _updatedWith(_row(amount: 15000)),
+        ],
+      )..updateGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.edit(499),
+        extra: _row(),
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-15000'));
+      await _tap(tester, const Key('expense-submit'));
+      expenses.updateGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Data tidak ditemukan.'), findsOneWidget);
+      expect(_expenseEnabled(tester), isTrue);
+
+      await _tap(tester, const Key('expense-submit'));
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.updated, hasLength(2));
+      expect(expenses.updated.last.$2, {'amount': 15000});
+    });
+  });
 }
