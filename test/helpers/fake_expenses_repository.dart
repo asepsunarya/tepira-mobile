@@ -87,6 +87,12 @@ class FakeExpensesRepository implements ExpensesRepository {
   /// When set, [list] waits for it before answering.
   Completer<void>? listGate;
 
+  /// When set, [update] waits for it before answering.
+  Completer<void>? updateGate;
+
+  /// When set, [delete] waits for it before answering.
+  Completer<void>? deleteGate;
+
   final List<NewExpense> created = [];
   final List<WibMonth?> listed = [];
   final List<(int, Map<String, Object?>)> updated = [];
@@ -118,6 +124,7 @@ class FakeExpensesRepository implements ExpensesRepository {
   Future<ExpenseUpdated> update(int id, ExpensePatch patch) async {
     final call = updated.length;
     updated.add((id, patch.toJson()));
+    await updateGate?.future;
     return _pick<ExpenseUpdated>(updateResults, call);
   }
 
@@ -125,6 +132,7 @@ class FakeExpensesRepository implements ExpensesRepository {
   Future<ExpenseDeleted> delete(int id) async {
     final call = deleted.length;
     deleted.add(id);
+    await deleteGate?.future;
     return _pick<ExpenseDeleted>(deleteResults, call);
   }
 }

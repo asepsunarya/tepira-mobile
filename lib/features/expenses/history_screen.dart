@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/clock.dart';
 import '../../core/errors.dart';
 import '../../core/format.dart';
+import '../../core/routes.dart';
 import '../../core/theme.dart';
 import '../../core/wib.dart';
 import '../../core/widgets/village_button.dart';
@@ -12,6 +13,7 @@ import '../../core/widgets/village_card.dart';
 import 'expense_providers.dart';
 import 'model/expense.dart';
 import 'model/expense_day.dart';
+import 'widgets/expense_action_sheet.dart';
 import 'widgets/expense_row.dart';
 import 'widgets/history_skeleton.dart';
 
@@ -20,6 +22,10 @@ import 'widgets/history_skeleton.dart';
 /// The arrows switch months; the current month is the last one. Only
 /// expenses are listed in v2, so the Semua/Setoran/Jajan filter of the
 /// artboard is not shown (SPEC-v2 §12 K6). Pull down to reload.
+///
+/// Tapping a row opens Ubah and Hapus. Ubah opens the filled Jajan form;
+/// Hapus asks first. Both put the server's answer into this list, Dompet
+/// and Desa without reloading them.
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
@@ -30,9 +36,50 @@ class HistoryScreen extends ConsumerStatefulWidget {
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   late WibMonth _month = _currentMonth;
 
+  /// Expenses whose delete is running; their rows ignore taps meanwhile.
+  final Set<int> _deleting = {};
+
   WibMonth get _currentMonth => WibMonth.of(ref.read(clockProvider)());
 
   void _show(WibMonth month) => setState(() => _month = month);
+
+  Future<void> _openActions(Expense expense) async {
+    final action = await showModalBottomSheet<ExpenseAction>(
+      context: context,
+      builder: (context) => ExpenseActionSheet(expense: expense),
+    );
+    if (!mounted) return;
+    switch (action) {
+      case ExpenseAction.edit:
+        context.push(ExpenseRoutes.edit(expense.id), extra: expense);
+      case ExpenseAction.delete:
+        await _delete(expense);
+      case null:
+        break;
+    }
+  }
+
+  Future<void> _delete(Expense expense) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => DeleteExpenseDialog(expense: expense),
+    );
+    if (confirmed != true || !mounted || _deleting.contains(expense.id)) {
+      return;
+    }
+    final writer = ref.read(expenseWriterProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _deleting.add(expense.id));
+    String message;
+    try {
+      await writer.delete(expense.id, listedIn: WibMonth.of(expense.date));
+      message = 'Jajan ${formatRupiah(expense.amount)} dihapus';
+    } on AppException catch (error) {
+      message = error.message;
+    }
+    if (mounted) setState(() => _deleting.remove(expense.id));
+    messenger.showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +107,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           const SizedBox(height: 4),
           if (data.expenses.isEmpty)
             const _EmptyMonth()
-          else
+          else ...[
             ..._days(data.expenses),
+            const SizedBox(height: 6),
+            Text(
+              'Ketuk catatan untuk mengubah atau menghapus.',
+              textAlign: TextAlign.center,
+              style: villageText(fontSize: 11, color: c.redup),
+            ),
+          ],
         ],
       );
     } else if (history.hasError && !history.isLoading) {
@@ -113,6 +167,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ExpenseRow(
             key: ValueKey('expense-${expense.id}'),
             expense: expense,
+            onTap: _deleting.contains(expense.id)
+                ? null
+                : () => _openActions(expense),
           ),
           const SizedBox(height: 6),
         ],
