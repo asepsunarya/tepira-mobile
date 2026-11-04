@@ -4,16 +4,17 @@ Rincian tiap tugas ada di `tasks/plan-v2.md`; spec di `SPEC-v2.md` (disetujui 20
 Satu commit per tugas. Tidak ada migrasi DB di v2.
 
 ## Fase B. Backend di repo `tepira` (branch `feature/mobile-api-v2`)
-- [ ] B1a Logika murni: `safeToday`, rentang WIB, gerak saldo + unit test
-- [ ] B1b Harness uji handler + perubahan helper bersama (`lockExpense`, `createExpenseInTx`, `updateExpenseWithWallet` dengan hasil `invalid`) + `npm run test:mobile-api` di `.github/workflows/ci.yml`; izin disetujui 2026-11-01
-- [ ] B2 `GET/POST /api/mobile/wallets`, `PATCH /api/mobile/wallets/[id]`
-- [ ] B3 `GET /api/mobile/today` (jajan dibaca dari awal bulan WIB tanpa batas atas; `computeMonthSummary` hanya bulan berjalan)
-- [ ] B4 `POST /api/mobile/expenses`
-- [ ] B5a `GET /api/mobile/expenses`
-- [ ] B5b `PATCH/DELETE /api/mobile/expenses/[id]`
-- [ ] B6 Kontrak dan fixtures ke repo mobile
-- [ ] B7 Uji balapan manual di Postgres lokal (tidak di-commit; output di deskripsi PR)
-- [ ] Checkpoint B: PR `tepira` dibuka hanya setelah diminta; tanpa migrasi, tanpa env baru; test, `lint`, `build` hijau
+Selesai: digabung ke `main` `tepira` (PR #33, `4ca29a1`).
+- [x] B1a Logika murni: `safeToday`, rentang WIB, gerak saldo + unit test
+- [x] B1b Harness uji handler + perubahan helper bersama (`lockExpense`, `createExpenseInTx`, `updateExpenseWithWallet` dengan hasil `invalid`) + `npm run test:mobile-api` di `.github/workflows/ci.yml`; izin disetujui 2026-11-01
+- [x] B2 `GET/POST /api/mobile/wallets`, `PATCH /api/mobile/wallets/[id]`
+- [x] B3 `GET /api/mobile/today` (jajan dibaca dari awal bulan WIB tanpa batas atas; `computeMonthSummary` hanya bulan berjalan)
+- [x] B4 `POST /api/mobile/expenses`
+- [x] B5a `GET /api/mobile/expenses`
+- [x] B5b `PATCH/DELETE /api/mobile/expenses/[id]`
+- [x] B6 Kontrak dan fixtures ke repo mobile
+- [x] B7 Uji balapan manual di Postgres lokal (tidak di-commit; output di deskripsi PR)
+- [x] Checkpoint B: PR `tepira` dibuka hanya setelah diminta; tanpa migrasi, tanpa env baru; test, `lint`, `build` hijau
 
 ## Fase 5. Fondasi mobile v2 (paralel dengan Fase B)
 - [x] T12 Housekeeping
@@ -21,8 +22,8 @@ Satu commit per tugas. Tidak ada migrasi DB di v2.
 - [x] T14 `wallets` data: DTO, model, repository + unit test
 
 ## Fase 6. Dompet
-- [ ] T15 Layar Dompet (termasuk kelompok Dana dicadangkan, Uang bebas di kepala) + widget test
-- [ ] T16 Layar Tambah/Ubah dompet (toggle dicadangkan) + test validasi
+- [x] T15 Layar Dompet (termasuk kelompok Dana dicadangkan, Uang bebas di kepala) + widget test
+- [x] T16 Layar Tambah/Ubah dompet (toggle dicadangkan) + test validasi
 
 ## Fase 7. Catat jajan dan angka harian
 - [ ] T17 `expenses` + `today` data + unit test

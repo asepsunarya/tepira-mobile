@@ -11,6 +11,8 @@ import 'features/goals/goal_detail_screen.dart';
 import 'features/goals/goals_screen.dart';
 import 'features/goals/new_goal_screen.dart';
 import 'features/settings/settings_screen.dart';
+import 'features/wallets/wallet_form_screen.dart';
+import 'features/wallets/wallets_screen.dart';
 
 const String kLoginPath = '/login';
 const String kHomePath = '/';
@@ -110,6 +112,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: kSettingsPath,
         builder: (context, state) => const _Settings(),
+      ),
+      GoRoute(
+        path: WalletRoutes.list,
+        builder: (context, state) => const WalletsScreen(),
+      ),
+      GoRoute(
+        path: WalletRoutes.create,
+        builder: (context, state) => const WalletFormScreen.create(),
+      ),
+      GoRoute(
+        path: WalletRoutes.editPattern,
+        builder: (context, state) => WalletFormScreen.edit(
+          walletId: WalletRoutes.parseId(state.pathParameters['id']!),
+        ),
       ),
       GoRoute(
         path: kLoginPath,

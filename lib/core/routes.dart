@@ -31,3 +31,18 @@ abstract final class GoalRoutes {
 
 /// Path of the Pengaturan screen (artboard Pengaturan).
 const String kSettingsPath = '/settings';
+
+/// Paths of the wallet screens (SPEC-v2 §4 `wallets`, artboards Dompet and
+/// TambahDompet).
+abstract final class WalletRoutes {
+  static const String list = '/wallets';
+  static const String create = '/wallets/new';
+  static const String editPattern = '/wallets/:id/edit';
+
+  static String edit(int id) => '/wallets/$id/edit';
+
+  /// The wallet id in a `/wallets/:id/edit` path segment, or null when it is
+  /// not a positive int32 written in decimal digits; the same rule as
+  /// [GoalRoutes.parseId], because the server's path ids are the same.
+  static int? parseId(String raw) => GoalRoutes.parseId(raw);
+}

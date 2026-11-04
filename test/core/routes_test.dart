@@ -8,4 +8,13 @@ void main() {
     expect(uri.queryParameters, {GoalRoutes.recordGoalParam: '12'});
     expect(GoalRoutes.recordFor(12), '/record?goal=12');
   });
+
+  test('WalletRoutes builds the edit path and validates its id', () {
+    expect(WalletRoutes.edit(7), '/wallets/7/edit');
+    expect(WalletRoutes.parseId('7'), 7);
+    expect(WalletRoutes.parseId('0'), isNull);
+    expect(WalletRoutes.parseId('-3'), isNull);
+    expect(WalletRoutes.parseId('abc'), isNull);
+    expect(WalletRoutes.parseId('2147483648'), isNull);
+  });
 }
