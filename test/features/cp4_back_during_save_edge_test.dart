@@ -15,8 +15,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:tepira_mobile/core/clock.dart';
 import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/core/routes.dart';
-import 'package:tepira_mobile/core/unexpected_error.dart';
 import 'package:tepira_mobile/core/theme.dart';
+import 'package:tepira_mobile/core/unexpected_error.dart';
 import 'package:tepira_mobile/core/widgets/village_button.dart';
 import 'package:tepira_mobile/core/widgets/village_chip.dart';
 import 'package:tepira_mobile/data/expenses/expense_dto.dart';
@@ -167,12 +167,21 @@ Future<void> _tap(WidgetTester tester, Key key) async {
   await tester.pump();
 }
 
-/// Lets the generic error snackbar time out: it covers the bottom-docked
-/// Simpan button while shown.
-Future<void> _waitOutSnackBar(WidgetTester tester) async {
-  await tester.pump(const Duration(seconds: 5));
-  await tester.pumpAndSettle();
-  expect(find.text(kUnexpectedErrorMessage), findsNothing);
+/// The generic error is shown inline in the form's error line ([errorKey]),
+/// not in a snackbar, so the bottom-docked Simpan ([submitKey]) stays
+/// uncovered and can be tapped straight away.
+void _expectInlineUnexpected(
+  WidgetTester tester, {
+  required Key errorKey,
+  required Key submitKey,
+}) {
+  expect(
+    tester.widget<Text>(find.byKey(errorKey)).data,
+    kUnexpectedErrorMessage,
+  );
+  expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
+  expect(find.byType(SnackBar), findsNothing);
+  expect(find.byKey(submitKey).hitTestable(), findsOneWidget);
 }
 
 final _expenseSubmit = find.byKey(const Key('expense-submit'));
@@ -525,8 +534,7 @@ void main() {
       expect(_expenseLabel(tester), isNot('Menyimpan…'));
       expect(_expenseEnabled(tester), isTrue);
 
-      // A second Simpan is sent and succeeds.
-      await _waitOutSnackBar(tester);
+      // A second Simpan is sent at once and succeeds.
       await _tap(tester, const Key('expense-submit'));
       await tester.pumpAndSettle();
       _expectOnMid(tester);
@@ -565,6 +573,108 @@ void main() {
       await tester.pumpAndSettle();
       _expectOnMid(tester);
       expect(expenses.updated, hasLength(1));
+    });
+  });
+
+  // The generic error sits in the form's own error line above the
+  // bottom-docked Simpan, never in a snackbar over it, and goes away on the
+  // next edit or submit like the form's other save errors.
+  group('Unexpected save errors are shown inline', () {
+    testWidgets('Setor: inline, Simpan uncovered, cleared by an edit',
+        (tester) async {
+      final goals = _Goals(errors: [const FormatException('boom')])
+        ..gate = Completer<void>();
+      await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
+
+      await _tap(tester, const Key('chip-20000'));
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(
+        errors,
+        () => _tap(tester, const Key('submit')),
+      );
+      goals.gate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      _expectInlineUnexpected(
+        tester,
+        errorKey: const Key('submit-error'),
+        submitKey: const Key('submit'),
+      );
+
+      await _tap(tester, const Key('chip-50000'));
+      expect(find.byKey(const Key('submit-error')), findsNothing);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('Jajan: inline, Simpan uncovered, cleared by an edit',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        createResults: [const FormatException('boom')],
+      )..createGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.record,
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-25000'));
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(
+        errors,
+        () => _tap(tester, const Key('expense-submit')),
+      );
+      expenses.createGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      _expectInlineUnexpected(
+        tester,
+        errorKey: const Key('expense-error'),
+        submitKey: const Key('expense-submit'),
+      );
+
+      await _tap(tester, const Key('expense-chip-15000'));
+      expect(find.byKey(const Key('expense-error')), findsNothing);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+    });
+
+    testWidgets('the edit form: inline, cleared by the next submit',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        updateResults: [
+          const FormatException('boom'),
+          _updatedWith(_row(amount: 15000)),
+        ],
+      )..updateGate = Completer<void>();
+      await _pump(
+        tester,
+        location: ExpenseRoutes.edit(499),
+        extra: _row(),
+        expenses: expenses,
+      );
+
+      await _tap(tester, const Key('expense-chip-15000'));
+      final errors = <Object>[];
+      await collectUncaught<FormatException>(
+        errors,
+        () => _tap(tester, const Key('expense-submit')),
+      );
+      expenses.updateGate!.complete();
+      await tester.pumpAndSettle();
+      expect(errors, [isA<FormatException>()]);
+      _expectInlineUnexpected(
+        tester,
+        errorKey: const Key('expense-error'),
+        submitKey: const Key('expense-submit'),
+      );
+
+      expenses.updateGate = Completer<void>();
+      await _tap(tester, const Key('expense-submit'));
+      expect(_expenseLabel(tester), 'Menyimpan…');
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+      expenses.updateGate!.complete();
+      await tester.pumpAndSettle();
+      _expectOnMid(tester);
+      expect(expenses.updated, hasLength(2));
     });
   });
 
@@ -636,10 +746,15 @@ void main() {
       goals.gate!.complete();
       await tester.pumpAndSettle();
       expect(errors, [isA<FormatException>()]);
-      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
+      _expectInlineUnexpected(
+        tester,
+        errorKey: const Key('submit-error'),
+        submitKey: const Key('submit'),
+      );
 
-      await _waitOutSnackBar(tester);
+      // The retry clears the message and saves.
       await _tap(tester, const Key('submit'));
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
       await tester.pumpAndSettle();
       _expectOnMid(tester);
       expect(goals.amounts, [20000, 20000]);
@@ -747,11 +862,11 @@ void main() {
     });
   });
 
-  // PR #27 independent pass: the generic snackbar only for unexpected
+  // PR #27 independent pass: the generic error only for unexpected
   // errors, and an erroring save whose screen is torn down (the stack is
   // replaced, which PopScope does not block) does not touch the dead state.
   group('PR #27 edge cases', () {
-    testWidgets('Setor: a rejected deposit shows no generic snackbar',
+    testWidgets('Setor: a rejected deposit shows no generic error',
         (tester) async {
       final goals = _Goals(errors: [const ApiException('Nominal tidak valid')]);
       await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
@@ -763,7 +878,7 @@ void main() {
       expect(find.text(kUnexpectedErrorMessage), findsNothing);
     });
 
-    testWidgets('Setor: a network failure shows no generic snackbar',
+    testWidgets('Setor: a network failure shows no generic error',
         (tester) async {
       final goals = _Goals(errors: [const NetworkException()]);
       await _pump(tester, location: GoalRoutes.recordFor(1), goals: goals);
@@ -775,7 +890,7 @@ void main() {
       expect(find.text(kUnexpectedErrorMessage), findsNothing);
     });
 
-    testWidgets('Jajan: a rejected save shows no generic snackbar',
+    testWidgets('Jajan: a rejected save shows no generic error',
         (tester) async {
       final expenses = FakeExpensesRepository(
         createResults: [const ApiException('Gagal menyimpan')],
@@ -789,7 +904,7 @@ void main() {
       expect(find.text(kUnexpectedErrorMessage), findsNothing);
     });
 
-    testWidgets('Edit form: a not-found update shows no generic snackbar',
+    testWidgets('Edit form: a not-found update shows no generic error',
         (tester) async {
       final expenses = FakeExpensesRepository(
         updateResults: [const NotFoundException()],

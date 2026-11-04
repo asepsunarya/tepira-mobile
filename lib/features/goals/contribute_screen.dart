@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/errors.dart';
-import '../../core/unexpected_error.dart';
 import '../../core/format.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../../core/unexpected_error.dart';
 import '../../core/widgets/amount_keypad.dart';
 import '../../core/widgets/village_button.dart';
 import '../../core/widgets/village_card.dart';
@@ -120,9 +120,9 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
       setState(() => _error = error.message);
       return;
     } catch (_) {
-      // Not an AppException: a bug or a parse error. Say so, and let it
-      // reach the zone handler.
-      if (mounted) showUnexpectedError(context);
+      // Not an AppException: a bug or a parse error. Say so inline, and
+      // rethrow so the error is forwarded to the zone error handler.
+      if (mounted) setState(() => _error = kUnexpectedErrorMessage);
       rethrow;
     } finally {
       // Any failure, including an unexpected error, unblocks the form.

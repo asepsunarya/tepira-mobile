@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/brands.dart';
 import '../../core/errors.dart';
-import '../../core/unexpected_error.dart';
 import '../../core/routes.dart';
 import '../../core/rupiah_input_formatter.dart';
 import '../../core/theme.dart';
+import '../../core/unexpected_error.dart';
 import '../../core/widgets/village_button.dart';
 import '../../core/widgets/village_card.dart';
 import '../../core/widgets/village_chip.dart';
@@ -195,9 +195,9 @@ class _WalletFormState extends ConsumerState<_WalletForm> {
       });
       return;
     } catch (_) {
-      // Not an AppException: a bug or a parse error. Say so, and let it
-      // reach the zone handler.
-      if (mounted) showUnexpectedError(context);
+      // Not an AppException: a bug or a parse error. Say so inline, and
+      // rethrow so the error is forwarded to the zone error handler.
+      if (mounted) setState(() => _submitError = kUnexpectedErrorMessage);
       rethrow;
     } finally {
       // Any failure, including an unexpected error, unblocks the form.

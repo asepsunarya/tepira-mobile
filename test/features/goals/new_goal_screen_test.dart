@@ -9,8 +9,8 @@ import 'package:tepira_mobile/core/clock.dart';
 import 'package:tepira_mobile/core/errors.dart';
 import 'package:tepira_mobile/core/routes.dart';
 import 'package:tepira_mobile/core/theme.dart';
-import 'package:tepira_mobile/core/widgets/village_button.dart';
 import 'package:tepira_mobile/core/unexpected_error.dart';
+import 'package:tepira_mobile/core/widgets/village_button.dart';
 import 'package:tepira_mobile/data/goals/goals_repository.dart';
 import 'package:tepira_mobile/features/goals/goal_providers.dart';
 import 'package:tepira_mobile/features/goals/model/goal.dart';
@@ -588,8 +588,8 @@ void main() {
 
   // An error that is not an AppException (a bug, a parse error) is not
   // handled by the save flow, but it must not leave the screen stuck on
-  // "Mematok kavling…": the form comes back with a generic snackbar, and the
-  // error still reaches the zone handler.
+  // "Mematok kavling…": the form comes back with a generic inline error, and
+  // the error still reaches the zone handler.
   group('unexpected (non-AppException) errors', () {
     void expectFormUsable(WidgetTester tester) {
       expect(find.byType(NewGoalScreen), findsOneWidget);
@@ -598,7 +598,12 @@ void main() {
         tester.widget<VillageButton>(find.byKey(const Key('submit'))).onPressed,
         isNotNull,
       );
-      expect(find.text(kUnexpectedErrorMessage), findsOneWidget);
+      // Inline, in the form's error line above the button; no snackbar.
+      expect(
+        tester.widget<Text>(find.byKey(const Key('submitError'))).data,
+        kUnexpectedErrorMessage,
+      );
+      expect(find.byType(SnackBar), findsNothing);
     }
 
     testWidgets('from create: the form comes back, and a retry saves',
@@ -622,8 +627,15 @@ void main() {
       expect(errors, [isA<FormatException>()]);
       expectFormUsable(tester);
 
-      repository.createResult = null;
+      // The retry clears the message, then saves.
+      repository
+        ..createResult = null
+        ..createGate = Completer();
       await _tapSubmit(tester);
+      await tester.pump();
+      expect(find.text('Mematok kavling…'), findsOneWidget);
+      expect(find.text(kUnexpectedErrorMessage), findsNothing);
+      repository.createGate!.complete();
       await tester.pumpAndSettle();
       expect(repository.createCalls, hasLength(2));
       expect(find.text('kavling 16'), findsOneWidget);
@@ -699,7 +711,7 @@ void main() {
       expect(find.byType(NewGoalScreen), findsOneWidget);
     });
 
-    testWidgets('an AppException shows no generic snackbar', (tester) async {
+    testWidgets('an AppException shows no generic error', (tester) async {
       final repository = _CreatingRepository(
         createResult: const ServerException(statusCode: 500),
       );
@@ -751,7 +763,7 @@ void main() {
 
     testWidgets(
         'back during an erroring create: no setState after dispose, '
-        'no snackbar on the page below', (tester) async {
+        'no generic error on the page below', (tester) async {
       final repository = _CreatingRepository(
         createResult: const FormatException('boom'),
       )..createGate = Completer();
@@ -853,7 +865,7 @@ void main() {
       expect(repository.createCalls, hasLength(1));
     });
 
-    testWidgets('a network failure (uncertain) shows no generic snackbar',
+    testWidgets('a network failure (uncertain) shows no generic error',
         (tester) async {
       final repository = _CreatingRepository(
         createResult: const NetworkException(),
@@ -891,8 +903,6 @@ void main() {
       expect(find.text(kNewGoalUncertainTitle), findsOneWidget);
 
       repository.listThrows = null;
-      await tester.pump(const Duration(seconds: 5));
-      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const Key('uncertain-retry')));
       await tester.tap(find.byKey(const Key('uncertain-retry')));
       await tester.pumpAndSettle();
