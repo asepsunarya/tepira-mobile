@@ -19,15 +19,17 @@ class ExpenseWriter {
 
   /// Creates [expense]. A dedupe answer is returned like a new row.
   ///
-  /// When the server aborted the transaction (500 with `Retry-After`),
-  /// nothing was written, so the same body is sent once more after the wait;
-  /// the server's 120 s dedupe keeps that from storing it twice.
+  /// When the server aborted the transaction (500 `server_error` with a
+  /// short `Retry-After`), nothing was written, so the same body is sent
+  /// once more after the wait; the server's 120 s dedupe keeps that from
+  /// storing it twice. Every other error (502/503/504 with an unknown
+  /// outcome, 429, a long or missing `Retry-After`) is surfaced unsent.
   Future<ExpenseCreated> create(NewExpense expense) async {
     ExpenseCreated result;
     try {
       result = await _repository.create(expense);
     } on ServerException catch (error) {
-      final wait = error.retryAfter;
+      final wait = retryWaitOf(error);
       if (wait == null) rethrow;
       await Future<void>.delayed(wait);
       result = await _repository.create(expense);
@@ -63,6 +65,19 @@ class ExpenseWriter {
       _ref.read(todayProvider.notifier).applySummary(result.today);
     }
   }
+}
+
+/// Longest `Retry-After` the expense writer waits out before resending.
+const Duration kMaxExpenseResendWait = Duration(seconds: 5);
+
+/// The wait before resending a create that failed with [error], or null
+/// when it must not be resent: only a 500 `server_error` with a
+/// `Retry-After` of at most [kMaxExpenseResendWait] is a safe resend.
+Duration? retryWaitOf(ServerException error) {
+  final wait = error.retryAfter;
+  if (error.statusCode != 500 || error.code != 'server_error') return null;
+  if (wait == null || wait > kMaxExpenseResendWait) return null;
+  return wait;
 }
 
 final expenseWriterProvider = Provider<ExpenseWriter>(ExpenseWriter.new);

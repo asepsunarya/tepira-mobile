@@ -183,7 +183,11 @@ void main() {
       final s = _Setup(
         FakeExpensesRepository(
           createResults: [
-            const ServerException(retryAfter: Duration(milliseconds: 1)),
+            const ServerException(
+              statusCode: 500,
+              code: 'server_error',
+              retryAfter: Duration(milliseconds: 1),
+            ),
             fixtureExpenseCreated(),
           ],
         ),
@@ -200,7 +204,11 @@ void main() {
       final s = _Setup(
         FakeExpensesRepository(
           createResults: [
-            const ServerException(retryAfter: Duration(milliseconds: 1)),
+            const ServerException(
+              statusCode: 500,
+              code: 'server_error',
+              retryAfter: Duration(milliseconds: 1),
+            ),
           ],
         ),
       );
@@ -220,6 +228,33 @@ void main() {
     ]) {
       test('${error.runtimeType} without the retry signal is not resent',
           () async {
+        final s = _Setup(FakeExpensesRepository(createResults: [error]));
+
+        await expectLater(s.writer.create(_bakso), throwsA(same(error)));
+        expect(s.expenses.created, hasLength(1));
+      });
+    }
+
+    for (final error in <ServerException>[
+      const ServerException(
+        statusCode: 500,
+        code: 'server_error',
+        retryAfter: Duration(seconds: 300),
+      ),
+      const ServerException(
+        statusCode: 500,
+        code: 'server_error',
+        retryAfter: Duration(seconds: 6),
+      ),
+      const ServerException(
+        statusCode: 500,
+        code: 'internal',
+        retryAfter: Duration(milliseconds: 1),
+      ),
+    ]) {
+      test(
+          '500 ${error.code} with Retry-After ${error.retryAfter!.inSeconds}s '
+          'is not resent', () async {
         final s = _Setup(FakeExpensesRepository(createResults: [error]));
 
         await expectLater(s.writer.create(_bakso), throwsA(same(error)));

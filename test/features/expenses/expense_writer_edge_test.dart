@@ -139,11 +139,6 @@ void main() {
           await expectLater(s.writer.create(_body), throwsA(same(error)));
           expect(s.expenses.created, hasLength(1));
         },
-        skip: 'BUG: ExpenseWriter.create resends on any ServerException '
-            'with retryAfter, not only HTTP 500 (SPEC-v2 §3.5 / §4 '
-            'core-network: only 500 server_error + Retry-After is a '
-            'safe resend). lib/features/expenses/expense_providers.dart '
-            'create(): no statusCode == 500 check.',
       );
     }
 
@@ -180,6 +175,7 @@ void main() {
           createResults: [
             const ServerException(
               statusCode: 500,
+              code: 'server_error',
               retryAfter: Duration(milliseconds: 1),
             ),
             const NetworkException(),
@@ -209,6 +205,7 @@ void main() {
           createResults: [
             const ServerException(
               statusCode: 500,
+              code: 'server_error',
               retryAfter: Duration(milliseconds: 300),
             ),
             fixtureExpenseCreated(),
@@ -462,13 +459,6 @@ void main() {
           _expectTotals(s.list.totals, _serverTotals(s.list.wallets));
         }
       },
-      skip: 'BUG: applyExpenseWrite uses the new wallet\'s isDebt only; '
-          'when the stored wallet was an asset the delta is '
-          'new.display - old.display (-45.000) instead of +25.000 debt, so '
-          'debts=1.245.000 and assets=11.270.000 vs server 1.225.000 / '
-          '11.250.000. lib/features/wallets/wallet_providers.dart '
-          'applyExpenseWrite (should reload, or use old.isDebt for the old '
-          'side).',
     );
 
     test(
@@ -500,10 +490,6 @@ void main() {
           _expectTotals(s.list.totals, _serverTotals(s.list.wallets));
         }
       },
-      skip: 'BUG: a stored debt wallet returned as non-debt keeps its old '
-          'debt in the debts total (1.200.000 instead of 0), so assets is '
-          '1.200.000 too high. lib/features/wallets/wallet_providers.dart '
-          'applyExpenseWrite.',
     );
 
     test(

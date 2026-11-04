@@ -165,6 +165,7 @@ void main() {
         createResults: [
           const ServerException(
             statusCode: 500,
+            code: 'server_error',
             retryAfter: Duration(seconds: 1),
           ),
           fixtureExpenseCreated(),
