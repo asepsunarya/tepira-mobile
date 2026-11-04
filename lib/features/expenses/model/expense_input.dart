@@ -1,3 +1,4 @@
+import '../../../core/categories.dart';
 import '../../../core/wib.dart';
 import 'expense.dart';
 
@@ -90,14 +91,17 @@ class ExpensePatch {
   const ExpensePatch._(this._fields);
 
   /// The difference between [original] and [edit]. The day is compared in
-  /// WIB, so an unchanged day keeps the stored time.
+  /// WIB, so an unchanged day keeps the stored time. Notes are compared
+  /// trimmed, so a stored note with surrounding spaces is not a change, and
+  /// a stored web key (`transport`) equals its label.
   factory ExpensePatch.between(Expense original, ExpenseEdit edit) {
     final note = _blankToNull(edit.note);
     return ExpensePatch._({
       if (edit.amount != original.amount) 'amount': edit.amount,
       if (edit.walletId != original.walletId) 'walletId': edit.walletId,
-      if (edit.category != original.category) 'category': edit.category,
-      if (note != original.note) 'note': note,
+      if (edit.category != categoryLabelOf(original.category))
+        'category': edit.category,
+      if (note != _blankToNull(original.note)) 'note': note,
       if (edit.source case final source? when source.wire != original.source)
         'source': source.wire,
       if (edit.day != wibDayKey(original.date)) 'date': edit.day,

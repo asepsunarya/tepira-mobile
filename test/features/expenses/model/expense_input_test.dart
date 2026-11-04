@@ -33,6 +33,20 @@ ExpenseEdit _edit({
       day: day,
     );
 
+/// [e] with [category] and [note] replaced.
+Expense _copy(Expense e, {String? category, String? note}) => Expense(
+      id: e.id,
+      amount: e.amount,
+      category: category ?? e.category,
+      note: note ?? e.note,
+      source: e.source,
+      date: e.date,
+      createdAt: e.createdAt,
+      walletId: e.walletId,
+      walletName: e.walletName,
+      placeName: e.placeName,
+    );
+
 void main() {
   group('NewExpense.toJson', () {
     test('today: no date key at all', () {
@@ -57,6 +71,43 @@ void main() {
   group('ExpensePatch.between', () {
     test('nothing changed -> empty', () {
       expect(ExpensePatch.between(_stored, _edit()).isEmpty, isTrue);
+    });
+
+    test('a stored note with surrounding spaces is not a change', () {
+      final stored = _copy(_stored, note: '  nasi padang ');
+
+      expect(ExpensePatch.between(stored, _edit()).isEmpty, isTrue);
+      expect(
+        ExpensePatch.between(stored, _edit(note: '  nasi padang ')).isEmpty,
+        isTrue,
+      );
+      expect(
+        ExpensePatch.between(stored, _edit(note: 'bakso')).toJson(),
+        {'note': 'bakso'},
+      );
+    });
+
+    test('a blank stored note equals a cleared one', () {
+      final stored = _copy(_stored, note: '   ');
+
+      expect(ExpensePatch.between(stored, _edit(note: '')).isEmpty, isTrue);
+    });
+
+    test('a stored web key equals its label', () {
+      final stored = _copy(_stored, category: 'transport');
+
+      expect(
+        ExpensePatch.between(stored, _edit(category: 'Transport')).isEmpty,
+        isTrue,
+      );
+      expect(
+        ExpensePatch.between(stored, _edit(category: 'Makan harian')).toJson(),
+        {'category': 'Makan harian'},
+      );
+      expect(
+        ExpensePatch.between(stored, _edit(category: null)).toJson(),
+        {'category': null},
+      );
     });
 
     test('a cleared category and a blank note are sent as null', () {

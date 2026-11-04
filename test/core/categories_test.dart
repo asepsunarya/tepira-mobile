@@ -87,6 +87,20 @@ void main() {
     });
   });
 
+  group('categoryLabelOf', () {
+    test('keeps a known label, null, and an unknown value', () {
+      expect(categoryLabelOf('Transport'), 'Transport');
+      expect(categoryLabelOf(null), isNull);
+      expect(categoryLabelOf('Lain-lain'), 'Lain-lain');
+    });
+
+    test('maps every web key to its label', () {
+      for (final c in kExpenseCategories) {
+        expect(categoryLabelOf(c.key), c.label);
+      }
+    });
+  });
+
   test('categoriesByGroup keeps list order', () {
     final groups = categoriesByGroup();
 
