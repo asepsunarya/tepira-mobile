@@ -644,6 +644,11 @@ String _groupDigits(String digits) {
 /// Keeps a leading `-` and the digits, grouped by thousands with `.`. An
 /// asset may be overdrawn and an old debt wallet may be stored negative, so
 /// the sign must survive; whether it is allowed is the validator's call.
+///
+/// Amounts are read the Indonesian way: `.` groups thousands and `,` starts a
+/// fraction, which is dropped because rupiah are whole. A pasted
+/// `1.500.000,50` (or `Rp1.500.000,-`) becomes `1.500.000`; the decimal part
+/// never joins the digits and inflates the amount.
 class _SignedRupiahFormatter extends TextInputFormatter {
   const _SignedRupiahFormatter();
 
@@ -654,7 +659,9 @@ class _SignedRupiahFormatter extends TextInputFormatter {
   ) {
     final raw = newValue.text.trim();
     final negative = raw.startsWith('-');
-    final digits = raw
+    final comma = raw.indexOf(',');
+    final whole = comma < 0 ? raw : raw.substring(0, comma);
+    final digits = whole
         .replaceAll(RegExp(r'[^0-9]'), '')
         .replaceFirst(RegExp(r'^0+(?=[0-9])'), '');
     final text = _groupDigits('${negative ? '-' : ''}$digits');

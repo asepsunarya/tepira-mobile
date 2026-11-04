@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tepira_mobile/features/wallets/model/wallet.dart';
 import 'package:tepira_mobile/features/wallets/model/wallet_form_rules.dart';
 
 import '../../../helpers/fake_wallets_repository.dart';
@@ -20,6 +21,19 @@ void main() {
       expect(walletNameError('BC\nA'), kWalletNameError);
     });
 
+    test('length counts code points, as the server: one emoji is one', () {
+      expect(walletNameError('😀' * 60), isNull);
+      expect(walletNameError('😀' * 61), kWalletNameError);
+    });
+
+    test('C1 controls (U+0080 to U+009F) pass, as on the server', () {
+      expect(walletNameError('BCA\u0085\u009F'), isNull);
+    });
+
+    test('a lone surrogate fails (not well-formed)', () {
+      expect(walletNameError('BCA \uD83D'), kWalletNameError);
+    });
+
     test('an ordinary name passes', () {
       expect(walletNameError('Kartu kredit BCA'), isNull);
     });
@@ -33,6 +47,21 @@ void main() {
 
     test('201 characters fail', () {
       expect(walletDescriptionError('x' * 201), kWalletDescriptionError);
+    });
+
+    test('length counts code points: 200 emoji pass, 201 fail', () {
+      expect(walletDescriptionError('😀' * 200), isNull);
+      expect(walletDescriptionError('😀' * 201), kWalletDescriptionError);
+    });
+
+    test('a NUL character fails with the server message', () {
+      const withNul = 'Kurban\u00002027';
+      expect(walletDescriptionError(withNul), kWalletDescriptionError);
+    });
+
+    test('a lone surrogate fails; other controls pass, as on the server', () {
+      expect(walletDescriptionError('x\uDE00'), kWalletDescriptionError);
+      expect(walletDescriptionError('baris 1\nbaris 2\t\u0007'), isNull);
     });
   });
 
@@ -115,10 +144,17 @@ void main() {
       );
     });
 
-    test('a debt keeps to debt types', () {
+    test('a debt wallet may take any type; it stays debt', () {
       expect(
         walletTypeChoices(testWallet(type: 'credit', isDebt: true)),
-        ['credit', 'paylater'],
+        kWalletTypes,
+      );
+    });
+
+    test('a debt wallet of an asset type keeps that type selectable', () {
+      expect(
+        walletTypeChoices(testWallet(type: 'other', isDebt: true)),
+        contains('other'),
       );
     });
 

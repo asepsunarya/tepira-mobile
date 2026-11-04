@@ -241,6 +241,58 @@ void main() {
       );
     });
 
+    testWidgets('a pasted decimal amount drops the fraction, not the comma',
+        (tester) async {
+      final repository = FakeWalletsRepository(
+        [fixtureWalletList()],
+        createResults: [
+          WalletWrite(wallet: testWallet(id: 22), totals: _newTotals),
+        ],
+      );
+      await _pump(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('name')), 'Dompet');
+      await tester.enterText(find.byKey(const Key('balance')), '1.500.000,50');
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const Key('balance')))
+            .controller!
+            .text,
+        '1.500.000',
+      );
+      await tester.enterText(find.byKey(const Key('balance')), 'Rp-25.000,-');
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const Key('balance')))
+            .controller!
+            .text,
+        '25.000',
+        reason: 'the sign only counts as the first character',
+      );
+      await tester.enterText(find.byKey(const Key('balance')), '1.500.000,50');
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.pumpAndSettle();
+
+      expect(repository.created.single.balance, 1500000);
+    });
+
+    testWidgets('a description with a NUL character is refused before sending',
+        (tester) async {
+      final repository = FakeWalletsRepository([fixtureWalletList()]);
+      await _pump(tester, repository);
+
+      await tester.enterText(find.byKey(const Key('name')), 'Dompet');
+      await tester.enterText(
+        find.byKey(const Key('description')),
+        'Kurban\u00002027',
+      );
+      await tester.tap(find.byKey(const Key('submit')));
+      await tester.pumpAndSettle();
+
+      expect(find.text(kWalletDescriptionError), findsOneWidget);
+      expect(repository.created, isEmpty);
+    });
+
     testWidgets('a network failure says the wallet may already be stored',
         (tester) async {
       final repository = FakeWalletsRepository(
@@ -334,7 +386,7 @@ void main() {
       expect(repository.updated.single.$2, {'isReserved': false});
     });
 
-    testWidgets('a debt wallet keeps to debt types and cannot be reserved',
+    testWidgets('a debt wallet may change type but cannot be reserved',
         (tester) async {
       await _pump(
         tester,
@@ -344,8 +396,12 @@ void main() {
 
       expect(find.byKey(const Key('type-credit')), findsOneWidget);
       expect(find.byKey(const Key('type-paylater')), findsOneWidget);
-      expect(find.byKey(const Key('type-bank')), findsNothing);
-      expect(find.byKey(const Key('type-cash')), findsNothing);
+      expect(find.byKey(const Key('type-bank')), findsOneWidget);
+      expect(find.text('Terutang saat ini'), findsOneWidget);
+      expect(_reservedToggle(tester).onChanged, isNull);
+
+      await tester.tap(find.byKey(const Key('type-cash')));
+      await tester.pumpAndSettle();
       expect(find.text('Terutang saat ini'), findsOneWidget);
       expect(_reservedToggle(tester).onChanged, isNull);
     });

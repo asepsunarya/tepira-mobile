@@ -1,7 +1,6 @@
 // Independent edge-case tests for the Dompet screen (T15) and the wallet
 // form (T16), checked against SPEC-v2 §3.1–3.3, §4 `wallets` and
-// docs/api-contract-v2.md §2–4. Tests that pin a real gap are skipped with
-// the reason, so the suite stays green until the gap is fixed.
+// docs/api-contract-v2.md §2–4.
 
 import 'dart:async';
 
@@ -79,18 +78,6 @@ Future<GoRouter> _pump(
 String _fieldText(WidgetTester tester, String key) =>
     tester.widget<TextFormField>(find.byKey(Key(key))).controller!.text;
 
-const String _skipPastedDecimal =
-    'BUG (minor): _SignedRupiahFormatter strips every non-digit, so a pasted '
-    '"1.500.000,50" becomes 150.000.050 and passes validation '
-    '(lib/features/wallets/wallet_form_screen.dart:650-662).';
-
-const String _skipDebtOtherType =
-    'BUG (minor UX): walletTypeChoices drops the stored type when it is a '
-    'known asset type on a debt wallet (isDebt=true, type=other, possible via '
-    'POST isDebt:true), so no type chip is selected '
-    '(lib/features/wallets/model/wallet_form_rules.dart:73-80). Also stricter '
-    'than contract §4, which only forbids credit/paylater on an asset wallet.';
-
 void main() {
   group('rules vs server (lib/mobile/wallets.ts at f74d790)', () {
     test('int32 edges with grouping parse; one past fails', () {
@@ -125,17 +112,11 @@ void main() {
       'a 31-emoji name (31 code points, 62 UTF-16 units) passes, as on the '
       'server',
       () => expect(walletNameError('😀' * 31), isNull),
-      skip: 'BUG: walletNameError counts UTF-16 units (String.length) while '
-          'the server counts code points (Array.from(s).length), so valid '
-          'names with emoji/astral characters are refused client-side '
-          '(lib/features/wallets/model/wallet_form_rules.dart:25).',
     );
 
     test(
       'a 150-emoji description (150 code points) passes, as on the server',
       () => expect(walletDescriptionError('😀' * 150), isNull),
-      skip: 'BUG: walletDescriptionError counts UTF-16 units; the server '
-          'counts code points (wallet_form_rules.dart:35).',
     );
 
     test('a 60 code-point BMP name passes, 61 fails', () {
@@ -575,7 +556,7 @@ void main() {
       expect(repository.created, isEmpty);
     });
 
-    group('pasted decimal', skip: _skipPastedDecimal, () {
+    group('pasted decimal', () {
       testWidgets(
         'a pasted decimal amount is not silently multiplied by 100',
         (tester) async {
@@ -603,7 +584,7 @@ void main() {
       );
     });
 
-    group('debt wallet of an asset type', skip: _skipDebtOtherType, () {
+    group('debt wallet of an asset type', () {
       testWidgets(
         'a web-made debt wallet of type "other" shows its current type',
         (tester) async {
