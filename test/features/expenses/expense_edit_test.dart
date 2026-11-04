@@ -244,7 +244,10 @@ void main() {
 
       // The delete runs on from the row tap, so collect from there on.
       final errors = <Object>[];
-      await collectUncaught(errors, () => _confirmDelete(tester, 499));
+      await collectUncaught<FormatException>(
+        errors,
+        () => _confirmDelete(tester, 499),
+      );
       expect(find.byKey(const ValueKey('expense-499')), findsOneWidget);
       expenses.deleteGate!.complete();
       await tester.pumpAndSettle();

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/categories.dart';
 import '../../core/clock.dart';
 import '../../core/errors.dart';
+import '../../core/unexpected_error.dart';
 import '../../core/format.dart';
 import '../../core/routes.dart';
 import '../../core/rupiah_input_formatter.dart';
@@ -197,6 +198,11 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
       }
       setState(() => _error = error.message);
       return;
+    } catch (_) {
+      // Not an AppException: a bug or a parse error. Say so, and let it
+      // reach the zone handler.
+      if (mounted) showUnexpectedError(context);
+      rethrow;
     } finally {
       // Any failure, including an unexpected error, unblocks the form.
       if (!saved && mounted) _setSubmitting(false);
@@ -237,6 +243,11 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
       }
       setState(() => _error = error.message);
       return;
+    } catch (_) {
+      // Not an AppException: a bug or a parse error. Say so, and let it
+      // reach the zone handler.
+      if (mounted) showUnexpectedError(context);
+      rethrow;
     } finally {
       // Any failure, including an unexpected error, unblocks the form.
       if (!saved && mounted) _setSubmitting(false);

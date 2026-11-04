@@ -56,17 +56,19 @@ class WalletsNotifier extends AutoDisposeAsyncNotifier<WalletList> {
   /// what keeps `free = assets - reserved - debts` true. A wallet the list
   /// does not hold, a wallet whose debt flag changed (its type was edited on
   /// the web), or a list that is not loaded, means the list is stale, so it
-  /// reloads instead. After applying, totals that no longer match the
-  /// server's `summarizeWallets` over the local list also reload.
+  /// reloads instead. The derived totals are kept only when they equal
+  /// [summarizeWallets] (the app's copy of the backend rule) over the local
+  /// list; otherwise the list reloads.
   void applyExpenseWrite(
     List<Wallet> written, {
     required int free,
     required int reserved,
   }) {
     // SPEC-v2 §9 (Never): client-side wallet totals are not the source of
-    // truth. [free] and [reserved] come from the server's answer; the totals
-    // derived here are only checked against summarizeWallets over the local
-    // list, and any mismatch or stale list reloads from the server instead.
+    // truth. [free] and [reserved] come from the server's answer. The totals
+    // derived here are kept only when they equal summarizeWallets (the
+    // app's copy of the backend rule) over the local list; on any mismatch,
+    // or a stale list, the list reloads from the server instead.
     final current = state.valueOrNull;
     if (current == null || state.hasError) {
       ref.invalidateSelf();

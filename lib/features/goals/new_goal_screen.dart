@@ -7,6 +7,7 @@ import '../../core/errors.dart';
 import '../../core/format.dart';
 import '../../core/routes.dart';
 import '../../core/theme.dart';
+import '../../core/unexpected_error.dart';
 import '../../core/widgets/village_button.dart';
 import '../../core/widgets/village_card.dart';
 import '../../data/goals/goals_repository.dart';
@@ -155,37 +156,51 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
     final title = _title.text.trim();
     final target = NewGoalInput.parseTarget(_target.text)!;
     setState(() => _submitting = true);
+    var left = false;
+    try {
+      left = await _createOrRecover(title, target);
+    } catch (error) {
+      // Not an AppException (those are handled below): a bug or a parse
+      // error from create or the list check. Say so, and let it reach the
+      // zone handler.
+      if (error is! AppException && mounted) showUnexpectedError(context);
+      rethrow;
+    } finally {
+      // Any outcome but leaving for the goal, including an unexpected
+      // error, unblocks the form.
+      if (!left && mounted) setState(() => _submitting = false);
+    }
+  }
 
+  /// Creates the goal, or finds the one an earlier attempt may have stored,
+  /// and opens it. True when the screen was left for the goal; false when
+  /// the form stays (with [_submitError] or [_uncertain] set as needed).
+  Future<bool> _createOrRecover(String title, int target) async {
     if (_uncertain) {
       // The previous attempt may have been stored: look before creating.
       switch (await _findCreated(title, target)) {
         case _Found(:final goal):
-          if (!mounted) return;
-          return _openRecovered(goal);
+          if (!mounted) return false;
+          _openRecovered(goal);
+          return true;
         case _Unverified():
           // Cannot tell whether it was stored: creating now could duplicate.
-          if (!mounted) return;
-          setState(() {
-            _submitting = false;
-            _submitError = kNewGoalCheckFailedMessage;
-          });
-          return;
+          if (!mounted) return false;
+          setState(() => _submitError = kNewGoalCheckFailedMessage);
+          return false;
         case _Ambiguous():
           // An identical goal exists and may be the earlier attempt's.
-          if (!mounted) return;
-          setState(() {
-            _submitting = false;
-            _submitError = kNewGoalAmbiguousMessage;
-          });
-          return;
+          if (!mounted) return false;
+          setState(() => _submitError = kNewGoalAmbiguousMessage);
+          return false;
         case _NotFound():
-          if (!mounted) return;
+          if (!mounted) return false;
       }
     } else {
       // A fresh attempt: remember what already exists, so a goal from
       // before this submit is never "recovered" as the new one.
       _knownIds = await _snapshotIds();
-      if (!mounted) return;
+      if (!mounted) return false;
     }
 
     final Goal goal;
@@ -197,28 +212,26 @@ class _NewGoalScreenState extends ConsumerState<NewGoalScreen> {
             deadline: _deadline,
           );
     } on AppException catch (error) {
-      if (!mounted) return;
+      if (!mounted) return false;
       if (error is NetworkException || isGatewayError(error)) {
         // Outcome unknown: the goal may have been stored. Never retry here.
         final check = await _findCreated(title, target);
-        if (!mounted) return;
-        if (check case _Found(:final goal)) return _openRecovered(goal);
+        if (!mounted) return false;
+        if (check case _Found(:final goal)) {
+          _openRecovered(goal);
+          return true;
+        }
         // Not found or not verifiable: the goal may exist either way.
-        setState(() {
-          _submitting = false;
-          _uncertain = true;
-        });
-        return;
+        setState(() => _uncertain = true);
+        return false;
       }
-      setState(() {
-        _submitting = false;
-        _submitError = _messageFor(error);
-      });
-      return;
+      setState(() => _submitError = _messageFor(error));
+      return false;
     }
-    if (!mounted) return;
+    if (!mounted) return false;
     ref.invalidate(goalsProvider);
     context.pushReplacement(GoalRoutes.detail(goal.id));
+    return true;
   }
 
   /// Ids of the goals that exist now: the Desa list when it has settled
