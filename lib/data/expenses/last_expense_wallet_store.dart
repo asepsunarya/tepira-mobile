@@ -10,6 +10,10 @@ abstract interface class LastExpenseWalletStore {
   Future<int?> read();
 
   Future<void> write(int walletId);
+
+  /// Forgets the stored wallet, e.g. on sign-out, so the next user does not
+  /// get this user's wallet preselected.
+  Future<void> clear();
 }
 
 /// [LastExpenseWalletStore] in `flutter_secure_storage` under [key], with
@@ -30,6 +34,9 @@ class SecureLastExpenseWalletStore implements LastExpenseWalletStore {
   @override
   Future<void> write(int walletId) =>
       _storage.write(key: key, value: '$walletId');
+
+  @override
+  Future<void> clear() => _storage.delete(key: key);
 }
 
 final lastExpenseWalletStoreProvider = Provider<LastExpenseWalletStore>(

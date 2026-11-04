@@ -15,4 +15,12 @@ class FakeLastExpenseWalletStore implements LastExpenseWalletStore {
     writes.add(walletId);
     this.walletId = walletId;
   }
+
+  int clearCalls = 0;
+
+  @override
+  Future<void> clear() async {
+    clearCalls++;
+    walletId = null;
+  }
 }

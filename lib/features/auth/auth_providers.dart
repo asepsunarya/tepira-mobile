@@ -7,6 +7,7 @@ import '../../core/errors.dart';
 import '../../data/api_client.dart';
 import '../../data/auth/auth_repository.dart';
 import '../../data/auth/auth_user.dart';
+import '../../data/expenses/last_expense_wallet_store.dart';
 
 /// Where the user stands with the tepira backend.
 @immutable
@@ -98,6 +99,7 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> signOut() async {
     await _repository.signOut();
+    _forgetUserData();
     state = const AuthSignedOut();
   }
 
@@ -123,6 +125,23 @@ class AuthController extends Notifier<AuthState> {
     } on Object {
       // The session is already treated as ended; a failed clear must not
       // block the next sign-in.
+    }
+    _forgetUserData();
+  }
+
+  /// Clears what the app stored for the signed-in user besides the session
+  /// (the last Jajan wallet). Best effort and not awaited: a slow or failed
+  /// storage call must not keep the user signed in.
+  void _forgetUserData() {
+    try {
+      unawaited(
+        ref
+            .read(lastExpenseWalletStoreProvider)
+            .clear()
+            .catchError((Object _) {}),
+      );
+    } on Object {
+      // Only the next Jajan default is affected.
     }
   }
 }
