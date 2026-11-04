@@ -11,8 +11,10 @@ import 'package:tepira_mobile/core/theme.dart';
 import 'package:tepira_mobile/data/goals/goals_repository.dart';
 import 'package:tepira_mobile/features/goals/goals_screen.dart';
 import 'package:tepira_mobile/features/goals/widgets/goal_row.dart';
+import 'package:tepira_mobile/data/today/today_repository.dart';
 
 import '../../helpers/fake_goals_repository.dart';
+import '../../helpers/fake_today_repository.dart';
 
 final _threeGoals = [
   testGoal(id: 1, title: 'Dana darurat', saved: 3450000, target: 10000000),
@@ -50,7 +52,10 @@ Future<void> _pumpDesa(
   addTearDown(router.dispose);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [goalsRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        todayRepositoryProvider.overrideWithValue(FakeTodayRepository.budget()),
+        goalsRepositoryProvider.overrideWithValue(repository),
+      ],
       child:
           MaterialApp.router(theme: buildVillageTheme(), routerConfig: router),
     ),

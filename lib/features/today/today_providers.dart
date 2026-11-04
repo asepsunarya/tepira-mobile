@@ -4,7 +4,8 @@ import '../../data/today/today_repository.dart';
 import 'model/today_summary.dart';
 
 /// The Desa summary (`GET /api/mobile/today`). Disposed when no screen
-/// watches it, so the next visit (or the next user) loads it fresh.
+/// watches it, so the next visit (or the next user) loads it fresh. The
+/// Desa reloads it on resume and at 00:00 WIB (`TodaySection`).
 class TodayNotifier extends AutoDisposeAsyncNotifier<TodaySummary> {
   @override
   Future<TodaySummary> build() => ref.watch(todayRepositoryProvider).get();

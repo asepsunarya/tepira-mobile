@@ -23,6 +23,7 @@ import 'package:tepira_mobile/features/goals/goals_screen.dart';
 import 'package:tepira_mobile/features/goals/new_goal_screen.dart';
 import 'package:tepira_mobile/features/goals/model/goal.dart';
 import 'package:tepira_mobile/features/settings/settings_screen.dart';
+import 'package:tepira_mobile/data/today/today_repository.dart';
 
 import 'helpers/fake_auth_repository.dart';
 import 'helpers/fake_goals_repository.dart';
@@ -30,6 +31,7 @@ import 'helpers/fake_last_expense_wallet_store.dart';
 import 'helpers/fake_google_id_token_source.dart';
 import 'helpers/fake_session_store.dart';
 import 'helpers/fake_wallets_repository.dart';
+import 'helpers/fake_today_repository.dart';
 
 void main() {
   group('authRedirect', () {
@@ -120,6 +122,8 @@ void main() {
           lastExpenseWalletStoreProvider.overrideWithValue(
             FakeLastExpenseWalletStore(),
           ),
+          todayRepositoryProvider
+              .overrideWithValue(FakeTodayRepository.budget()),
           goalsRepositoryProvider.overrideWithValue(
             FakeGoalsRepository(
               [
