@@ -31,30 +31,34 @@ class _ExpenseEditScreenState extends State<ExpenseEditScreen> {
   Widget build(BuildContext context) {
     final c = VillageColors.of(context);
     final expense = widget.expense;
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [c.langit, c.langitMuda, c.kertas],
-            stops: const [0, 0.45, 1],
+    // Android back waits for a running save, like the close button.
+    return PopScope(
+      canPop: !_submitting,
+      child: Scaffold(
+        body: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [c.langit, c.langitMuda, c.kertas],
+              stops: const [0, 0.45, 1],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _Header(enabled: !_submitting),
-              Expanded(
-                child: expense == null
-                    ? const _MissingExpense()
-                    : ExpenseForm(
-                        original: expense,
-                        onSubmittingChanged: (busy) =>
-                            setState(() => _submitting = busy),
-                      ),
-              ),
-            ],
+          child: SafeArea(
+            child: Column(
+              children: [
+                _Header(enabled: !_submitting),
+                Expanded(
+                  child: expense == null
+                      ? const _MissingExpense()
+                      : ExpenseForm(
+                          original: expense,
+                          onSubmittingChanged: (busy) =>
+                              setState(() => _submitting = busy),
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -165,114 +165,119 @@ class _ContributeScreenState extends ConsumerState<ContributeScreen> {
     final uncertainId = _uncertainGoalId;
     final canSubmit = selected != null && _amount > 0 && !_submitting;
 
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [c.langit, c.langitMuda, c.kertas],
-            stops: const [0, 0.45, 1],
+    // Android back waits for a running deposit or expense save.
+    return PopScope(
+      canPop: !_submitting && !_expenseSubmitting,
+      child: Scaffold(
+        body: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [c.langit, c.langitMuda, c.kertas],
+              stops: const [0, 0.45, 1],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _Header(
-                tab: _tab,
-                onTab: _submitting || _expenseSubmitting
-                    ? null
-                    : (tab) => setState(() => _tab = tab),
-              ),
-              if (_tab == _Tab.jajan)
-                Expanded(
-                  child: ExpenseForm(
-                    onSubmittingChanged: (busy) =>
-                        setState(() => _expenseSubmitting = busy),
-                  ),
-                )
-              else ...[
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-                    children: [
-                      _GoalField(
-                        goals: goals,
-                        selected: selected,
-                        requestMissing: requestMissing,
-                        onTap: list == null || _submitting
-                            ? null
-                            : () => _openPicker(list),
-                        onRetry: () => ref.invalidate(goalsProvider),
-                      ),
-                      if (uncertainId != null) ...[
-                        const SizedBox(height: 12),
-                        _UncertainDeposit(goalId: uncertainId),
-                      ],
-                      const SizedBox(height: 12),
-                      _AmountDisplay(amount: _amount),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          for (final (i, amount) in kQuickAmounts.indexed) ...[
-                            if (i > 0) const SizedBox(width: 6),
-                            Expanded(
-                              child: VillageChip(
-                                key: Key('chip-$amount'),
-                                label: formatRupiah(amount),
-                                selected: _amount == amount,
-                                onTap: _submitting
-                                    ? null
-                                    : () => _setAmount(amount),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        key: const Key('note'),
-                        controller: _note,
-                        enabled: !_submitting,
-                        maxLength: 120,
-                        textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(
-                          labelText: 'Catatan (opsional)',
-                          hintText: 'misal: sisa uang jajan',
-                          counterText: '',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      AmountKeypad(
-                        onKey: _submitting
-                            ? null
-                            : (key) => _setAmount(keypadAmount(_amount, key)),
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 10),
-                        Text(
-                          _error!,
-                          key: const Key('submit-error'),
-                          textAlign: TextAlign.center,
-                          style: villageText(fontSize: 13, color: c.merah),
-                        ),
-                      ],
-                    ],
-                  ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                _Header(
+                  tab: _tab,
+                  onTab: _submitting || _expenseSubmitting
+                      ? null
+                      : (tab) => setState(() => _tab = tab),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: VillageButton(
-                      key: const Key('submit'),
-                      label: _ctaLabel(selected),
-                      onPressed: canSubmit ? () => _submit(selected) : null,
+                if (_tab == _Tab.jajan)
+                  Expanded(
+                    child: ExpenseForm(
+                      onSubmittingChanged: (busy) =>
+                          setState(() => _expenseSubmitting = busy),
+                    ),
+                  )
+                else ...[
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                      children: [
+                        _GoalField(
+                          goals: goals,
+                          selected: selected,
+                          requestMissing: requestMissing,
+                          onTap: list == null || _submitting
+                              ? null
+                              : () => _openPicker(list),
+                          onRetry: () => ref.invalidate(goalsProvider),
+                        ),
+                        if (uncertainId != null) ...[
+                          const SizedBox(height: 12),
+                          _UncertainDeposit(goalId: uncertainId),
+                        ],
+                        const SizedBox(height: 12),
+                        _AmountDisplay(amount: _amount),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            for (final (i, amount)
+                                in kQuickAmounts.indexed) ...[
+                              if (i > 0) const SizedBox(width: 6),
+                              Expanded(
+                                child: VillageChip(
+                                  key: Key('chip-$amount'),
+                                  label: formatRupiah(amount),
+                                  selected: _amount == amount,
+                                  onTap: _submitting
+                                      ? null
+                                      : () => _setAmount(amount),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          key: const Key('note'),
+                          controller: _note,
+                          enabled: !_submitting,
+                          maxLength: 120,
+                          textInputAction: TextInputAction.done,
+                          decoration: const InputDecoration(
+                            labelText: 'Catatan (opsional)',
+                            hintText: 'misal: sisa uang jajan',
+                            counterText: '',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        AmountKeypad(
+                          onKey: _submitting
+                              ? null
+                              : (key) => _setAmount(keypadAmount(_amount, key)),
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            _error!,
+                            key: const Key('submit-error'),
+                            textAlign: TextAlign.center,
+                            style: villageText(fontSize: 13, color: c.merah),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: VillageButton(
+                        key: const Key('submit'),
+                        label: _ctaLabel(selected),
+                        onPressed: canSubmit ? () => _submit(selected) : null,
+                      ),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

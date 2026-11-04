@@ -460,6 +460,48 @@ void main() {
       expect(expenses.updated, hasLength(1));
     });
 
+    testWidgets('Android back does nothing while the update runs',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        listResults: [fixtureExpenseList()],
+        updateResults: [_updatedWith(_row499(amount: 15000))],
+      )..updateGate = Completer<void>();
+      await _pump(tester, expenses);
+
+      await _openEdit(tester, 499);
+      await tester.tap(find.byKey(const Key('expense-chip-15000')));
+      await tester.pump();
+      await tester.tap(_submit);
+      await tester.pump();
+
+      await tester.binding.handlePopRoute();
+      // Past any route transition, so a pop would be complete.
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+
+      expect(find.byType(ExpenseEditScreen), findsOneWidget);
+      expect(find.byType(ExpenseRow), findsNothing);
+      expect(_submitLabel(tester), 'Menyimpan…');
+      expenses.updateGate!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(ExpenseEditScreen), findsNothing);
+      expect(expenses.updated, hasLength(1));
+    });
+
+    testWidgets('Android back closes the form when no update runs',
+        (tester) async {
+      final expenses =
+          FakeExpensesRepository(listResults: [fixtureExpenseList()]);
+      await _pump(tester, expenses);
+
+      await _openEdit(tester, 499);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ExpenseEditScreen), findsNothing);
+      expect(find.byType(ExpenseRow), findsNWidgets(3));
+    });
+
     testWidgets('a 404 shows the message and keeps the form', (tester) async {
       final expenses = FakeExpensesRepository(
         listResults: [fixtureExpenseList()],
