@@ -19,7 +19,7 @@ void main() {
     );
   });
 
-  test('categories.json holds the nine web categories (tepira 206408b)', () {
+  test('categories.json holds the eleven web categories (tepira 17dac72)', () {
     final fixture = jsonDecode(
       File('test/fixtures/categories.json').readAsStringSync(),
     ) as List<Object?>;
@@ -57,6 +57,11 @@ void main() {
         'group': 'Kewajiban & rutin',
       },
       {
+        'key': 'biaya_admin',
+        'label': 'Biaya admin & bank',
+        'group': 'Kewajiban & rutin',
+      },
+      {
         'key': 'nongkrong',
         'label': 'Nongkrong / jajan',
         'group': 'Hiburan & fleksibel',
@@ -66,6 +71,7 @@ void main() {
         'label': 'Belanja kecil',
         'group': 'Hiburan & fleksibel',
       },
+      {'key': 'lainnya', 'label': 'Lainnya', 'group': 'Hiburan & fleksibel'},
     ]);
   });
 
@@ -84,6 +90,13 @@ void main() {
       expect(categoryByLabel(null), isNull);
       expect(categoryByLabel('makan_harian'), isNull);
       expect(categoryByLabel('makan harian'), isNull);
+      expect(categoryByLabel('lainnya'), isNull);
+      expect(categoryByLabel('Biaya parkir'), isNull);
+    });
+
+    test('finds the categories added with backlog #6', () {
+      expect(categoryByLabel('Biaya admin & bank')?.key, 'biaya_admin');
+      expect(categoryByLabel('Lainnya')?.key, 'lainnya');
     });
   });
 
@@ -92,6 +105,8 @@ void main() {
       expect(categoryLabelOf('Transport'), 'Transport');
       expect(categoryLabelOf(null), isNull);
       expect(categoryLabelOf('Lain-lain'), 'Lain-lain');
+      // A label the server added after this build: shown as sent.
+      expect(categoryLabelOf('Biaya parkir'), 'Biaya parkir');
     });
 
     test('maps every web key to its label', () {
@@ -131,8 +146,12 @@ void main() {
     ]);
     expect(
       groups['Hiburan & fleksibel']!.map((c) => c.label),
-      ['Nongkrong / jajan', 'Belanja kecil'],
+      ['Nongkrong / jajan', 'Belanja kecil', 'Lainnya'],
     );
-    expect(groups.values.expand((g) => g), hasLength(9));
+    expect(
+      groups['Kewajiban & rutin']!.map((c) => c.label).last,
+      'Biaya admin & bank',
+    );
+    expect(groups.values.expand((g) => g), hasLength(11));
   });
 }

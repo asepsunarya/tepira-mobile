@@ -35,6 +35,11 @@
     "group": "Kewajiban & rutin"
   },
   {
+    "key": "biaya_admin",
+    "label": "Biaya admin & bank",
+    "group": "Kewajiban & rutin"
+  },
+  {
     "key": "nongkrong",
     "label": "Nongkrong / jajan",
     "group": "Hiburan & fleksibel"
@@ -42,6 +47,11 @@
   {
     "key": "belanja_kecil",
     "label": "Belanja kecil",
+    "group": "Hiburan & fleksibel"
+  },
+  {
+    "key": "lainnya",
+    "label": "Lainnya",
     "group": "Hiburan & fleksibel"
   }
 ]

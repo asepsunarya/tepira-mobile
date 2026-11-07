@@ -32,8 +32,8 @@ const int kExpenseMaxDaysBack = 7;
 
 /// The Jajan tab of the Catat screen (`/record?tab=jajan`, SPEC-v2 §4
 /// `expenses`): amount by chip, keypad or typing, an optional category,
-/// the wallet to pay from, the day, an optional note and, under "Lainnya",
-/// the money source. The fastest path is a chip and Simpan.
+/// the wallet to pay from, the day, an optional note and, under "Opsi lain",
+/// the money source. (Not "Lainnya": that is a category chip.) The fastest path is a chip and Simpan.
 ///
 /// Given an [original] expense, the form starts filled with it and saves a
 /// change instead (`/record?expense=:id`, SPEC-v2 §3.7): only the fields
@@ -501,7 +501,7 @@ class _ExpenseFormState extends ConsumerState<ExpenseForm> {
             _showMore ? Icons.expand_less_rounded : Icons.expand_more_rounded,
             size: 18,
           ),
-          label: const Text('Lainnya'),
+          label: const Text('Opsi lain'),
           style: TextButton.styleFrom(
             foregroundColor: c.pinkText,
             minimumSize: const Size(44, 44),

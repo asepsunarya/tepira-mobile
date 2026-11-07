@@ -1,6 +1,11 @@
-/// Expense categories, the same nine as the web (`tepira: lib/categories.ts`,
+/// Expense categories, the same eleven as the web (`tepira: lib/categories.ts`,
 /// SPEC-v2 §2). The mobile API sends and accepts the [ExpenseCategory.label];
 /// an expense without a category has `category: null`.
+///
+/// The server may know a label this build does not (a category added after
+/// this release). Such an expense is shown with its label as sent, no chip is
+/// selected when it is edited, and the category is kept unless the user
+/// picks another one: the form only sends changed fields.
 library;
 
 class ExpenseCategory {
@@ -58,6 +63,11 @@ const List<ExpenseCategory> kExpenseCategories = [
     group: 'Kewajiban & rutin',
   ),
   ExpenseCategory(
+    key: 'biaya_admin',
+    label: 'Biaya admin & bank',
+    group: 'Kewajiban & rutin',
+  ),
+  ExpenseCategory(
     key: 'nongkrong',
     label: 'Nongkrong / jajan',
     group: 'Hiburan & fleksibel',
@@ -65,6 +75,11 @@ const List<ExpenseCategory> kExpenseCategories = [
   ExpenseCategory(
     key: 'belanja_kecil',
     label: 'Belanja kecil',
+    group: 'Hiburan & fleksibel',
+  ),
+  ExpenseCategory(
+    key: 'lainnya',
+    label: 'Lainnya',
     group: 'Hiburan & fleksibel',
   ),
 ];
