@@ -696,7 +696,7 @@ void main() {
       },
     );
 
-    testWidgets('opens Lainnya with no source chip selected', (tester) async {
+    testWidgets('opens Opsi lain with no source chip selected', (tester) async {
       final expenses = FakeExpensesRepository(listResults: [oddList()]);
       await _pump(tester, expenses);
 

@@ -378,6 +378,93 @@ void main() {
       ]);
     });
 
+    testWidgets(
+        'a category this build does not know is shown as sent, no chip is '
+        'selected, and an amount change keeps it', (tester) async {
+      // A label the server added after this release (as Biaya admin & bank
+      // and Lainnya were for older builds).
+      final base = fixtureExpenseList();
+      final future = testExpense(
+        id: 499,
+        category: 'Biaya parkir',
+        note: null,
+        date: DateTime.utc(2026, 11, 1, 5, 30),
+      );
+      final expenses = FakeExpensesRepository(
+        listResults: [
+          testExpenseList(base.period, [
+            for (final e in base.expenses) e.id == 499 ? future : e,
+          ]),
+        ],
+        updateResults: [
+          _updatedWith(
+            testExpense(
+              id: 499,
+              amount: 15000,
+              category: 'Biaya parkir',
+              note: null,
+              date: DateTime.utc(2026, 11, 1, 5, 30),
+            ),
+          ),
+        ],
+      );
+      await _pump(tester, expenses);
+
+      final row = find.byKey(const ValueKey('expense-499'));
+      expect(
+        find.descendant(of: row, matching: find.text('Biaya parkir')),
+        findsOneWidget,
+      );
+
+      await _openEdit(tester, 499);
+      final chips = tester.widgetList<VillageChip>(
+        find.byWidgetPredicate(
+          (w) =>
+              w is VillageChip &&
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('category-'),
+        ),
+      );
+      expect(chips, hasLength(11));
+      expect(chips.where((c) => c.selected), isEmpty);
+      expect(_submitLabel(tester), 'Belum ada perubahan');
+
+      await tester.tap(find.byKey(const Key('expense-chip-15000')));
+      await tester.pump();
+      await tester.tap(_submit);
+      await tester.pumpAndSettle();
+
+      expect(_sent(expenses), [
+        [
+          499,
+          {'amount': 15000},
+        ],
+      ]);
+    });
+
+    testWidgets('the new categories can be picked and are sent by label',
+        (tester) async {
+      final expenses = FakeExpensesRepository(
+        listResults: [fixtureExpenseList()],
+        updateResults: [_updatedWith(_row499())],
+      );
+      await _pump(tester, expenses);
+
+      await _openEdit(tester, 499);
+      await tester.ensureVisible(find.byKey(const Key('category-biaya_admin')));
+      await tester.tap(find.byKey(const Key('category-biaya_admin')));
+      await tester.pump();
+      await tester.tap(_submit);
+      await tester.pumpAndSettle();
+
+      expect(_sent(expenses), [
+        [
+          499,
+          {'category': 'Biaya admin & bank'},
+        ],
+      ]);
+    });
+
     testWidgets('only the amount changed sends {amount}; the list follows',
         (tester) async {
       final expenses = FakeExpensesRepository(
